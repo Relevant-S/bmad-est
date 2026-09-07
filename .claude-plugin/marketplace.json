@@ -12,11 +12,26 @@
       "source": "./",
       "version": "1.0.0",
       "category": "productivity",
-      "tags": ["bmad", "estimation", "presale", "scope", "delivery", "sow", "rfp"],
+      "tags": [
+        "bmad",
+        "estimation",
+        "presale",
+        "scope",
+        "delivery",
+        "sow",
+        "rfp"
+      ],
       "author": {
         "name": "Ostap Dribniuk"
       },
-      "homepage": "https://github.com/Relevant-S/bmad-est"
+      "homepage": "https://github.com/Relevant-S/bmad-est",
+      "skills": [
+        "./skills/est-setup",
+        "./skills/est-scope-extract",
+        "./skills/est-estimate",
+        "./skills/est-calibrate",
+        "./skills/est-agent-estimator"
+      ]
     }
   ]
 }

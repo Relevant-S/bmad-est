@@ -55,6 +55,30 @@ uv run scripts/merge-help-csv.py --target {project-root}/_bmad/_config/bmad-help
 
 That catalog is what `bmad-help` reads. **Never pass `--legacy-dir` here** — it would delete `_bmad/core/module-help.csv`, which belongs to another module.
 
+## Headless
+
+`-H`, no TTY, or every value supplied in the invocation: take the defaults for anything not given, skip the prompts, and still do everything else — write the config, register the capabilities, scaffold the memory, seed the model, check the converters.
+
+Two things change. **Never overwrite an existing `{memory}/cost-model.json`**, which is the same rule as interactive but matters more when nobody is watching. And return this and nothing else:
+
+```json
+{
+  "status": "complete",
+  "module": "est",
+  "config": "{project-root}/_bmad/custom/config.toml",
+  "settings_written": 10,
+  "help_entries": 11,
+  "cost_model": "seeded | already present",
+  "converters_missing": ["markitdown"],
+  "needs_attention": [
+    "company-profile.md not written — estimates will use default team assumptions",
+    "cost model is UNCALIBRATED"
+  ]
+}
+```
+
+`needs_attention` is the load-bearing field: an unattended install that quietly leaves a project estimating against industry averages is worse than one that failed.
+
 ## Scaffold the module memory
 
 The four skills share one memory at `{memory}`, and three of them expect it to exist. Create `{memory}/ledger/` and the configured `est_output_folder`.
