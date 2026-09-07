@@ -1,0 +1,45 @@
+{
+  "scanner": "scripts",
+  "script": "scan-scripts.py",
+  "version": "2.0.0",
+  "skill_path": "skills/est-scope-extract",
+  "timestamp": "2026-09-07T13:52:07.442462+00:00",
+  "status": "pass",
+  "findings": [],
+  "assessments": {
+    "lint_summary": {
+      "tools_used": [],
+      "files_linted": 4,
+      "lint_issues": 0
+    },
+    "script_summary": {
+      "total_scripts": 4,
+      "by_type": {
+        "python": 4,
+        "shell": 0,
+        "node": 0,
+        "other": 0
+      },
+      "scripts": {
+        "python": [
+          "convert-input.py",
+          "inventory-check.py",
+          "inventory-diff.py",
+          "render-inventory.py"
+        ]
+      },
+      "missing_tests": []
+    }
+  },
+  "summary": {
+    "total_findings": 0,
+    "by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "by_category": {},
+    "assessment": ""
+  }
+}

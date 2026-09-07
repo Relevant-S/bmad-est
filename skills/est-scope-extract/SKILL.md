@@ -1,0 +1,79 @@
+---
+name: est-scope-extract
+description: Extracts traceable feature scope from project documents. Use when user says "extract scope", "build a feature inventory", "what's in this RFP", or "scope this SOW". Supports headless (-H) for batch runs.
+---
+
+# est-scope-extract
+
+## Overview
+
+This skill turns any project input — call transcript, PRD, SOW, RFP, backlog workbook, in any format or language — into a **Feature Inventory** in which every line traces back to the source text that produced it. Act as a delivery lead reading a client document for what it will actually cost to build, not as a summarizer. The output is `feature-inventory.json` plus rendered views, consumed by `est-estimate`.
+
+`module-code: est`
+
+## Resolution rules
+
+- Bare paths and `{skill-root}` (e.g. `references/classification-guide.md`) resolve from this skill's installed directory.
+- `{project-root}` → the project working directory.
+- `{output_folder}` → from `{project-root}/_bmad/config.yaml`, defaulting to `{project-root}/_bmad-output`.
+- `{project-slug}` → kebab-case of the project or deal name the user gives.
+
+## The bar
+
+Two consumers set it. `est-estimate` needs every field its cost model reads, correctly typed. The human who must defend the resulting number needs to open this inventory beside the client's own document and verify it line by line — including a reviewer who reads the source's language and not yours.
+
+**The non-negotiable is two-way traceability.** Every feature carries at least one citation with a verbatim quote. Every substantive passage that did *not* become a feature appears in `not_scope` with a reason. Silent invention and silent omission are the two failures that make people stop trusting the whole module, and they are invisible in a well-formatted output — which is why nothing here rests on your own reading being right. `inventory-check.py` re-opens the sources and verifies the claims mechanically.
+
+## Intents
+
+Read the user's intent and route. Ask the single disambiguating question only when it is genuinely unclear.
+
+| Intent | When | Where |
+| --- | --- | --- |
+| **create** | Fresh sources, no existing inventory | Below |
+| **update** | New or revised sources against an existing inventory — the scope-creep case | `references/update-and-validate.md` |
+| **validate** | Read-only recheck of an inventory against its sources before it feeds an estimate | `references/update-and-validate.md` |
+| **resume** | A workspace holding a memlog and a partial inventory — a create run that was interrupted | Read `.memlog.md` once, then continue in Create from the last beat it records |
+
+Decide between them by looking, not by asking: once the project is named, check `{output_folder}/estimates/{project-slug}/`. A complete inventory means update, a partial one means resume, nothing there means create.
+
+**Headless** — no TTY, a programmatic caller, `-H`/`--headless`, or every input supplied up front — changes what happens at each point that would otherwise ask a human. Load `references/headless.md` and follow it for the whole run.
+
+## Create
+
+**Settle three things first**, in two sentences, before converting anything: the project name, what the estimate is *for* (`granularity`: a whole project, an epic, a sprint, or a single feature), and **which source is contractual, if any**. That last one switches on the agreed-scope machinery, and discovering it accidentally mid-extraction is how it ends up applied inconsistently.
+
+**Then open the workspace** at `{output_folder}/estimates/{project-slug}/`, which holds `feature-inventory.json` (source of truth), the rendered `.md` and `.csv`, `extraction-report.md`, `normalized/` (converted sources plus `manifest.json`), and `.memlog.md` — init that with `uv run {project-root}/_bmad/scripts/memlog.py init --path <workspace>/.memlog.md`. State lives on disk from here on, so the user has the path and nothing depends on the conversation surviving.
+
+**Convert, then read.** `uv run scripts/convert-input.py <paths> --out-dir <workspace>/normalized -o <workspace>/normalized/manifest.json` (`--help` for the interface). It emits the anchors your citations point at — page markers, `## sheet:` blocks with real row numbers, headings — so read the normalized files, not the originals. Any source marked `needs_native_read` (a scanned PDF, an unsupported format) you read directly, recording how in its `coverage_note`; one you cannot read at all is recorded as unread, never quietly dropped. Without `uv`, the other three scripts are stdlib-only and run under `python3`; without the conversion libraries, every source falls to the `needs_native_read` path and you read them all directly — slower, and correct.
+
+**Extract, one pass per source.** Identify what each document is (`references/source-type-playbook.md` — a transcript, an RFP and a backlog workbook each hide scope differently, and reading a transcript like a spec is the most common way to over-commit a client). Pull out discrete, estimable features. Cite each one against the anchors the conversion gave you. Record what a passage was, if it was not scope.
+
+**Classify every feature** on the five axes `est-estimate` consumes — size band, compressibility, review tier, clarity, novelty — using `references/classification-guide.md`. Each tag needs a one-line `why`; the module ships no coefficient a human cannot interrogate. Capture dependencies while the source is still in front of you, because the sentence that implies one ("once login is in place, users can…") is gone by the time the estimate runs.
+
+**Account for coverage.** Confirm every substantive passage produced either a feature or a `not_scope` entry. Set the `completeness_signals`, each with the one-line reason that decided it — they set the width of the whole estimate, so they are held to the same standard as a tag. Write the JSON against `assets/feature-inventory.schema.json`.
+
+**Check.** `uv run scripts/inventory-check.py <workspace>/feature-inventory.json --normalized <workspace>/normalized --manifest <workspace>/normalized/manifest.json` verifies every quote against the document it cites, resolves structured locations against anchors the file really has, reconciles converted sources against `sources`, and checks the schema, references and dependency graph. Its `unreferenced_regions` is the coverage pass done by search rather than memory. Fix every finding, judge each unreferenced region for substance, re-run until clean.
+
+**Review before finalizing.** Fan out one subagent per normalized source, each given that source's path and only the features and `not_scope` entries citing it, returning ONLY `{"invented": [{feature_id, why}], "omitted": [{location, quote, why}]}`. They answer what no script can: does the feature actually *follow* from its quote. Without subagents, do the same checks yourself one source at a time and say in the report which way it ran.
+
+**Then render and report.** `uv run scripts/render-inventory.py <workspace>/feature-inventory.json` for the `.md` and `.csv`. Write `extraction-report.md` from the check output: the completeness score and what drove it, what the sources failed to say, open questions ranked by how much they matter, conflicts between sources, and anything unread. This report tells a presale lead whether to estimate now or go back to the client first.
+
+**Confirm as one batch, not a queue.** Everything needing a human — `sensitive` and `critical` tags, inferred dependencies, every `outside_agreed_scope` call — goes into one table the operator can accept wholesale or correct selectively. A long RFP generates dozens; asking one at a time produces rubber-stamping exactly where accuracy matters most. When a human corrects a tag, set `status` to `overridden` and record why:
+
+```
+uv run {project-root}/_bmad/scripts/memlog.py append --path <workspace>/.memlog.md \
+  --type decision --text "<tag, old value, new value, the operator's reason>"
+```
+
+If that script is unavailable, append the same typed line to `.memlog.md` directly and note that it was written by hand.
+
+## Gotchas
+
+- **Never write the completeness score yourself.** You set `completeness_signals`; `inventory-check.py` computes the score under fixed, published weights (`--weights`). The weights are not negotiable per run, so nobody can tune a thin input into looking certain — but the signals are still your judgement, which is why each carries a `why`.
+- **A human's tag outranks a fresh inference.** On re-extraction, `confirmed` and `overridden` tags carry forward rather than being re-guessed; `references/update-and-validate.md` has the merge rule.
+- **Where a contract is present, it defines the agreed scope.** A feature the other sources raise but the contract does not cover is `scope_status: outside_agreed_scope` — priced, but as an addition, never folded into the agreed number. Ask the operator before tagging one; it is a commercial call, not an extraction call. `references/source-type-playbook.md` has the full rule, `references/headless.md` the unattended default.
+- **A feature with no citation is invented scope.** If you believe something is needed but the source never says so, it is an `assumption`, not a feature — or a feature with `commitment: implied` and a citation for what implies it.
+- **Preserve the original-language quote.** When a source is not in the working language, `quote` carries your translation and `quote_original` the untranslated text. Traceability a native reader cannot verify is not traceability.
+- **Do not resolve disagreements between sources.** When the SOW and the call contradict each other, both go in `conflicts`. Picking one silently decides a commercial question that is not yours.
+- **Speculation is not scope.** "They mentioned wanting notifications eventually" is `commitment: speculative`. Including it as committed inflates the estimate; dropping it loses a real signal.

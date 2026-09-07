@@ -1,0 +1,132 @@
+{
+  "scanner": "prompt-metrics-prepass",
+  "script": "prepass-prompt-metrics.py",
+  "version": "2.0.0",
+  "skill_path": "skills/est-scope-extract",
+  "timestamp": "2026-09-07T13:52:07.153574+00:00",
+  "budgets": {
+    "skill_md_tokens": [
+      1500,
+      2500
+    ],
+    "multi_branch_reference_tokens": 4500,
+    "single_purpose_reference_tokens": 9000
+  },
+  "skill_md": {
+    "tokens": 1748,
+    "token_method": "tiktoken",
+    "section_count": 7,
+    "frontmatter": {
+      "name": "est-scope-extract",
+      "description": "Extracts traceable feature scope from project documents. Use when user says \"extract scope\", \"build a feature inventory\", \"what's in this RFP\", or \"scope this SOW\".",
+      "description_chars": 164,
+      "description_has_angle_brackets": false,
+      "keys": [
+        "description",
+        "name"
+      ]
+    }
+  },
+  "aggregate": {
+    "total_files_scanned": 2,
+    "total_tokens": 2970,
+    "total_waste_patterns": 0,
+    "total_back_references": 0,
+    "files_with_numbered_prefix": 0
+  },
+  "reference_sizes": {
+    "classification-guide.md": {
+      "tokens": 1595,
+      "token_method": "tiktoken",
+      "numbered_prefix_filename": false
+    },
+    "source-type-playbook.md": {
+      "tokens": 1427,
+      "token_method": "tiktoken",
+      "numbered_prefix_filename": false
+    },
+    "update-and-validate.md": {
+      "tokens": 889,
+      "token_method": "tiktoken",
+      "numbered_prefix_filename": false
+    }
+  },
+  "files": [
+    {
+      "file": "SKILL.md",
+      "tokens": 1748,
+      "token_method": "tiktoken",
+      "sections": [
+        {
+          "level": 2,
+          "title": "Overview"
+        },
+        {
+          "level": 2,
+          "title": "Resolution rules"
+        },
+        {
+          "level": 2,
+          "title": "The bar"
+        },
+        {
+          "level": 2,
+          "title": "Workspace"
+        },
+        {
+          "level": 2,
+          "title": "Intents"
+        },
+        {
+          "level": 2,
+          "title": "Create"
+        },
+        {
+          "level": 2,
+          "title": "Gotchas"
+        }
+      ],
+      "table_count": 1,
+      "table_rows": 5,
+      "fenced_block_count": 0,
+      "allcaps_directive_count": 0,
+      "numbered_prefix_filename": false,
+      "waste_patterns": [],
+      "back_references": [],
+      "frontmatter": {
+        "name": "est-scope-extract",
+        "description": "Extracts traceable feature scope from project documents. Use when user says \"extract scope\", \"build a feature inventory\", \"what's in this RFP\", or \"scope this SOW\".",
+        "description_chars": 164,
+        "description_has_angle_brackets": false,
+        "keys": [
+          "description",
+          "name"
+        ]
+      },
+      "is_skill_md": true
+    },
+    {
+      "file": ".memlog.md",
+      "tokens": 1222,
+      "token_method": "tiktoken",
+      "sections": [],
+      "table_count": 0,
+      "table_rows": 0,
+      "fenced_block_count": 0,
+      "allcaps_directive_count": 0,
+      "numbered_prefix_filename": false,
+      "waste_patterns": [],
+      "back_references": [],
+      "frontmatter": {
+        "name": "",
+        "description": "",
+        "description_chars": 0,
+        "description_has_angle_brackets": false,
+        "keys": [
+          "updated"
+        ]
+      },
+      "is_skill_md": false
+    }
+  ]
+}

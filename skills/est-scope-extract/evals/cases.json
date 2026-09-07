@@ -1,0 +1,76 @@
+{
+  "skill": "est-scope-extract",
+  "cases": [
+    {
+      "id": "row-anchor-drift",
+      "fixture": "backlog-with-banner.xlsx",
+      "asks": "Extract scope from this workbook.",
+      "must_hold": [
+        "'Refund processing' is cited as sheet 'Scope' row 7, not row 5 or 6",
+        "the banner in row 1 is not treated as a column header",
+        "the 'Sheet3' tab is read; data retention enforcement appears as a feature",
+        "the 'Commercials' tab appears in not_scope, not as features",
+        "refund processing and data retention are tagged sensitive or critical"
+      ]
+    },
+    {
+      "id": "multiline-quoted-field",
+      "fixture": "requirements.csv",
+      "asks": "Extract scope from this requirements file.",
+      "must_hold": [
+        "the R1 quote reads as one sentence, not 'signature\\nand a photograph' welded together",
+        "R2 is cited at its real line number, not shifted by R1's embedded newline"
+      ]
+    },
+    {
+      "id": "non-english-source",
+      "fixture": "vymohy-uk.md",
+      "asks": "Extract scope from this document.",
+      "must_hold": [
+        "every citation carries quote_original in Ukrainian alongside the translation",
+        "the payments feature is tagged sensitive",
+        "section 5 (комерційні умови) is in not_scope, not a feature"
+      ]
+    },
+    {
+      "id": "contradicting-sources",
+      "fixture": [
+        "sow-excerpt.txt",
+        "discovery-call.md"
+      ],
+      "asks": "Extract scope. The SOW is the contractual document.",
+      "must_hold": [
+        "the PCI disagreement appears in conflicts and is NOT silently resolved",
+        "the dispatcher Monday cycle is surfaced — it is the stated core problem and the SOW does not cover it",
+        "anything not traceable to the SOW carries scope_status outside_agreed_scope",
+        "the predictive routing remark is commitment: speculative, not committed",
+        "section 9 commercial terms are in not_scope"
+      ]
+    },
+    {
+      "id": "thin-brief",
+      "fixture": "brief.md",
+      "asks": "Estimate scope from this brief.",
+      "must_hold": [
+        "input_completeness scores low (roughly under 0.25)",
+        "almost every feature is clarity: low",
+        "open_questions is substantial — the questions are the deliverable here",
+        "no admin dashboard, audit log or export feature is invented",
+        "offline operation is tagged low compressibility and novel"
+      ]
+    },
+    {
+      "id": "unreadable-sources",
+      "fixture": [
+        "wireframes.sketch",
+        "scanned-contract.pdf"
+      ],
+      "asks": "Extract scope from these files.",
+      "must_hold": [
+        "both are listed in sources with a coverage_note saying they could not be read",
+        "neither is silently omitted from the inventory",
+        "inventory-check --manifest reports nothing missing, because both were listed"
+      ]
+    }
+  ]
+}

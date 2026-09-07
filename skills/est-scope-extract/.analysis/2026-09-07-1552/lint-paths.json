@@ -1,0 +1,68 @@
+{
+  "scanner": "path-standards",
+  "script": "scan-path-standards.py",
+  "version": "3.0.0",
+  "skill_path": "skills/est-scope-extract",
+  "timestamp": "2026-09-07T13:52:07.264220+00:00",
+  "files_scanned": [
+    ".analysis/2026-09-07-1552/lint-paths.json",
+    ".analysis/2026-09-07-1552/prepass-integrity.json",
+    ".analysis/2026-09-07-1552/prepass-metrics.json",
+    ".memlog.md",
+    "SKILL.md",
+    "assets/feature-inventory.schema.json",
+    "references/classification-guide.md",
+    "references/source-type-playbook.md",
+    "references/update-and-validate.md"
+  ],
+  "status": "fail",
+  "findings": [
+    {
+      "file": ".memlog.md",
+      "line": 0,
+      "severity": "high",
+      "category": "structure",
+      "title": "Prompt file at skill root: .memlog.md",
+      "detail": "All progressive disclosure content must be in ./references/ \u2014 only SKILL.md belongs at root",
+      "action": "Move .memlog.md to references/.memlog.md"
+    },
+    {
+      "file": ".memlog.md",
+      "line": 15,
+      "severity": "high",
+      "category": "bare-bmad",
+      "title": "Bare _bmad reference without {project-root} prefix",
+      "detail": "- (gap) Seed cost-model.md does not exist yet (est-estimate builds it). Classification vocabulary is therefore carried i",
+      "action": ""
+    },
+    {
+      "file": ".memlog.md",
+      "line": 21,
+      "severity": "high",
+      "category": "bare-bmad",
+      "title": "Bare _bmad reference without {project-root} prefix",
+      "detail": "- (gap) scan-path-standards.py reports two high findings against .memlog.md itself: 'Prompt file at skill root' and a ba",
+      "action": ""
+    }
+  ],
+  "assessments": {},
+  "summary": {
+    "total_findings": 3,
+    "by_severity": {
+      "critical": 0,
+      "high": 3,
+      "medium": 0,
+      "low": 0
+    },
+    "by_category": {
+      "double_prefix": 0,
+      "bare_bmad": 2,
+      "absolute_path": 0,
+      "relative_prefix": 0,
+      "cross_dir_dot_slash": 0,
+      "frontmatter": 0,
+      "structure": 1
+    },
+    "assessment": "Path standards scan complete"
+  }
+}

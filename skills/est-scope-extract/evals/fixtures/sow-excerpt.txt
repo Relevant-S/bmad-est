@@ -1,0 +1,12 @@
+STATEMENT OF WORK — EXCERPT
+
+3. SCOPE
+3.1 Supplier shall implement a depot portal with authenticated access.
+3.2 Supplier shall implement payment capture via the Client's Stripe account.
+
+4. EXCLUSIONS
+4.1 PCI-DSS compliance work is excluded; the Client's existing portal remains the sole cardholder data environment.
+4.2 Migration of historical data is excluded.
+
+9. COMMERCIAL TERMS
+9.1 Invoiced monthly in arrears, 30 days net.
