@@ -1,0 +1,28 @@
+# DO NOT EDIT -- overwritten on every update.
+#
+# Install-time metadata for Nadia, the Delivery Estimator.
+#
+# This agent deliberately exposes no override surface.
+#
+# Its house-rules surface is _bmad/memory/est/company-profile.md, which the agent reads on
+# every activation and est-estimate reads for its default profile inputs -- so a rule written
+# there reaches both, and a rule written here would reach only one. Coefficients live in
+# cost-model.json, under the audit trail est-calibrate enforces. The module's own settings
+# arrive in the `modules.est` config section once est-bmad-setup has run.
+#
+# A fourth surface is where the four begin to disagree, so if an org genuinely needs a
+# pre-activation hook this block can be added later -- the decision was that nothing today
+# needs one, not that nothing ever could.
+
+[agent]
+
+# Install-time roster metadata, read-only at runtime: the persona hardcodes Nadia in
+# SKILL.md, so overriding name or title in _bmad/custom/ renames the roster entry and
+# not the agent.
+
+code = "est-agent-estimator"
+name = "Nadia"
+title = "Delivery Estimator"
+icon = "📐"
+description = "Explains, defends and re-prices BMad delivery estimates; curates the cost model."
+agent_type = "stateless"

@@ -15,7 +15,7 @@ This skill turns a Feature Inventory into a ranged, role-split estimate decompos
 
 - Bare paths and `{skill-root}` (e.g. `references/cost-model-guide.md`) resolve from this skill's installed directory.
 - `{project-root}` → the project working directory.
-- `{output_folder}` → from `{project-root}/_bmad/config.yaml`, defaulting to `{project-root}/_bmad-output`.
+- `{output_folder}` → `core.output_folder` via `uv run {project-root}/_bmad/scripts/resolve_config.py -p {project-root}`, defaulting to `{project-root}/_bmad-output`. Config is TOML here, so reading `config.yaml` finds nothing and defaults silently.
 - `{workspace}` → `{output_folder}/estimates/{project-slug}/`, the folder `est-scope-extract` already created for this project. The estimate is written **beside the inventory it prices**, so the scope, its sources and the number that came from them stay together.
 - `{memory}` → `{project-root}/_bmad/memory/est/`, holding `cost-model.json` and `ledger/`.
 

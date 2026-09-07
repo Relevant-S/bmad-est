@@ -406,5 +406,45 @@ class TestModeAndSnapshot(unittest.TestCase):
             hours(inventory([f]))
 
 
+class CalibrationClaim(unittest.TestCase):
+    """`calibrated` gates a claim made to a client, so it is structural, not a prose match."""
+
+    def test_the_seed_model_is_not_calibrated(self):
+        self.assertFalse(est.is_calibrated(model()))
+
+    def test_rewording_the_prose_status_cannot_flip_the_claim(self):
+        cost_model = model()
+        cost_model["calibration_status"] = "Not yet calibrated against any delivered project."
+        self.assertFalse(est.is_calibrated(cost_model))
+
+    def test_a_real_calibration_makes_it_true(self):
+        cost_model = model()
+        cost_model["calibration_history"] = [{"date": "2026-10-01", "approved_by": "lead"}]
+        self.assertTrue(est.is_calibrated(cost_model))
+
+    def test_a_judgement_change_alone_is_not_calibration(self):
+        cost_model = model()
+        cost_model["calibration_history"] = [{"date": "2026-10-01", "kind": "judgement"}]
+        self.assertFalse(est.is_calibrated(cost_model))
+
+    def test_band_width_matches_the_reported_endpoints(self):
+        priced = est.build_estimate(inventory(), model(), options())
+        total, confidence = priced["total_hours"], priced["confidence"]
+        self.assertAlmostEqual(confidence["band_width"], total["high"] - total["low"], places=0)
+
+    def test_options_from_refuses_an_unknown_team_rather_than_defaulting(self):
+        priced = est.build_estimate(inventory(), model(), options())
+        priced["inputs"]["team_profile"] = "wizards"
+        with self.assertRaises(ValueError):
+            est.options_from(priced, model())
+
+    def test_options_from_reproduces_the_recorded_inputs(self):
+        priced = est.build_estimate(inventory(), model(),
+                                    options(team="junior-heavy", completeness=0.33))
+        reproduced = est.options_from(priced, model())
+        self.assertEqual(reproduced["team_name"], "junior-heavy")
+        self.assertEqual(reproduced["input_completeness"], 0.33)
+
+
 if __name__ == "__main__":
     unittest.main()

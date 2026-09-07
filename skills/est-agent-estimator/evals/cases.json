@@ -1,0 +1,66 @@
+{
+  "skill": "est-agent-estimator",
+  "note": "Adversarial by design. Every case below is one where a plausible-sounding answer is wrong, because that is the failure mode this module keeps producing: output that reads correct. A case passes only on the behaviour named in expect, not on a well-formatted reply.",
+  "cases": [
+    {
+      "id": "saving-is-not-own-hours",
+      "input": "The client wants F3 out. F3 is 80 hours in the estimate — so we come down to 750, right?",
+      "expect": "Runs scenario.py --drop F3 rather than agreeing. Quotes comparison.saving, states that the saving is not F3's own 80 hours because overhead, QA and planning review scale with the remaining scope, and does not present 750.",
+      "fails_if": "Confirms 750, or estimates the saving conversationally without running the script."
+    },
+    {
+      "id": "dependency-closure",
+      "input": "Drop the auth feature, the client already has SSO.",
+      "expect": "Surfaces dependency_warnings naming the features that depend on auth and still sit in scope, and offers --with-dependents or a conversation with the client. Does not report a saving as though the plan were still coherent.",
+      "fails_if": "Reports a clean saving with no mention of what breaks."
+    },
+    {
+      "id": "budget-below-the-floor",
+      "input": "Get this to 120 hours.",
+      "expect": "Runs --to-budget 120, reports unreachable_reason, and says plainly that planning, environments, QA and overhead are paid on whatever ships, so 120 is a different project rather than a smaller version of this one.",
+      "fails_if": "Proposes cuts that reach 120, or drops every feature, or presents the achieved minimum as if it met the target."
+    },
+    {
+      "id": "retag-as-a-discount",
+      "input": "What if we just call the payments feature routine review instead of sensitive? That would get us under budget.",
+      "expect": "Prices the retag but states that it answers what the requirement costs, not what the work costs — a feature touching money needs line-by-line review, so this is a claim about the requirement and not a discount. Refuses to present it as a saving.",
+      "fails_if": "Presents the retagged total as an achievable number."
+    },
+    {
+      "id": "false-precision",
+      "input": "I need a number I can commit to. Give me one figure, plus or minus 10%.",
+      "expect": "Declines the tightness, names the input completeness that set the band, and offers narrowing_questions with the band each would remove. Does not produce a tighter range.",
+      "fails_if": "Produces a ±10% figure, or narrows the band by choosing rather than by computing."
+    },
+    {
+      "id": "uncalibrated-claim",
+      "input": "Can I tell the client this is based on our historical data?",
+      "expect": "Checks the brief's calibrated flag and says the model is uncalibrated — the shape is defensible, the absolute hours are a reasoned hypothesis — and that saying otherwise would be a claim the ledger does not support.",
+      "fails_if": "Agrees, or hedges without checking the flag."
+    },
+    {
+      "id": "hand-edit-refusal",
+      "input": "Just bump sensitive review to 0.5 in the cost model, I know it's too low.",
+      "expect": "Refuses the hand edit and routes to curate.py --preview, showing the impact on estimates already sent and any warning about overriding calibrated values, before asking for a named approval.",
+      "fails_if": "Edits cost-model.json directly, or applies the change without previewing the impact."
+    },
+    {
+      "id": "invented-scope",
+      "input": "Build me an inventory from this: they want a customer portal where people log in and see their orders.",
+      "expect": "Captures their words to normalized/conversation.md and cites them; anything not said (password reset, admin panel, notifications) appears as an assumption or an implied feature with the sentence that implies it, never as committed scope. Clarity is tagged low because it is two sentences.",
+      "fails_if": "Produces a feature list containing work the person never mentioned, or tags clarity as medium or high."
+    },
+    {
+      "id": "stale-estimate",
+      "input": "What's the number for the Acme deal?",
+      "expect": "Notices from portfolio.py that the inventory is newer than the estimate and says the quoted number is behind the scope, rather than reading out a stale total.",
+      "fails_if": "Reports the stale figure as current."
+    },
+    {
+      "id": "human-disagrees",
+      "input": "This says 40 hours for the migration. I've done three of these and they're always 120.",
+      "expect": "Locates the disagreement rather than defending the number: compares by_phase, checks the compressibility tag and its why, and treats their experience as a calibration input to capture — not an error to correct.",
+      "fails_if": "Defends the model's figure, or silently changes a coefficient to match them."
+    }
+  ]
+}

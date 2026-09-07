@@ -16,8 +16,8 @@ This skill compares what projects were estimated at against what they actually c
 - Bare paths and `{skill-root}` (e.g. `references/reading-the-numbers.md`) resolve from this skill's installed directory.
 - `{project-root}` → the project working directory.
 - `{memory}` → `{project-root}/_bmad/memory/est/`, holding `cost-model.json`, `ledger/`, `calibration-log.md` and `comparables.md`.
-- `{output_folder}` → from `{project-root}/_bmad/config.yaml`, defaulting to `{project-root}/_bmad-output`.
-- `{workspace}` → `{output_folder}/estimates/calibration/{date}/`, holding `analysis.json`, `backtest.json`, the reports and `.memlog.md`. One folder per calibration run, because a run is a decision record and the previous one should still be readable.
+- `{output_folder}` → `core.output_folder` via `uv run {project-root}/_bmad/scripts/resolve_config.py -p {project-root}`, defaulting to `{project-root}/_bmad-output`. Config is TOML here, so reading `config.yaml` finds nothing and defaults silently.
+- `{workspace}` → `{output_folder}/calibration/{date}/`, holding `analysis.json`, `backtest.json`, the reports and `.memlog.md`. One folder per calibration run, because a run is a decision record and the previous one should still be readable. Deliberately outside `{output_folder}/estimates/`, which holds one folder per project: a calibration is portfolio-wide, and parking it there makes it read as a project that was never scoped.
 
 ## The bar
 
@@ -53,6 +53,8 @@ The second bar is restraint. **Most runs should propose nothing** — report the
 
 **Put the batch to a human.** One table: proposal id, coefficient, current → proposed, the evidence, sample size, and what the backtest did to past estimates. Say plainly which are weak signals. Where a proposal overshoots — the data points one way and the proposal moves only part of it — explain that the rest arrives as more projects land. Accept and reject individually; deferring everything is a legitimate answer and often the right one on a first run. **Log each decision as the human gives it** — `memlog.py append --path {workspace}/.memlog.md --type decision --text "<id, accepted/rejected/deferred, and why>"` — so a batch interrupted halfway is recoverable rather than re-derived.
 
+**A coefficient set from expertise rather than evidence** — the normal case before the first project closes — uses `scripts/curate.py --preview` to show what it would do to recorded estimates, then the same command with `--approved-by` to apply it. `est-agent-estimator` routes here; it carries no model-writing code of its own, so this directory remains the only thing in the module that writes the cost model.
+
 **Apply only what was accepted.** `uv run scripts/apply.py --analysis {workspace}/analysis.json --backtest {workspace}/backtest.json --cost-model {memory}/cost-model.json --calibration-log {memory}/calibration-log.md --accept P2 P4 --approved-by "<name and role>"`. It backs up the model, writes the provenance into each changed coefficient's own `why`, and appends a log entry naming every ledger entry the change came from.
 
 **Then report and record.** `uv run scripts/render-report.py {workspace}/analysis.json --backtest {workspace}/backtest.json --out-dir {workspace}`. It also writes `accuracy-brief.json`, the small stable distillate `est-agent-estimator` loads to answer "how accurate are our estimates?" without parsing a report written for a person. Append the delivered projects to `{memory}/comparables.md` as anchors for future estimates — project, scope shape, estimate, actual — and log an `assumption` entry in the memlog for anything you had to infer.
@@ -68,7 +70,7 @@ Say plainly what the next level of data would buy. A single `delivery_hours` tot
 ## Gotchas
 
 - **A weak signal is not a small change.** Below the sample threshold the honest output is "watch this", not a smaller adjustment in the same direction.
-- **Never hand-edit the model to match a proposal.** Run `apply.py`, or the change loses its backup, its provenance and its reversibility.
+- **Never hand-edit the model to match a proposal.** Run `apply.py`, or the change loses its backup, its provenance and its reversibility. The one change `apply.py` cannot carry — a coefficient a delivery lead knows is wrong before any project has closed, so no backtest exists — goes through `scripts/curate.py` instead: same backup, same log, same TTY-only approval, but stamped `judgement` rather than calibrated, and it re-prices the whole ledger first so the effect on estimates already sent is visible before anyone accepts it. `apply.py`'s bar does not move; this is a second door, not a lower one.
 - **Bias and band width are separate faults with separate fixes.** Consistent residuals on a systematically biased model look like an over-wide band, and narrowing it makes the model confidently biased. The analysis debiases before judging the band — do not re-derive spread from raw residuals yourself (`references/reading-the-numbers.md` works it through).
 - **Retire the learning-curve modifier when it has served.** `new-to-bmad` is meant to decay: once a team's delivered projects stop showing the penalty, propose removing it for that team rather than leaving it inflating every estimate.
 - **Scope-changed and unknown-scope projects are excluded, not averaged in.** They appear in the report's "not comparable" list with the reason. Chasing them into the sample is how the model learns something untrue.

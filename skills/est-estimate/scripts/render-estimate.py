@@ -15,11 +15,32 @@ its own arithmetic against the file it was rendered from.
 
 import argparse
 import csv
+import importlib.util
 import json
 import sys
 from pathlib import Path
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "report-template.html"
+
+
+
+def engine():
+    """est-estimate's own engine, for the facts a renderer must not re-derive.
+
+    `calibrated` gates a claim made to a client, so it has exactly one definition and it lives
+    beside the pricing rather than as a prose-prefix match repeated here.
+    """
+    global _ENGINE
+    try:
+        return _ENGINE
+    except NameError:
+        pass
+    path = Path(__file__).resolve().parent / "estimate.py"
+    spec = importlib.util.spec_from_file_location("estimate", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _ENGINE = mod
+    return mod
 
 
 def markdown(est, show_manual_baseline=False):
@@ -32,7 +53,7 @@ def markdown(est, show_manual_baseline=False):
     out.append(f"> {conf['why']}")
     out.append("")
 
-    if (est.get("cost_model_snapshot", {}).get("calibration_status", "")).startswith("UNCALIBRATED"):
+    if not engine().is_calibrated(est.get("cost_model_snapshot") or {}):
         out += ["> **Uncalibrated model.** These coefficients are reasoned starting points, not "
                 "measurements from delivered projects. The shape of the estimate is defensible; "
                 "the absolute figures are a hypothesis until reconciled against real actuals.", ""]
@@ -135,8 +156,7 @@ def brief(est):
         "total_hours": est["total_hours"],
         "confidence": {"input_completeness": est["confidence"]["input_completeness"],
                        "why": est["confidence"]["why"]},
-        "calibrated": not (est.get("cost_model_snapshot", {})
-                           .get("calibration_status", "")).startswith("UNCALIBRATED"),
+        "calibrated": engine().is_calibrated(est.get("cost_model_snapshot") or {}),
         "inputs": est.get("inputs", {}),
         "scope_split": {k: v for k, v in est.get("scope_split", {}).items()
                         if not k.startswith("_")},

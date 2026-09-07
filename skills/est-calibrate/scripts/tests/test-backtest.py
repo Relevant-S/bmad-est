@@ -27,24 +27,24 @@ class TestInventoryReconstruction(unittest.TestCase):
     """History is re-priced through est-estimate's engine, so the scope must round-trip."""
 
     def test_tags_are_rebuilt_in_the_shape_pricing_expects(self):
-        inv = bt.inventory_from(entry(features=[feature("F1", tier="sensitive")]))
+        inv = bt.engine().inventory_from(entry(features=[feature("F1", tier="sensitive")]))
         tags = inv["features"][0]["tags"]
         self.assertEqual(tags["review_tier"]["value"], "sensitive")
         self.assertIn("why", tags["review_tier"])
         self.assertIn("status", tags["review_tier"])
 
     def test_citations_survive_so_the_repriced_scope_stays_traceable(self):
-        inv = bt.inventory_from(entry(features=[feature("F1")]))
+        inv = bt.engine().inventory_from(entry(features=[feature("F1")]))
         self.assertEqual(inv["features"][0]["citations"][0]["location"], "§1")
 
     def test_dependencies_are_rebuilt(self):
         f = feature("F2")
         f["depends_on"] = ["F1"]
-        inv = bt.inventory_from(entry(features=[feature("F1"), f]))
+        inv = bt.engine().inventory_from(entry(features=[feature("F1"), f]))
         self.assertEqual(inv["features"][1]["depends_on"][0]["feature_id"], "F1")
 
     def test_granularity_and_project_carry_over(self):
-        inv = bt.inventory_from(entry())
+        inv = bt.engine().inventory_from(entry())
         self.assertEqual(inv["project"], "Alpha")
         self.assertEqual(inv["granularity"], "project")
 

@@ -8,6 +8,7 @@ architecture: 'Hybrid — 3 workflows (automatable spine) + 1 agent (conversatio
 standalone: true
 expands_module: ''
 skills_planned: ['est-scope-extract', 'est-estimate', 'est-calibrate', 'est-agent-estimator']
+skills_built: ['est-scope-extract', 'est-estimate', 'est-calibrate', 'est-agent-estimator']
 config_variables: ['est_default_team_profile', 'est_report_calendar_duration', 'est_output_folder', 'est_default_fidelity', 'est_output_formats', 'est_show_manual_baseline', 'est_roles', 'est_knowledge_pack_source', 'est_min_calibration_samples', 'est_sprint_length_days']
 created: '2026-09-07'
 updated: '2026-09-07'
@@ -362,7 +363,9 @@ Each brief below is self-contained — a builder agent with zero conversation co
 
 **Relationships:** Reads the ledger est-estimate writes. Feeds `est-agent-estimator` through `accuracy-brief.json`.
 
-**Status:** BUILT. `skills/est-calibrate/` — 5 scripts, 91 unit tests, 15 ground-truth recovery cases, and a completed Analyze pass.
+**Status:** BUILT. `skills/est-calibrate/` — 6 scripts, 140 unit tests, 15 ground-truth recovery cases, and a completed Analyze pass.
+
+**Two doors into the cost model, one directory.** `apply.py` moves a coefficient on backtested actuals and refuses anything less. `curate.py` carries the change that bar cannot: a coefficient a delivery lead knows is wrong before any project has closed, so no backtest can exist. It takes the same backup, the same log, the same TTY-only approval and the same mandatory reason, stamps the entry `judgement` rather than calibrated, and re-prices the entire ledger first so the effect on estimates already sent to clients is visible before anyone accepts it. Refusing that change would not have prevented it — it would have sent someone to a text editor, where there is no backup, no provenance and no way back. Both writers live in one directory so the claim "only this writes the cost model" stays verifiable by looking.
 
 **Validated by recovery, not by waiting.** The original plan said this skill could not be validated until real projects closed. That turned out to be avoidable: `evals/ground-truth.py` perturbs a copy of the cost model, generates actuals from the perturbed model, runs the calibrator over ledger entries priced with the *unperturbed* one, and asserts it recovers the bias in the right coefficient and direction. Because the answer is known in advance this is stronger evidence than a handful of real projects would give, and it tests the failure directions that matter more than the successes — that a correct model produces no proposals, that one outlier moves nothing, and that a harmful change is visibly harmful.
 
@@ -424,7 +427,15 @@ Separating review tier and compressibility from project totals alone requires pr
 - The **defend-under-challenge** capability is the one most likely to be used daily and least likely to be anticipated. It is where an estimate stops being a spreadsheet output and becomes usable in a commercial conversation.
 - When the model and the human disagree, the agent's job is to locate the disagreement precisely, not to win. A human who has run twenty of these projects often knows something the coefficients do not — and that is a calibration input, not an error.
 
-**Relationships:** Front door to all three workflows. Built third — it needs `est-scope-extract` and `est-estimate` to exist before it has anything to orchestrate.
+**Relationships:** Front door to all three workflows. Built last — it needed all three to exist before it had anything to orchestrate, explain or curate.
+
+**Status:** BUILT. `skills/est-agent-estimator/` — Nadia, Delivery Estimator. Stateless, 2 scripts, 61 unit tests, 10 adversarial eval cases, and a completed Analyze pass.
+
+**Stateless, deliberately.** The module already owns durable state at `_bmad/memory/est/`, written under audit by the three workflows. A sanctum would have been a second memory surface holding the same facts, and the one nobody audits is the one that drifts. The agent's continuity comes from the ledger, not from remembering.
+
+**The two scripts exist because the alternative is arithmetic.** `scenario.py` re-prices every what-if — a dropped feature, a retagged review tier, a senior team, a change request, a budget target — through est-estimate's own engine, and refuses outright unless it can first reproduce the estimate's own headline from its own snapshot. On the module's own end-to-end fixture, dropping one 58.8-hour feature changes the project by 89.4 hours, because planning review, QA and overhead scale with the scope that remains: a 52% error, in the direction that reads plausible, and one a conversational agent would make every time. `portfolio.py` reports the state of every workspace and ledger entry in one pass — what is stale, what was quoted before the scope changed, which won project never came back with hours.
+
+**The cut-line finder went through three versions before it was honest.** The first overshot, taking a cheap outside-scope cut and then a large one that would have sufficed alone — so a client was asked to give something up for nothing; a prune pass now puts back everything the budget did not need. The second reached for the biggest saving first and proposed cutting payments to reach a number three peripheral features would have covered. The third judged candidates on savings measured against the untouched baseline, which overstate what a candidate still buys once its dependency closure is partly gone. Every decision figure is now a real re-price of the current scope, and the invariant is tested: putting any proposed cut back breaks the budget.
 
 ---
 
@@ -552,6 +563,12 @@ These emerged from building and analysing `est-scope-extract` and apply to every
 
 **9. Validate statistical claims against synthetic ground truth.** Perturb a model, generate data from it, and check the analysis recovers the perturbation — and equally that it proposes nothing when there is nothing to find. Four real defects in skill #4 surfaced this way, none of which a realistic-looking test would have caught.
 
+**10. A refusal that does not prevent the act makes it worse.** "The agent may never change a coefficient" reads like a safety rule and functions as a hole: with no actuals to backtest against, the seed model cannot be corrected, so someone opens `cost-model.json` in an editor and the change lands with no backup, no reason and no way back. The rule that survives contact is a second door held to the same standard as the first — logged, backed up, reversible, and labelled `judgement` so nobody later mistakes it for evidence.
+
+**11. Every re-price goes through the engine, including the ones inside a heuristic.** A search that proposes cuts to reach a budget makes dozens of intermediate decisions, and the temptation is to rank candidates on figures computed once against the original scope. Those figures stop being true the moment anything is dropped. Both the reported numbers and the decisions behind them have to be genuine re-prices, or the search picks a cut on a number that is no longer real.
+
+**12. Test the invariant, not the output.** The cut-line's tests do not assert a particular set of features; they assert that the budget is met, that no proposed cut can be restored without breaking it, and that every step's cumulative figure equals an independent re-price of the remaining scope. Three separate ordering bugs shipped through tests that checked totals; the invariants caught all three.
+
 ## Build Roadmap
 
 **Recommended order, with rationale:**
@@ -566,7 +583,10 @@ These emerged from building and analysing `est-scope-extract` and apply to every
 
 **Suggested proving ground:** once steps 1 and 2 are built, run them against two or three genuinely different past inputs — a thorough SOW, a thin transcript, and a multi-tab backlog workbook — and compare the output to what those projects actually cost. That is the fastest route to knowing whether the seed coefficients are in the right neighbourhood, and it is also the first real data for step 4.
 
+**What was actually built, and in what order.** 1, 2, 4, 3 — `est-calibrate` came third rather than last. The roadmap put it last on the grounds that it could not be validated until real projects closed, and that turned out to be avoidable: perturbing the model and checking the calibrator recovers the perturbation is stronger evidence than a handful of real projects, and it tests the failure directions that matter more than the successes. `est-agent-estimator` moved to last for a better reason than the plan gave — it needed `est-calibrate` to exist so its model-curation capability had somewhere to route rather than somewhere to reimplement.
+
 **Next steps:**
 
-1. Build each skill using **Build an Agent (BA)** or **Build a Workflow (BW)** — share this plan document as context
-2. When all skills are built, return to **Create Module (CM)** to scaffold the module infrastructure
+1. All four skills are built. Return to **Create Module (CM)** to scaffold the module infrastructure — `est-bmad-setup`, memory seeding, the company-profile interview, and dependency installation (see Setup Extensions).
+2. Start capturing three fields on every closed project now: `delivery_hours`, `scope_delivered`, `excluded_hours` and its reason. Nothing else in this module compounds until those exist, and reconstructing them later is what makes them never happen.
+3. Run the proving ground above against two or three genuinely different past inputs, to find out whether the seed coefficients are in the right neighbourhood.

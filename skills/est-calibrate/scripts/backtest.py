@@ -45,57 +45,16 @@ def engine(path=None):
     return mod
 
 
-def inventory_from(entry):
-    """Reconstruct the priced scope from a ledger entry.
-
-    Ledger entries store the estimate, not the inventory, but every priced feature keeps
-    its tags, their reasons and its citations — which is exactly what pricing consumes.
-    """
-    features = []
-    for f in entry.get("features", []):
-        tags = {}
-        for axis, value in (f.get("tags") or {}).items():
-            tags[axis] = {"value": value,
-                          "why": (f.get("tag_why") or {}).get(axis) or "from ledger entry",
-                          "status": (f.get("tag_status") or {}).get(axis) or "inferred"}
-        features.append({
-            "id": f["id"], "name": f.get("name", f["id"]),
-            "description": f.get("name", ""),
-            "citations": f.get("citations") or [{"source_id": "S1", "location": "ledger",
-                                                 "quote": "recorded estimate"}],
-            "commitment": f.get("commitment", "committed"),
-            "scope_status": f.get("scope_status"),
-            "tags": tags,
-            "depends_on": [{"feature_id": d, "inferred": True} for d in (f.get("depends_on") or [])],
-            "open_questions": f.get("open_questions", []),
-        })
-    return {
-        "schema_version": "1.0", "generated": entry.get("generated"),
-        "project": entry.get("project"), "granularity": entry.get("granularity", "project"),
-        "working_language": "en",
-        "sources": [{"id": "S1", "path": "ledger", "doc_type": "sow", "language": "en"}],
-        "features": features, "not_scope": [], "conflicts": [], "assumptions": [],
-        "completeness_signals": {},
-    }
-
-
 def reprice(entry, model, est):
-    """Price this entry's scope under `model`, holding every other input as recorded."""
-    inputs = entry.get("inputs") or {}
-    profile = inputs.get("team_profile", "balanced")
-    options = {
-        "mode": "presale",
-        "team": model["team_profiles"].get(profile, model["team_profiles"]["balanced"]),
-        "team_name": profile,
-        "stack": inputs.get("stack", "standard_saas"),
-        "qa_platform": inputs.get("qa_platform", "web"),
-        "engagement": inputs.get("engagement", "standard"),
-        "team_size": inputs.get("team_size"),
-        "granularity": entry.get("granularity", "project"),
-        "input_completeness": (entry.get("confidence") or {}).get("input_completeness", 0.6),
-        "inventory_path": "ledger", "generated": entry.get("generated", ""),
-    }
-    return est.build_estimate(inventory_from(entry), model, options)
+    """Price this entry's scope under `model`, holding every other input as recorded.
+
+    The options come from the engine's own `options_from`, not a local copy: a backtest that
+    silently re-prices at a different team profile reports that difference as the effect of the
+    coefficient change. Mode is forced to `presale` because a backtest re-prices the full scope
+    regardless of the fidelity the original run used.
+    """
+    return est.build_estimate(est.inventory_from(entry), model,
+                              est.options_from(entry, model, {"mode": "presale"}))
 
 
 def apply_proposal(model, proposal):

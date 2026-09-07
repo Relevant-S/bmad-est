@@ -29,6 +29,11 @@ from pathlib import Path
 # level; the project total then sums PERT variances, so ranges do not balloon linearly.
 
 
+# The classification axes the cost model prices on. Exported because more than one skill
+# iterates them, and a sixth axis added here must not need finding in a second tuple.
+AXES = ("size_band", "compressibility", "review_tier", "clarity", "novelty")
+
+
 def tp(node, *keys):
     """Read a three-point value from the cost model."""
     for key in keys:
@@ -119,12 +124,9 @@ def price_feature(feature, model, team):
         "name": feature.get("name"),
         "scope_status": feature.get("scope_status") or "in_agreed_scope",
         "commitment": feature.get("commitment"),
-        "tags": {a: value(a) for a in
-                 ("size_band", "compressibility", "review_tier", "clarity", "novelty")},
-        "tag_status": {a: (tags.get(a) or {}).get("status") for a in
-                       ("size_band", "compressibility", "review_tier", "clarity", "novelty")},
-        "tag_why": {a: (tags.get(a) or {}).get("why") for a in
-                    ("size_band", "compressibility", "review_tier", "clarity", "novelty")},
+        "tags": {a: value(a) for a in AXES},
+        "tag_status": {a: (tags.get(a) or {}).get("status") for a in AXES},
+        "tag_why": {a: (tags.get(a) or {}).get("why") for a in AXES},
         "citations": [{"source_id": c.get("source_id"), "location": c.get("location"),
                        "quote": c.get("quote")} for c in feature.get("citations", [])],
         "open_questions": feature.get("open_questions", []),
@@ -403,6 +405,106 @@ def traceability(inventory, priced):
     }
 
 
+# --- facts about a model that more than one skill needs to agree on -------------
+
+def is_calibrated(model):
+    """Has this model been reconciled against delivered actuals?
+
+    Structural, because the answer gates a claim made to a client. It used to be derived in three
+    separate places by prefix-matching the free-prose `calibration_status` sentence, so rewording
+    the seed to "Not yet calibrated…" would have silently marked every estimate as calibrated —
+    the exact overclaim the module refuses to make. A judgement change through curate.py is
+    deliberately not calibration: it is an informed opinion, and saying otherwise to a client is
+    the same overclaim wearing a better label.
+    """
+    return any((entry.get("kind") or "calibrated") != "judgement"
+               for entry in model.get("calibration_history") or [])
+
+
+def options_from(estimate, model, overrides=None):
+    """The pricing inputs an existing estimate was produced with.
+
+    One definition, because three skills need to reproduce a recorded number exactly: est-calibrate
+    re-prices history to backtest a coefficient, est-agent-estimator re-prices scope to answer a
+    what-if. Rebuilt independently they drift in their fallbacks — a silent default of `balanced`
+    for an unknown team profile turns a re-price into a different estimate, and reports the
+    difference as the effect of whatever was being tested.
+    """
+    inputs = dict(estimate.get("inputs") or {})
+    inputs.pop("why", None)
+    inputs.update({k: v for k, v in (overrides or {}).items() if v is not None})
+
+    profile = inputs.get("team_profile") or "balanced"
+    profiles = model["team_profiles"]
+    if profile not in profiles:
+        known = sorted(k for k in profiles if not k.startswith("_"))
+        raise ValueError(f"unknown team profile '{profile}' — known: {known}. Re-pricing it as "
+                         f"'balanced' would silently change the estimate being reproduced.")
+
+    completeness = (estimate.get("confidence") or {}).get("input_completeness")
+    if completeness is None:
+        raise ValueError(
+            "the estimate carries no input completeness score, so its band cannot be reproduced. "
+            "Band width is computed from that score; defaulting it would invent a confidence the "
+            "original number never claimed.")
+
+    return {
+        "mode": inputs.get("mode") or estimate.get("mode", "presale"),
+        "team": profiles[profile],
+        "team_name": profile,
+        "stack": inputs.get("stack") or "standard_saas",
+        "qa_platform": inputs.get("qa_platform") or "web",
+        "engagement": inputs.get("engagement") or "standard",
+        "team_size": inputs.get("team_size"),
+        "granularity": estimate.get("granularity", "project"),
+        "input_completeness": float(completeness),
+        "inventory_path": estimate.get("inventory") or "reprice",
+        "generated": estimate.get("generated", ""),
+    }
+
+
+# --- reverse: a priced estimate back into the scope that produced it -----------
+
+def inventory_from(estimate):
+    """Reconstruct the priced scope from an estimate — or from a ledger entry, which is
+    an estimate plus a `ledger` block.
+
+    Every consumer that re-prices existing work needs this: est-calibrate backtests
+    history, est-agent-estimator answers "what if we drop this". It lives here, beside
+    the pricing it inverts, so there is exactly one definition of what a priced feature
+    turns back into. Two would silently disagree about a field neither owner noticed.
+
+    Priced features store tags flat with their reasons alongside; pricing wants them
+    nested. That reshaping is the whole job.
+    """
+    features = []
+    for f in estimate.get("features", []):
+        tags = {}
+        for axis, value in (f.get("tags") or {}).items():
+            tags[axis] = {"value": value,
+                          "why": (f.get("tag_why") or {}).get(axis) or "from a priced estimate",
+                          "status": (f.get("tag_status") or {}).get(axis) or "inferred"}
+        features.append({
+            "id": f["id"], "name": f.get("name", f["id"]),
+            "description": f.get("name", ""),
+            "citations": f.get("citations") or [{"source_id": "S1", "location": "ledger",
+                                                 "quote": "recorded estimate"}],
+            "commitment": f.get("commitment", "committed"),
+            "scope_status": f.get("scope_status"),
+            "tags": tags,
+            "depends_on": [{"feature_id": d, "inferred": True} for d in (f.get("depends_on") or [])],
+            "open_questions": f.get("open_questions", []),
+        })
+    return {
+        "schema_version": "1.0", "generated": estimate.get("generated"),
+        "project": estimate.get("project"), "granularity": estimate.get("granularity", "project"),
+        "working_language": "en",
+        "sources": [{"id": "S1", "path": "ledger", "doc_type": "sow", "language": "en"}],
+        "features": features, "not_scope": [], "conflicts": [], "assumptions": [],
+        "completeness_signals": {},
+    }
+
+
 # --- main ---------------------------------------------------------------------
 
 def build_estimate(inventory, model, options):
@@ -458,6 +560,8 @@ def build_estimate(inventory, model, options):
             "aggregated_sd": round(sd, 1),
             "sd_from_features": round(sd_features, 1),
             "sd_from_model_risk": round(sd_model, 1),
+            "band_width": round(2 * half_band, 1),
+            "band_width_pct": round(200 * half_band / mean, 1) if mean else None,
             "why": (f"Band width is computed, not chosen: an input completeness of {completeness} "
                     f"widens the interval by {multiplier:.2f}x. A thinner brief cannot produce a "
                     f"narrower range."),

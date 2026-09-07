@@ -15,7 +15,7 @@ This skill turns any project input — call transcript, PRD, SOW, RFP, backlog w
 
 - Bare paths and `{skill-root}` (e.g. `references/classification-guide.md`) resolve from this skill's installed directory.
 - `{project-root}` → the project working directory.
-- `{output_folder}` → from `{project-root}/_bmad/config.yaml`, defaulting to `{project-root}/_bmad-output`.
+- `{output_folder}` → `core.output_folder` via `uv run {project-root}/_bmad/scripts/resolve_config.py -p {project-root}`, defaulting to `{project-root}/_bmad-output`. Config is TOML here, so reading `config.yaml` finds nothing and defaults silently.
 - `{project-slug}` → kebab-case of the project or deal name the user gives.
 
 ## The bar
