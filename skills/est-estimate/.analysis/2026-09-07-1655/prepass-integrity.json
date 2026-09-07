@@ -1,0 +1,78 @@
+{
+  "scanner": "workflow-integrity-prepass",
+  "script": "prepass-workflow-integrity.py",
+  "version": "1.0.0",
+  "skill_path": "skills/est-estimate",
+  "timestamp": "2026-09-07T14:55:36.958249+00:00",
+  "status": "warning",
+  "metadata": {
+    "frontmatter": {
+      "name": "est-estimate",
+      "description": "Estimates delivery hours from a Feature Inventory. Use when user says \"estimate this\", \"how long will this take\", \"price this scope\", or \"produce a presale estimate\". Supports headless (-H) for batch runs."
+    },
+    "sections": [
+      {
+        "level": 2,
+        "title": "Overview",
+        "line": 8
+      },
+      {
+        "level": 2,
+        "title": "Resolution rules",
+        "line": 14
+      },
+      {
+        "level": 2,
+        "title": "The bar",
+        "line": 21
+      },
+      {
+        "level": 2,
+        "title": "Input boundary",
+        "line": 27
+      },
+      {
+        "level": 2,
+        "title": "Modes",
+        "line": 31
+      },
+      {
+        "level": 2,
+        "title": "Estimating",
+        "line": 41
+      },
+      {
+        "level": 2,
+        "title": "Gotchas",
+        "line": 68
+      }
+    ],
+    "workflow_type": "simple-utility"
+  },
+  "stage_summary": {
+    "total_stages": 0,
+    "referenced": [],
+    "actual": [],
+    "missing_stages": [],
+    "orphaned_stages": []
+  },
+  "prompt_details": [],
+  "issues": [
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## On Activation section"
+    }
+  ],
+  "summary": {
+    "total_issues": 1,
+    "by_severity": {
+      "critical": 0,
+      "high": 1,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}

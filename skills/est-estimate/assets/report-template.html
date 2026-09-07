@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #fbfbf9; --panel: #fff; --ink: #1a1a1a; --muted: #6b6b6b; --line: #e3e3df;
+    --accent: #1f5f4f; --warn: #8a5a00; --danger: #93321f; --soft: #f2f2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16171a; --panel:#1e1f23; --ink:#ececed; --muted:#9a9a9e; --line:#31323a;
+            --accent:#6fc0a6; --warn:#d9a441; --danger:#e08b76; --soft:#26272c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+       margin: 34px 0 12px; font-weight: 600; }
+  .sub { color: var(--muted); margin-bottom: 26px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  .headline { display:flex; flex-wrap:wrap; gap:28px; align-items:flex-end; }
+  .figure { font-size: 40px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; }
+  .figure small { font-size: 15px; font-weight: 400; color: var(--muted); }
+  .range { font-size: 19px; color: var(--muted); }
+  .chip { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px;
+          background:var(--soft); color:var(--muted); border:1px solid var(--line); }
+  .chip.sensitive { color: var(--warn); border-color: var(--warn); }
+  .chip.critical { color: var(--danger); border-color: var(--danger); }
+  .chip.outside { color: var(--accent); border-color: var(--accent); }
+  table { width:100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align:left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .scroll { overflow-x: auto; }
+  .bar { height: 7px; background: var(--soft); border-radius: 4px; overflow: hidden; min-width: 90px; }
+  .bar > span { display:block; height:100%; background: var(--accent); }
+  .muted { color: var(--muted); }
+  .note { background: var(--soft); border-left: 3px solid var(--accent); padding: 12px 14px;
+          border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 14px; }
+  .note.warn { border-left-color: var(--warn); }
+  label.feature { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
+  input[type=checkbox] { margin-top: 3px; width:15px; height:15px; accent-color: var(--accent); flex:none; }
+  .off { opacity: .42; }
+  .grid { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); }
+  .q { border-bottom:1px solid var(--line); padding:10px 0; display:flex; gap:14px; justify-content:space-between; }
+  .q:last-child { border-bottom:0; }
+  .cite { font-size:12.5px; color:var(--muted); margin-top:3px; }
+  button.link { background:none; border:0; color:var(--accent); cursor:pointer; font-size:13px; padding:0; }
+  footer { margin-top: 40px; color: var(--muted); font-size: 12.5px; }
+  @media print { body { background:#fff; } .panel { break-inside: avoid; } input { display:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <div class="sub" id="subtitle"></div>
+
+  <div class="panel headline">
+    <div>
+      <div class="figure"><span id="likely"></span> <small>hours</small></div>
+      <div class="range" id="range"></div>
+    </div>
+    <div style="flex:1; min-width:240px">
+      <div class="muted" id="confidence"></div>
+      <div class="muted" id="scopeNote" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div id="uncalibrated"></div>
+
+  <h2>Scope — untick to see the number move</h2>
+  <div class="panel">
+    <div class="muted" style="margin-bottom:12px">
+      Every hour below traces to a feature, and every feature to a quote in the source documents.
+      <button class="link" id="resetBtn">reset all</button>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr>
+          <th style="width:44%">Feature</th><th>Tier</th><th>Compress</th><th>Clarity</th>
+          <th class="num">Hours</th>
+        </tr></thead>
+        <tbody id="features"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <h2>By BMad phase</h2>
+      <div class="panel"><table id="phases"></table></div>
+    </div>
+    <div>
+      <h2>By role</h2>
+      <div class="panel"><table id="roles"></table></div>
+    </div>
+  </div>
+
+  <div id="riskWrap"></div>
+  <div id="questionsWrap"></div>
+  <div id="durationWrap"></div>
+
+  <h2>Assumptions</h2>
+  <div class="panel"><ul id="assumptions" style="margin:0; padding-left:18px"></ul></div>
+
+  <footer id="footer"></footer>
+</div>
+
+<script id="estimate-data" type="application/json">__ESTIMATE_JSON__</script>
+<script>
+const E = JSON.parse(document.getElementById('estimate-data').textContent);
+const M = E.cost_model_snapshot;
+/* PARITY-BLOCK-START — scripts/check-parity.py executes everything between these markers
+   against the same estimate.json the engine produced. Keep it free of DOM access. */
+const TP = { mean: v => (v[0] + 4*v[1] + v[2]) / 6, sd: v => (v[2] - v[0]) / 6 };
+const add = (...v) => [0,1,2].map(i => v.reduce((s,x) => s + x[i], 0));
+const mul = (a,b) => [a[0]*b[0], a[1]*b[1], a[2]*b[2]];
+const scale = (a,k) => a.map(x => x*k);
+const h = n => Math.round(n).toLocaleString();
+
+const opts = E._render_options;
+let included = new Set(E.features.map(f => f.id));
+
+
+/* Recomputes the whole estimate for the selected subset, mirroring estimate.py:
+   project components are not constants — QA and overhead scale with the scope you keep,
+   and planning scales with how many features and stories remain. Toggling a feature off
+   has to move those too, or the "saving" shown here would be a lie. */
+function compute(ids) {
+  const feats = E.features.filter(f => ids.has(f.id));
+  const manual = feats.length ? add(...feats.map(f => f.manual_baseline)) : [0,0,0];
+  const featureTotal = feats.length ? add(...feats.map(f => f.total)) : [0,0,0];
+
+  const perSize = M.planning.stories_per_feature;
+  const stories = feats.reduce((s,f) => s + (perSize[f.tags.size_band] || 1), 0);
+  const epics = feats.length ? Math.ceil(feats.length / M.planning.features_per_epic) : 0;
+  const docs = M.planning.documents_by_granularity[E.granularity] || [];
+
+  const planning = key => {
+    const r = M.planning[key], t = v => [v.lo, v.likely, v.hi];
+    const parts = docs.map(d => t(r[d]));
+    parts.push(scale(t(r.per_epic), epics));
+    parts.push(scale(t(r.per_story), stories));
+    return parts.length ? add(...parts) : [0,0,0];
+  };
+  const t = v => [v.lo, v.likely, v.hi];
+  const project = {
+    planning_agent: planning('agent_hours'),
+    planning_review: planning('review_hours'),
+    env_infra: t(M.env_infra[opts.stack]),
+    qa: mul(manual, t(M.qa[opts.qa_platform])),
+  };
+  const subtotal = add(featureTotal, ...Object.values(project));
+  project.overhead = mul(subtotal, t(M.overhead_rate[opts.engagement]));
+
+  const all = [...feats.map(f => f.total), ...Object.values(project)];
+  const mean = all.reduce((s,v) => s + TP.mean(v), 0);
+  /* Must mirror band_half_width() in estimate.py exactly. Feature variance alone omits the
+     systematic model error, which on an uncalibrated model is the larger of the two terms —
+     a page missing it shows roughly half the real range under a headline that included it. */
+  const sdFeatures = Math.sqrt(all.reduce((s,v) => s + TP.sd(v)**2, 0));
+  const sdModel = (M.uncertainty.model_risk || 0) * mean;
+  const sd = Math.hypot(sdFeatures, sdModel);
+  /* Derive the multiplier from the model's own formula rather than the published
+     confidence figure, which is rounded for display. Reading the rounded value back put
+     the page a third of an hour off the document at both bounds. */
+  const cm = M.uncertainty.completeness_multiplier;
+  const multiplier = 1 + cm.k * Math.pow(1 - E.confidence.input_completeness, cm.p);
+  const half = M.uncertainty.z * sd * multiplier;
+
+  const phases = {}, roles = {};
+  const putPhase = (v, comp) => {
+    const p = M.phase_map[comp];
+    phases[p] = (phases[p] || 0) + TP.mean(v);
+  };
+  const putRole = (v, key) => {
+    for (const [role, share] of Object.entries(M.role_weights[key]))
+      roles[role] = (roles[role] || 0) + TP.mean(v) * share;
+  };
+  for (const f of feats) {
+    for (const [comp, v] of Object.entries(f.components)) putPhase(v, comp);
+    putRole(f.components.build, 'build');
+    putRole(f.components.spec, 'spec');
+    putRole(f.components.review, f.tags.review_tier === 'routine' ? 'review_routine' : 'review_sensitive');
+    putRole(f.components.rework, 'rework');
+  }
+  for (const [name, v] of Object.entries(project)) { putPhase(v, name); putRole(v, name); }
+
+  const scope = {};
+  for (const f of feats) {
+    const k = f.scope_status || 'in_agreed_scope';
+    scope[k] = (scope[k] || 0) + TP.mean(f.total);
+  }
+  return { mean, half, phases, roles, scope, features: feats.length,
+           low: Math.max(mean - half, 0), high: mean + half };
+}
+
+/* PARITY-BLOCK-END */
+
+function rows(target, data, total) {
+  const el = document.getElementById(target);
+  const entries = Object.entries(data).sort((a,b) => b[1] - a[1]);
+  el.innerHTML = entries.map(([k,v]) => `
+    <tr><td>${k.replace(/[-_]/g,' ')}</td>
+        <td style="width:38%"><div class="bar"><span style="width:${total ? (100*v/total).toFixed(1) : 0}%"></span></div></td>
+        <td class="num">${h(v)}</td></tr>`).join('');
+}
+
+function render() {
+  const r = compute(included);
+  document.getElementById('likely').textContent = h(r.mean);
+  document.getElementById('range').textContent =
+    `${h(Math.max(r.mean - r.half, 0))} – ${h(r.mean + r.half)} hours`;
+  document.getElementById('confidence').textContent =
+    `Input completeness ${E.confidence.input_completeness} widens the band by ${E.confidence.band_multiplier}×. ` +
+    E.confidence.why.split('.').slice(-2).join('.').trim();
+
+  const scopeParts = Object.entries(r.scope).map(([k,v]) =>
+    `${k.replace(/_/g,' ')}: ${h(v)}h`).join(' · ');
+  document.getElementById('scopeNote').textContent =
+    r.features === E.features.length ? scopeParts : `${r.features} of ${E.features.length} features included — ${scopeParts}`;
+
+  rows('phases', r.phases, r.mean);
+  rows('roles', r.roles, r.mean);
+
+  document.querySelectorAll('tr[data-fid]').forEach(tr => {
+    tr.classList.toggle('off', !included.has(tr.dataset.fid));
+  });
+}
+
+document.getElementById('title').textContent = `${E.project || 'Estimate'}`;
+document.getElementById('subtitle').textContent =
+  `${E.granularity} · ${E.mode} mode · generated ${E.generated || 'now'} · from ${E.inventory}`;
+
+if ((M.calibration_status || '').startsWith('UNCALIBRATED')) {
+  document.getElementById('uncalibrated').innerHTML =
+    `<div class="note warn"><strong>Uncalibrated model.</strong> These coefficients are reasoned
+     starting points, not measurements from this company's delivered projects. The shape of the
+     estimate is defensible; the absolute figures should be treated as a hypothesis until
+     est-calibrate has reconciled them against real actuals.</div>`;
+}
+
+document.getElementById('features').innerHTML = E.features.map(f => {
+  const tier = f.tags.review_tier;
+  const outside = (f.scope_status && f.scope_status !== 'in_agreed_scope')
+    ? `<span class="chip outside">outside agreed scope</span>` : '';
+  const cites = f.citations.map(c => `${c.source_id} ${c.location}`).join(' · ');
+  return `<tr data-fid="${f.id}">
+    <td><label class="feature">
+      <input type="checkbox" checked data-fid="${f.id}">
+      <span><strong>${f.id}</strong> ${f.name} ${outside}
+        <div class="cite">${cites || 'no citation'}</div></span>
+    </label></td>
+    <td><span class="chip ${tier}">${tier}</span></td>
+    <td>${f.tags.compressibility}</td>
+    <td>${f.tags.clarity}</td>
+    <td class="num">${h(f.hours)}</td></tr>`;
+}).join('');
+
+const risky = E.features.filter(f =>
+  f.tags.compressibility === 'low' && ['sensitive','critical'].includes(f.tags.review_tier));
+if (risky.length) {
+  document.getElementById('riskWrap').innerHTML = `<h2>Where the risk is</h2>
+    <div class="panel"><div class="note warn">
+    <strong>${risky.length} feature${risky.length>1?'s':''} in the worst quadrant:</strong> hard to
+    build and expensive to verify. BMad's advantage is smallest here, and these carry the widest
+    real uncertainty in the number above.</div>
+    <ul style="margin:10px 0 0; padding-left:18px">${risky.map(f =>
+      `<li><strong>${f.id}</strong> ${f.name} — ${f.tags.compressibility} compressibility,
+       ${f.tags.review_tier} review, ${h(f.hours)}h</li>`).join('')}</ul></div>`;
+}
+
+if (E.narrowing_questions && E.narrowing_questions.length) {
+  document.getElementById('questionsWrap').innerHTML = `<h2>Answer these to tighten the range</h2>
+    <div class="panel">${E.narrowing_questions.map(q => `<div class="q">
+      <span>${q.question}${q.assumes ? `<div class="cite">assuming ${q.assumes}</div>` : ''}</span>
+      <span class="num muted" style="white-space:nowrap">−${h(q.band_reduction_hours)}h band
+        (${q.band_reduction_pct}%)</span></div>`).join('')}</div>`;
+}
+
+if (E.duration) {
+  document.getElementById('durationWrap').innerHTML = `<h2>Calendar duration — derived, not a commitment</h2>
+    <div class="panel"><div class="figure" style="font-size:28px">${E.duration.weeks} <small>weeks</small></div>
+    <div class="muted" style="margin-top:8px">${E.duration.basis}</div>
+    <div class="muted" style="margin-top:6px">Critical path ${h(E.duration.critical_path_hours)}h across
+    ${E.dependencies.chain.length} dependent features${E.duration.parallelism_ceiling ?
+      `; useful parallelism tops out around ${E.duration.parallelism_ceiling} people` : ''}.</div></div>`;
+}
+
+document.getElementById('assumptions').innerHTML =
+  E.assumptions.map(a => `<li>${a}</li>`).join('');
+
+document.getElementById('footer').innerHTML =
+  `Build compression ${E.manual_equivalent.build_compression}× on build effort alone
+   (${h(E.manual_equivalent.build_hours)}h manual → ${h(E.manual_equivalent.bmad_build_hours)}h with BMad).
+   This is <em>not</em> whole-project compression: planning, environments, QA and client overhead are
+   costs a manual project pays too.`;
+
+document.addEventListener('change', e => {
+  if (e.target.matches('input[type=checkbox][data-fid]')) {
+    const id = e.target.dataset.fid;
+    e.target.checked ? included.add(id) : included.delete(id);
+    render();
+  }
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  included = new Set(E.features.map(f => f.id));
+  document.querySelectorAll('input[data-fid]').forEach(c => c.checked = true);
+  render();
+});
+
+/* Self-check: the client-side recompute must reproduce what estimate.py wrote. If these
+   ever diverge the page says so rather than quietly showing a different number. */
+const check = compute(new Set(E.features.map(f => f.id)));
+/* Check the whole interval, not just the mean. A mean-only check is blind to any divergence
+   in the band — which is the module's headline claim and the thing most likely to drift. */
+const drift = ['low', 'likely', 'high']
+  .map(k => Math.abs(check[k === 'likely' ? 'mean' : k] - E.total_hours[k]))
+  .reduce((a, b) => Math.max(a, b), 0);
+if (drift > 1.0) {
+  document.getElementById('uncalibrated').insertAdjacentHTML('beforeend',
+    `<div class="note warn"><strong>Recompute mismatch.</strong> This page calculates
+     ${h(check.low)}–${h(check.mean)}–${h(check.high)}h where the estimate file says
+     ${h(E.total_hours.low)}–${h(E.total_hours.likely)}–${h(E.total_hours.high)}h. Trust the file
+     and report this — the interactive totals below may be wrong.</div>`);
+}
+render();
+</script>
+</body>
+</html>

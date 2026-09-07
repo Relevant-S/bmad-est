@@ -1,0 +1,49 @@
+{
+  "scanner": "path-standards",
+  "script": "scan-path-standards.py",
+  "version": "3.0.0",
+  "skill_path": "skills/est-estimate",
+  "timestamp": "2026-09-07T14:55:37.008776+00:00",
+  "files_scanned": [
+    ".analysis/2026-09-07-1655/lint-paths.json",
+    ".analysis/2026-09-07-1655/prepass-integrity.json",
+    ".analysis/2026-09-07-1655/prepass-metrics.json",
+    ".memlog.md",
+    "SKILL.md",
+    "assets/cost-model.seed.json",
+    "references/cost-model-guide.md",
+    "references/headless.md"
+  ],
+  "status": "fail",
+  "findings": [
+    {
+      "file": ".memlog.md",
+      "line": 0,
+      "severity": "high",
+      "category": "structure",
+      "title": "Prompt file at skill root: .memlog.md",
+      "detail": "All progressive disclosure content must be in ./references/ \u2014 only SKILL.md belongs at root",
+      "action": "Move .memlog.md to references/.memlog.md"
+    }
+  ],
+  "assessments": {},
+  "summary": {
+    "total_findings": 1,
+    "by_severity": {
+      "critical": 0,
+      "high": 1,
+      "medium": 0,
+      "low": 0
+    },
+    "by_category": {
+      "double_prefix": 0,
+      "bare_bmad": 0,
+      "absolute_path": 0,
+      "relative_prefix": 0,
+      "cross_dir_dot_slash": 0,
+      "frontmatter": 0,
+      "structure": 1
+    },
+    "assessment": "Path standards scan complete"
+  }
+}

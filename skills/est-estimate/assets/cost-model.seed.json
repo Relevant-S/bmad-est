@@ -1,0 +1,387 @@
+{
+  "schema_version": "1.0",
+  "seeded_from": "estimation-module-plan.md — Cost Model Specification",
+  "calibration_status": "UNCALIBRATED. Every value below is a reasoned starting point, not a measured one. est-calibrate replaces them with figures derived from real actuals; until it has, treat the numbers as a defensible hypothesis and say so in client-facing output.",
+  "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
+  "size_bands": {
+    "_what": "manual_baseline in hours: what this feature would have cost a human team writing it by hand. NOT the BMad effort — the model derives that. Conflating the two double-counts the compression.",
+    "XS": {
+      "lo": 1,
+      "likely": 2.5,
+      "hi": 4,
+      "why": "A config change, a copy edit, one field on an existing form"
+    },
+    "S": {
+      "lo": 4,
+      "likely": 9,
+      "hi": 16,
+      "why": "A single endpoint, a simple form, a static page"
+    },
+    "M": {
+      "lo": 16,
+      "likely": 32,
+      "hi": 60,
+      "why": "A CRUD resource with its UI, a documented integration, a multi-step flow"
+    },
+    "L": {
+      "lo": 60,
+      "likely": 100,
+      "hi": 160,
+      "why": "A subsystem: authentication, a payments flow, a reporting module"
+    },
+    "XL": {
+      "lo": 160,
+      "likely": 260,
+      "hi": 400,
+      "why": "A product area rather than a feature. The band is deliberately wide because an XL tag means the scope was never decomposed; the estimate says so rather than pretending otherwise"
+    }
+  },
+  "compressibility": {
+    "_what": "How many times faster BMad builds this than a human team would. Divides manual_baseline to give build_h. This is the axis that separates an AI-delivery estimate from a conventional one.",
+    "high": {
+      "lo": 5,
+      "likely": 8,
+      "hi": 12,
+      "why": "CRUD, greenfield screens, scaffolding, well-documented APIs, tests, docs, config — thoroughly represented in the model's world, so generation is near-free"
+    },
+    "medium": {
+      "lo": 3,
+      "likely": 4.5,
+      "hi": 6,
+      "why": "Conventional business logic, common integrations, standard mobile screens"
+    },
+    "low": {
+      "lo": 1.5,
+      "likely": 2.5,
+      "hi": 3.5,
+      "why": "Undocumented legacy, client-proprietary systems, bespoke algorithms, dirty-data migration, pixel-level craft — the effort is discovery, and discovery does not compress"
+    },
+    "none": {
+      "lo": 1,
+      "likely": 1,
+      "hi": 1.2,
+      "why": "Workshops, approvals, compliance sign-off, third-party lead times, experimental ML iteration — work where no code is the deliverable"
+    }
+  },
+  "review_rate": {
+    "_what": "review_h as a share of manual_baseline — deliberately NOT of build_h. Review effort scales with the volume of output produced, not the time taken to produce it, so compression shrinks the build and leaves the review untouched. This single choice is why a payments feature stays expensive while CRUD collapses, with no special-casing anywhere.",
+    "routine": {
+      "lo": 0.05,
+      "likely": 0.08,
+      "hi": 0.12,
+      "why": "Feature delegated whole; a spot-review of the blast-radius surfaces only — DB migrations, tests, CI/CD"
+    },
+    "sensitive": {
+      "lo": 0.25,
+      "likely": 0.35,
+      "hi": 0.5,
+      "why": "Money, personal data, authentication and authorization: read line by line before anyone signs their name to it"
+    },
+    "critical": {
+      "lo": 0.45,
+      "likely": 0.6,
+      "hi": 0.85,
+      "why": "Regulated data, irreversible financial effects, safety: line-by-line plus an external or compliance sign-off that runs on someone else's calendar"
+    }
+  },
+  "clarity": {
+    "_what": "spec_rate and rework_rate as shares of manual_baseline and of (build+review) respectively. Under BMad, ambiguity is no longer resolved by a developer stopping to ask — it gets confidently implemented, reviewed, and rebuilt. Vagueness costs MORE than it did in manual delivery, which inverts the usual assumption.",
+    "high": {
+      "spec_rate": 0.08,
+      "rework_rate": 0.1,
+      "why": "Acceptance criteria present, data model implied, edge cases named"
+    },
+    "medium": {
+      "spec_rate": 0.15,
+      "rework_rate": 0.2,
+      "why": "Clear in prose, intent unambiguous, details absent"
+    },
+    "low": {
+      "spec_rate": 0.25,
+      "rework_rate": 0.4,
+      "why": "A line in a transcript, or inferred from context. The rework rate is the dominant term here and it is real, not padding"
+    }
+  },
+  "novelty_rework_multiplier": {
+    "standard": {
+      "factor": 1.0,
+      "why": "The team has built something of this shape before"
+    },
+    "novel": {
+      "factor": 1.5,
+      "why": "New to the team or genuinely uncommon. Novelty drives loops rather than build effort — the first attempt at an unfamiliar shape rarely converges in one pass"
+    }
+  },
+  "team_profiles": {
+    "_what": "Modifiers on human-effort components only. build_h is left alone because the agent writes the code either way — the seniority gap lands entirely in the judgement-heavy work, and under BMad that gap widens rather than narrows.",
+    "senior-heavy": {
+      "spec": 0.8,
+      "review": 0.8,
+      "rework": 0.7,
+      "why": "Sharper specs, faster sensitive-tier review, fewer loops to converge"
+    },
+    "balanced": {
+      "spec": 1.0,
+      "review": 1.0,
+      "rework": 1.0,
+      "why": "The baseline the other profiles are relative to"
+    },
+    "junior-heavy": {
+      "spec": 1.3,
+      "review": 1.4,
+      "rework": 1.6,
+      "why": "Review is slower and less reliable, and more loops are needed — the cost lands hardest where BMad concentrates human effort"
+    },
+    "new-to-bmad": {
+      "spec": 1.2,
+      "review": 1.2,
+      "rework": 1.5,
+      "why": "A learning-curve modifier independent of seniority. Decays over the first few projects; est-calibrate should retire it per team once actuals show it has"
+    }
+  },
+  "planning": {
+    "_what": "The BMad planning pipeline. planning_review_h is the estimate's high-confidence anchor because this company reviews 100% of planning artefacts without exception — it is a predictable function of scope volume rather than a guess, and its bands are correspondingly tight.",
+    "features_per_epic": 5,
+    "features_per_epic_why": "Rule of thumb for how many extracted features cohere into one epic. Scales sublinearly with scope the way real planning does.",
+    "stories_per_feature": {
+      "XS": 1,
+      "S": 1,
+      "M": 2,
+      "L": 4,
+      "XL": 8
+    },
+    "stories_per_feature_why": "Bigger features decompose into more stories, and it is stories that drive spec and review volume.",
+    "agent_hours": {
+      "_what": "Human time steering the BMad workflow that authors each artefact — already compressed, since the agent drafts.",
+      "product_brief": {
+        "lo": 1,
+        "likely": 2,
+        "hi": 4
+      },
+      "prd": {
+        "lo": 2,
+        "likely": 4,
+        "hi": 8
+      },
+      "ux": {
+        "lo": 2,
+        "likely": 5,
+        "hi": 10
+      },
+      "architecture": {
+        "lo": 3,
+        "likely": 6,
+        "hi": 12
+      },
+      "per_epic": {
+        "lo": 0.3,
+        "likely": 0.5,
+        "hi": 1.0
+      },
+      "per_story": {
+        "lo": 0.15,
+        "likely": 0.25,
+        "hi": 0.5
+      }
+    },
+    "review_hours": {
+      "_what": "Human time READING every planning artefact, end to end, no exceptions. Bands are deliberately tight — tighter than anything else in this model — because this is the one component the company performs identically on every project. It is reading at a known rate over a known volume, so the uncertainty is in the volume, not the rate. Report it with a visibly narrower range: it is the part of the number that can be defended hardest, and its tightness is the evidence for that claim rather than a rhetorical flourish.",
+      "product_brief": {
+        "lo": 0.6,
+        "likely": 0.75,
+        "hi": 0.95
+      },
+      "prd": {
+        "lo": 1.7,
+        "likely": 2.0,
+        "hi": 2.5
+      },
+      "ux": {
+        "lo": 1.2,
+        "likely": 1.5,
+        "hi": 1.9
+      },
+      "architecture": {
+        "lo": 2.5,
+        "likely": 3.0,
+        "hi": 3.7
+      },
+      "per_epic": {
+        "lo": 0.26,
+        "likely": 0.3,
+        "hi": 0.36
+      },
+      "per_story": {
+        "lo": 0.13,
+        "likely": 0.15,
+        "hi": 0.18
+      }
+    },
+    "documents_by_granularity": {
+      "project": [
+        "product_brief",
+        "prd",
+        "ux",
+        "architecture"
+      ],
+      "epic": [
+        "prd",
+        "architecture"
+      ],
+      "sprint": [],
+      "feature": [],
+      "why": "A whole project pays the full planning pipeline once. An epic inside a running project inherits the brief and UX and pays only for its own requirements and technical design. A sprint or single feature pays neither — the planning artefacts already exist."
+    }
+  },
+  "env_infra": {
+    "_what": "Environments, CI/CD, deployment, secrets, observability. Largely uncompressed: the work is configuration against real systems with real credentials, and an agent cannot click through a cloud console.",
+    "simple_web": {
+      "lo": 8,
+      "likely": 16,
+      "hi": 32,
+      "why": "One app, one managed host, a standard pipeline"
+    },
+    "standard_saas": {
+      "lo": 16,
+      "likely": 32,
+      "hi": 60,
+      "why": "App plus database plus background jobs, staging and production"
+    },
+    "mobile_plus_backend": {
+      "lo": 30,
+      "likely": 50,
+      "hi": 90,
+      "why": "Adds signing, store provisioning, device build pipelines and release channels"
+    },
+    "multi_service": {
+      "lo": 40,
+      "likely": 80,
+      "hi": 160,
+      "why": "Several deployables, inter-service auth, and an integration environment that has to actually work"
+    }
+  },
+  "qa": {
+    "_what": "qa_h as a share of total manual_baseline. Test generation compresses well; running, triaging and re-running does not.",
+    "web": {
+      "lo": 0.1,
+      "likely": 0.15,
+      "hi": 0.22,
+      "why": "Generated E2E suites plus exploratory testing and release verification"
+    },
+    "mobile_manual": {
+      "lo": 0.2,
+      "likely": 0.3,
+      "hi": 0.45,
+      "why": "Device matrix, store review cycles, and manual regression — the industry default"
+    },
+    "mobile_mcp_automated": {
+      "lo": 0.06,
+      "likely": 0.1,
+      "hi": 0.15,
+      "why": "This company runs mobile QA through the mobile MCP server, which covers most test cases automatically. Materially cheaper than the industry default, and an estimate that ignores it is wrong in the company's own disfavour"
+    },
+    "data_ml": {
+      "lo": 0.15,
+      "likely": 0.25,
+      "hi": 0.4,
+      "why": "Validation is empirical and iterative; correctness is statistical rather than binary"
+    }
+  },
+  "overhead_rate": {
+    "_what": "Ceremony, demos, client communication and coordination, as a share of the subtotal. Untouched by AI — a status call takes as long as it ever did.",
+    "low_touch": {
+      "lo": 0.06,
+      "likely": 0.08,
+      "hi": 0.12,
+      "why": "Async updates, a fortnightly demo, an empowered single point of contact"
+    },
+    "standard": {
+      "lo": 0.1,
+      "likely": 0.14,
+      "hi": 0.2,
+      "why": "Weekly ceremonies, a demo per sprint, a client team that reviews"
+    },
+    "high_touch": {
+      "lo": 0.18,
+      "likely": 0.25,
+      "hi": 0.35,
+      "why": "Multiple stakeholders, committee approvals, formal reporting — common in enterprise and public-sector work"
+    }
+  },
+  "uncertainty": {
+    "_what": "How the reported band is produced. This is the mechanism that makes false precision structurally impossible: band width is COMPUTED from the input, never chosen.",
+    "z": 1.0,
+    "z_why": "Multiplier on the aggregated standard deviation. 1.0 gives roughly a 68% interval, which is honest for a presale figure. Raise to 1.28 for an 80% band when a client wants more confidence — and expect a wider number.",
+    "completeness_multiplier": {
+      "formula": "1 + k * (1 - input_completeness) ^ p",
+      "k": 2.0,
+      "p": 1.5,
+      "why": "Systematic uncertainty from a thin brief is correlated risk, not independent noise, so it widens the band multiplicatively rather than being summed into the variance. At completeness 1.0 the multiplier is 1.0; at 0.5 it is about 1.7; at 0.0 it is 3.0. A two-paragraph brief therefore CANNOT produce a narrow range — the arithmetic forbids it."
+    },
+    "model_risk": 0.15,
+    "model_risk_why": "Systematic model uncertainty, as a share of the central estimate, combined in quadrature with the feature-level variance. Summing feature variances in quadrature assumes the errors are independent, and they are not: if the size-band or compression calibration is off, it is off for every feature at once. Quadrature therefore understates the real band, and understates it worst on large scopes — a hundred features would otherwise report a suspiciously tight interval. This floor represents systematic model error, which does not shrink however many features are counted. While the model is UNCALIBRATED it is set high, at 15%; est-calibrate should lower it once backtesting shows how far the model actually lands from actuals."
+  },
+  "role_weights": {
+    "_what": "How each component's hours divide across roles. No PM: at this company the Architect absorbs PM responsibilities during planning.",
+    "spec": {
+      "ba": 0.5,
+      "architect": 0.3,
+      "ux": 0.2
+    },
+    "build": {
+      "dev": 1.0
+    },
+    "review_routine": {
+      "dev": 0.7,
+      "architect": 0.3
+    },
+    "review_sensitive": {
+      "architect": 0.6,
+      "dev": 0.4
+    },
+    "rework": {
+      "dev": 0.8,
+      "architect": 0.2
+    },
+    "planning_agent": {
+      "architect": 0.5,
+      "ba": 0.3,
+      "ux": 0.2
+    },
+    "planning_review": {
+      "architect": 0.5,
+      "ba": 0.3,
+      "ux": 0.2
+    },
+    "env_infra": {
+      "dev": 0.8,
+      "architect": 0.2
+    },
+    "qa": {
+      "qa": 1.0
+    },
+    "overhead": {
+      "architect": 0.5,
+      "ba": 0.5
+    }
+  },
+  "phase_map": {
+    "_what": "Which BMad delivery phase each component is reported under. This decomposition is what makes the number legible to a client: it maps onto the process actually used rather than an invented breakdown.",
+    "planning_agent": "planning",
+    "planning_review": "planning-review",
+    "spec": "spec",
+    "build": "build",
+    "review": "review",
+    "rework": "rework",
+    "env_infra": "environments",
+    "qa": "qa",
+    "overhead": "overhead"
+  },
+  "calendar": {
+    "_what": "Derived, secondary output. Hours are the deliverable; duration depends on a team shape nobody knows at presale.",
+    "hours_per_person_week": 30,
+    "hours_per_person_week_why": "Six hours of focused delivery a day, five days a week. The remainder is the overhead already priced separately, plus the ordinary friction of a working week.",
+    "max_useful_parallelism": 6,
+    "max_useful_parallelism_why": "Beyond roughly six people on one workstream, coordination cost grows faster than throughput. The critical path, not the headcount, sets the floor on duration."
+  }
+}
