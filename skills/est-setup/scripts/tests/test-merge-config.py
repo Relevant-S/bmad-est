@@ -25,6 +25,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+PROJECT = Path(__file__).resolve().parents[4]
 SCRIPT = ROOT / "est-setup" / "scripts" / "merge-config.py"
 MODULE_YAML = ROOT / "est-setup" / "assets" / "module.yaml"
 
@@ -220,7 +221,7 @@ class ReadBack(unittest.TestCase):
     """The whole point: BMad's own resolver must see what was written."""
 
     def test_the_installed_resolver_reads_the_values_back(self):
-        resolver = Path("/Users/Ostap/Projects/bmad-estimation/_bmad/scripts/resolve_config.py")
+        resolver = PROJECT / "_bmad" / "scripts" / "resolve_config.py"
         if not resolver.exists():
             self.skipTest("resolver not present")
         with tempfile.TemporaryDirectory() as tmp:

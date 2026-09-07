@@ -22,6 +22,7 @@ import unittest
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "merge-help-csv.py"
+PROJECT = Path(__file__).resolve().parents[4]
 SOURCE = Path(__file__).resolve().parents[2] / "assets" / "module-help.csv"
 
 HEADER = ("module,skill,display-name,menu-code,description,action,args,phase,"
@@ -79,14 +80,14 @@ class Merging(unittest.TestCase):
             self.assertEqual(len(rows(target)), 10)
 
     def test_the_header_matches_the_installed_catalog(self):
-        installed = Path("/Users/Ostap/Projects/bmad-estimation/_bmad/_config/bmad-help.csv")
+        installed = PROJECT / "_bmad" / "_config" / "bmad-help.csv"
         if not installed.exists():
             self.skipTest("no installed catalog")
         with installed.open(encoding="utf-8") as a, SOURCE.open(encoding="utf-8") as b:
             self.assertEqual(a.readline().strip(), b.readline().strip())
 
     def test_every_row_names_a_skill_that_exists(self):
-        skills = Path("/Users/Ostap/Projects/bmad-estimation/skills")
+        skills = Path(__file__).resolve().parents[3]
         for row in rows(SOURCE):
             if row["skill"] in ("", "_meta"):
                 continue
@@ -98,7 +99,7 @@ class Merging(unittest.TestCase):
         self.assertEqual(len(codes), len(set(codes)))
 
     def test_no_menu_code_collides_with_an_installed_module(self):
-        installed = Path("/Users/Ostap/Projects/bmad-estimation/_bmad/_config/bmad-help.csv")
+        installed = PROJECT / "_bmad" / "_config" / "bmad-help.csv"
         if not installed.exists():
             self.skipTest("no installed catalog")
         theirs = {r["menu-code"] for r in rows(installed) if r["menu-code"]}

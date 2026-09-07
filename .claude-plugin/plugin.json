@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "bmad-est",
+  "version": "1.0.0",
+  "description": "BMad Delivery Estimator — scope extraction, ranged hour estimates, calibration against delivered actuals, and a conversational estimator who can decompose any number down to the client's own sentence.",
+  "author": {
+    "name": "Relevant Software"
+  },
+  "homepage": "https://github.com/Relevant-S/bmad-est",
+  "repository": "https://github.com/Relevant-S/bmad-est",
+  "license": "ISC",
+  "keywords": [
+    "bmad",
+    "estimation",
+    "presale",
+    "delivery"
+  ]
+}

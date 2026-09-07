@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "bmad-est",
+  "description": "BMad Delivery Estimator — turns any project input into a traceable scope inventory and a defensible, ranged hour estimate for delivery with the BMad method.",
+  "owner": {
+    "name": "Ostap Dribniuk"
+  },
+  "plugins": [
+    {
+      "name": "bmad-est",
+      "description": "Turns any project input — transcript, PRD, SOW, RFP or backlog workbook, in any format or language — into a traceable scope inventory and a defensible, ranged hour estimate for delivery with the BMad method. Band width is computed from how much the input actually said, so a thin brief cannot produce a confident number. Ships five skills: scope extraction with two-way traceability, the estimating engine, a calibrator that learns from delivered actuals, Nadia the conversational delivery estimator, and the module setup.",
+      "source": "./",
+      "version": "1.0.0",
+      "category": "productivity",
+      "tags": ["bmad", "estimation", "presale", "scope", "delivery", "sow", "rfp"],
+      "author": {
+        "name": "Ostap Dribniuk"
+      },
+      "homepage": "https://github.com/Relevant-S/bmad-est"
+    }
+  ]
+}
