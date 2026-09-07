@@ -1,0 +1,46 @@
+{
+  "scanner": "scripts",
+  "script": "scan-scripts.py",
+  "version": "2.0.0",
+  "skill_path": "skills/est-calibrate",
+  "timestamp": "2026-09-07T15:44:40.343114+00:00",
+  "status": "pass",
+  "findings": [],
+  "assessments": {
+    "lint_summary": {
+      "tools_used": [],
+      "files_linted": 5,
+      "lint_issues": 0
+    },
+    "script_summary": {
+      "total_scripts": 5,
+      "by_type": {
+        "python": 5,
+        "shell": 0,
+        "node": 0,
+        "other": 0
+      },
+      "scripts": {
+        "python": [
+          "analyze.py",
+          "apply.py",
+          "backtest.py",
+          "ingest-actuals.py",
+          "render-report.py"
+        ]
+      },
+      "missing_tests": []
+    }
+  },
+  "summary": {
+    "total_findings": 0,
+    "by_severity": {
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 0
+    },
+    "by_category": {},
+    "assessment": ""
+  }
+}

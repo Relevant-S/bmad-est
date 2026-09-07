@@ -1,0 +1,301 @@
+{
+  "schema_version": 2,
+  "subject": "skills/est-calibrate",
+  "generated": "2026-09-07",
+  "grade": "excellent",
+  "verdict": "All twenty-two findings resolved, including a critical that would have proposed a band of no width, two structural defects where the module's central guarantee was asserted in prose while the tooling contradicted it, and one regression introduced by an earlier fix in this same pass.",
+  "summary": "est-calibrate's script/prompt placement was close to exemplary and its validation approach — recovering a known perturbation from synthetic actuals — caught four statistical defects before any of them could reach a real project. The lenses then found four more that the ground-truth harness could not: a degenerate MAD collapsing the band, a regression gate that passed on pure sampling noise more often than not, a band sized for a correction only partly applied, and a hardcoded coverage target that would have misjudged any company taking the cost model's own advice to widen its ranges. The most instructive findings were not statistical. The module's one rule is that nothing changes the cost model without a human deciding it — and an override flag defeated it, advertised in the very error message shown when someone was blocked, while 'headless never writes' held only as long as the agent still carried the sentence saying so. Both are now properties of the tool. A late re-read by the architecture lens found that fixing one finding had introduced another — the report-only stop was placed before the backtest, contradicting the headless contract it governs — and that the actuals schema, the contract the whole analysis reads, was referenced by nothing at all.",
+  "standards": {
+    "canon": "/Users/Ostap/Projects/bmad-estimation/.claude/skills/bmad-workflow-builder/references/prompt-quality-canon.md",
+    "principles": "/Users/Ostap/Projects/bmad-estimation/.claude/skills/bmad-workflow-builder/references/skill-quality-principles.md",
+    "scripts": "/Users/Ostap/Projects/bmad-estimation/.claude/skills/bmad-workflow-builder/references/script-standards.md"
+  },
+  "themes": [
+    {
+      "title": "Small-sample statistics behaved differently from their intuition",
+      "root_cause": "Every defect here came from a statistic that is well behaved asymptotically and treacherous at the sample sizes this module will actually see. MAD collapses to zero when half a sample agrees; the range of pure noise grows with sample count rather than staying fixed; an sd reconstructed by division introduces a zero case that did not exist. Three of the four were invisible to a test suite that only checked the successful direction.",
+      "finding_ids": [
+        "determinism-1",
+        "determinism-4",
+        "determinism-7"
+      ],
+      "action": "State the null explicitly before choosing a threshold, and test the direction where the statistic is degenerate rather than only where it works."
+    },
+    {
+      "title": "A guarantee stated in prose is not a guarantee",
+      "root_cause": "The skill's whole value is that the cost model cannot move without a named human. That rule lived in SKILL.md and headless.md, while the only writer accepted a free-text approver, took no headless signal, and offered an override flag in the message shown at the moment of refusal.",
+      "finding_ids": [
+        "architecture-1",
+        "architecture-2",
+        "architecture-3"
+      ],
+      "action": "Enforce it in the tool: no override, refuse to run without a terminal, and roll the model back if its audit trail cannot be written."
+    },
+    {
+      "title": "Coupled corrections were computed as if independent",
+      "root_cause": "Bias and band width fix different faults, but the band was measured after removing a bias the sizing proposal would only partly apply — and removed it even when no sizing change was proposed. The same shape of error as the coverage target being fixed at 68% while the model's z was adjustable.",
+      "finding_ids": [
+        "determinism-10",
+        "customization-1"
+      ],
+      "action": "Derive every dependent quantity from what will actually be applied, never from what was measured in isolation."
+    },
+    {
+      "title": "The mode they will run for months was the least built",
+      "root_cause": "Calibration is the interesting path and readiness is the one this company will use until projects close. It had one clause, no route to the renderer, and failed outright on the empty ledger that is day one.",
+      "finding_ids": [
+        "enhancement-1",
+        "enhancement-2",
+        "enhancement-3"
+      ],
+      "action": "Build the state the user is actually in, make its output actionable rather than descriptive, and give the downstream consumer something stable to read."
+    },
+    {
+      "title": "Fixes made without re-reading what references them",
+      "root_cause": "Three of the last four findings were consequences of earlier fixes in the same pass rather than of the original build: a token replaced in one file and left in another, reports redirected without moving their render calls, and a mode stop placed where it contradicted the contract it governs. Each was locally correct and globally wrong.",
+      "finding_ids": [
+        "architecture-4",
+        "architecture-10",
+        "architecture-3b"
+      ],
+      "action": "After changing a binding or a flow, re-read every file that references it — the lens caught these only because it re-read the current files rather than reasoning from its own earlier notes."
+    }
+  ],
+  "strengths": [
+    "Validation by recovery against known ground truth turned an unvalidatable skill into a tested one: perturb the model, generate actuals from it, and assert the calibrator recovers the perturbation — including the directions that matter more, that a correct model proposes nothing and one outlier moves nothing.",
+    "Backtesting calls est-estimate's own pricing engine rather than reimplementing it, so the trust mechanism cannot drift from the thing it is evidence about.",
+    "Shrinkage reports both the raw signal and the shrunk proposal, so restraint is visible rather than looking like the data said something smaller.",
+    "scope_delivered is mandatory, and projects that delivered different scope are excluded with a reason rather than averaged in — the failure that would otherwise make the estimator look systematically pessimistic.",
+    "Every applied change writes its provenance into the changed coefficient's own `why`, so the model explains its own history without a companion document.",
+    "The customization lens confirmed the declined-customization choice is coherently executed and that cost-model.json is legitimate shared module memory rather than a surface in disguise.",
+    "The actuals schema is now load-bearing rather than decorative: ingest validates every record against it before writing, so a field-name typo fails at capture instead of surfacing months later as a project missing from a calibration sample."
+  ],
+  "recommendations": [
+    {
+      "rank": 1,
+      "action": "No outstanding work. Carry the ground-truth validation pattern into any future statistical skill, and keep testing the degenerate direction rather than only the working one.",
+      "resolves": []
+    }
+  ],
+  "experience": {
+    "journeys": [
+      {
+        "name": "Readiness (today, and for months)",
+        "steps": "Run against a ledger with no actuals; get a chase list of estimates that went out and never came back, oldest first, each with the command to attach hours — plus what each level of data would unlock."
+      },
+      {
+        "name": "First calibration",
+        "steps": "Attach totals as projects close, analyse, backtest, review one batch with evidence and sample sizes, accept or defer individually. Deferring everything is a legitimate first answer."
+      },
+      {
+        "name": "Routine accuracy check",
+        "steps": "report-only, headless: band hit rate, direction, pending proposals. Nothing is applied and nothing can be."
+      },
+      {
+        "name": "Model maintenance",
+        "steps": "Retire the new-to-bmad modifier once a team's actuals stop showing the penalty; lower model_risk as the band proves itself."
+      }
+    ],
+    "headless": "report-only is the only headless mode and it cannot write: apply.py refuses without a terminal, with no override. Proposals come back as pending so a scheduled run can tell a delivery lead a decision is waiting without having made it."
+  },
+  "findings": [
+    {
+      "id": "determinism-1",
+      "lens": "determinism",
+      "severity": "critical",
+      "title": "A degenerate MAD cleared the dead band and collapsed the band to no width",
+      "location": "scripts/analyze.py (propose_model_risk, mad)",
+      "evidence": "mad() returns exactly 0.0 whenever more than half the values share a number, which is routine below ten projects. A spread of 0.0 then clears any tolerance (|0 − 1.0| = 1.0), every target sd computes to zero, and model_risk is proposed at essentially zero — a band of no width, from five projects. Reproduced on residuals [1.0, 1.0, 1.0, 1.4, 0.6].",
+      "recommendation": "APPLIED. A spread at or below 0.05 is now treated as degenerate rather than as a measurement of zero variability, and proposes nothing. A MAD of zero means more than half the sample landed on the same value, not that the estimates agree with reality."
+    },
+    {
+      "id": "determinism-4",
+      "lens": "determinism",
+      "severity": "high",
+      "title": "The regression gate passed on pure sampling noise most of the time",
+      "location": "scripts/analyze.py (regression_readiness)",
+      "evidence": "The 0.45 range threshold was justified against ONE standard deviation of composition noise (~0.17). The relevant null is the expected RANGE of that noise, which grows with sample count — roughly 2.9 to 3.7 deviations. Simulated: same-recipe projects of eight features produce a mean noise-only range of 0.48, and the gate passed 61% of the time at eight projects, 81% at twelve, 91% at sixteen. More projects of the same shape made a spurious fit MORE likely, which is the opposite of what a gate should do.",
+      "recommendation": "APPLIED. Each tier's observed span is now compared against the expected range of sampling noise for projects of that size, using the control-chart d2 constant, with a 1.5x margin. Verified: 2 of 12 noise-only fixtures now pass, while genuinely varied sets still do. The refusal reports observed, noise-only and required spans so a human can judge. NOTE: this guard has now been wrong twice in the same family — the first fix replaced a spread threshold with a range threshold and still compared against a single deviation of noise."
+    },
+    {
+      "id": "determinism-10",
+      "lens": "determinism",
+      "severity": "high",
+      "title": "The band was sized for a bias correction that would only partly be made",
+      "location": "scripts/analyze.py (accuracy, build_analysis)",
+      "evidence": "Spread was measured with the FULL measured bias removed, while the sizing proposal applies only the shrunk factor — so the band was sized for a correction nobody would make, leaving it too narrow. Worse, the debias was applied even when the bias fell below the 8% threshold and no sizing proposal was raised at all, quietly narrowing the band for a correction that would never happen.",
+      "recommendation": "APPLIED. Proposal order is now explicit: the sizing proposal decides how much systematic error will actually be corrected, and the band is judged on what that leaves behind. The analysis reports correction_assumed and explains it, and removes nothing when no sizing change is proposed."
+    },
+    {
+      "id": "determinism-7",
+      "lens": "determinism",
+      "severity": "medium",
+      "title": "Entry sd was re-derived by division, and the zero case was handled two different ways",
+      "location": "scripts/analyze.py (accuracy, propose_model_risk)",
+      "evidence": "sd was recovered as |actual − likely| / |residual_z| — algebraically correct but pointless, since it is already on the entry as confidence.aggregated_sd, the field residual_z was built from. The division created a zero-denominator case handled inconsistently: accuracy() dropped such a row from the debiased sample while propose_model_risk() appended 0.0 and medianed it in, dragging the proposed band toward nothing.",
+      "recommendation": "APPLIED. sd is carried on the row and used directly. Entries with no recorded sd are dropped in both places: an unmeasurable entry is absent evidence, not evidence of zero."
+    },
+    {
+      "id": "architecture-1",
+      "lens": "architecture",
+      "severity": "high",
+      "title": "An override flag defeated the module's central guarantee, advertised at the moment of refusal",
+      "location": "scripts/apply.py; SKILL.md",
+      "evidence": "SKILL.md told the agent that a proposal without a backtest is refused. apply.py carried --allow-unbacktested and its own refusal message ended '…or pass --allow-unbacktested deliberately' — inviting the agent to bypass the guarantee at the exact moment it was blocked. backtest.py's error said the opposite. An absolute rule in the prompt, contradicted by the tooling.",
+      "recommendation": "APPLIED by deletion rather than documentation. The bar admits no exception: if history cannot be re-priced, the model does not move. All three messages now state the same rule."
+    },
+    {
+      "id": "architecture-2",
+      "lens": "architecture",
+      "severity": "high",
+      "title": "'Headless never writes' was enforced only in prose",
+      "location": "scripts/apply.py; SKILL.md; references/headless.md",
+      "evidence": "The skill's load-bearing rule is that no unattended run may touch the cost model, and headless.md argues correctly that an approval gate has no safe default. But apply.py — the only writer — took no headless signal at all: --approved-by is free text any caller can fill, with no TTY check. The guarantee held only while the executing agent still carried the sentence, which compaction or a programmatic caller drops.",
+      "recommendation": "APPLIED. apply.py refuses to run when stdin is not a terminal, with no override flag — an override would reintroduce the hole. Verified: a scripted invocation is turned away and the model is untouched. Six tests now cover the enforced guarantees."
+    },
+    {
+      "id": "architecture-3",
+      "lens": "architecture",
+      "severity": "medium",
+      "title": "The model was written before the calibration log, so a failed append left an unexplained change",
+      "location": "scripts/apply.py",
+      "evidence": "The cost model was written first and the log appended after. A failure between the two would leave a changed coefficient with no record of what moved it or how to reverse it — precisely the silent drift this skill exists to prevent.",
+      "recommendation": "APPLIED. If the log cannot be written the model is restored from the backup taken before the change, and the run reports why."
+    },
+    {
+      "id": "customization-1",
+      "lens": "customization",
+      "severity": "high",
+      "title": "The band-hit target was hardcoded while being a function of the model's own z",
+      "location": "scripts/analyze.py; scripts/backtest.py",
+      "evidence": "Both scripts used a literal 0.68 target and never read the model. But the cost model declares uncertainty.z = 1.0 with a why inviting the user to 'raise to 1.28 for an 80% band when a client wants more confidence'. A company taking that advice would have had its correctly calibrated ~80% coverage judged far above target, and the calibrator would have proposed narrowing a band that was right.",
+      "recommendation": "APPLIED. The target is derived as erf(z/√2) — 68% at z=1.0, 80% at 1.28, 90% at 1.645 — and the explanation quotes the z it was computed from."
+    },
+    {
+      "id": "enhancement-1",
+      "lens": "enhancement",
+      "severity": "high",
+      "title": "No workspace or memlog, so an interrupted approval batch was unrecoverable",
+      "location": "SKILL.md",
+      "evidence": "`<work>` appeared in four commands and was defined nowhere, and no memlog was initialised. The approval conversation — which proposals were accepted, rejected or deferred — lived only in the turn, and a compaction mid-approval lost it along with the ability to relocate analysis.json.",
+      "recommendation": "APPLIED. {workspace} is a dated calibration folder bound in Resolution rules, the memlog is initialised at the start of a run, and each accept/reject/defer is logged as the human gives it rather than at finalize."
+    },
+    {
+      "id": "enhancement-2",
+      "lens": "enhancement",
+      "severity": "high",
+      "title": "Readiness — the mode this company will run for months — was one clause and unreachable",
+      "location": "SKILL.md; scripts/analyze.py",
+      "evidence": "readiness had a table row and a single clause, was never routed to the renderer, and analyze.py exited with an error on an empty ledger directory — which is day one of the months in question. Its output was a static have/need table that reads identically every month and prompts nobody, with no list of which projects to actually chase.",
+      "recommendation": "APPLIED. Readiness has its own section, an empty ledger is treated as readiness rather than an error, and the report leads with an actionable chase list: estimates that went out and never came back with hours, oldest first, each with the command to run."
+    },
+    {
+      "id": "enhancement-3",
+      "lens": "enhancement",
+      "severity": "high",
+      "title": "No accuracy distillate for the conversational agent to speak from",
+      "location": "scripts/render-report.py",
+      "evidence": "The sibling writes estimate-brief.json for exactly this purpose. est-calibrate produced human prose overwritten each run, an internal analysis schema, and a status sentence stamped into the model only when something was applied — so skill #3 asked 'how accurate are our estimates?' would have had to parse a report written for a person.",
+      "recommendation": "APPLIED. accuracy-brief.json carries the headline figures, the direction, pending proposals and, in readiness state, what is being awaited — without the internals."
+    },
+    {
+      "id": "customization-2",
+      "lens": "customization",
+      "severity": "medium",
+      "title": "Three statistical gates were buried while two equivalent ones were CLI flags",
+      "location": "scripts/analyze.py",
+      "evidence": "MIN_MIX_RANGE, SHRINKAGE_K and the phase-ratio dead-band gate exactly what --min-samples and --min-projects-for-regression gate — whether the calibrator is allowed to speak — so exposing two and hardcoding three was arbitrary. The lens also ruled that none belongs in customize.toml: a numeric statistical constant has no shape in that contract.",
+      "recommendation": "APPLIED. All three are now CLI flags with their rationale in --help. The band-hit target was handled separately as customization-1, since it is derived rather than chosen."
+    },
+    {
+      "id": "leanness-1",
+      "lens": "leanness",
+      "severity": "medium",
+      "title": "The bias-versus-band worked example ran in full in both files",
+      "location": "SKILL.md (Gotchas); references/reading-the-numbers.md",
+      "evidence": "The gotcha re-ran the reference's illustration almost beat for beat, and the pointer to the reference was soft, which is likely why the example got copied forward in the first place.",
+      "recommendation": "APPLIED. The gotcha keeps the rule and the pointer; the worked example stays in the reference, and the pointer is now load-bearing — required reading before putting any proposal to a human."
+    },
+    {
+      "id": "leanness-2",
+      "lens": "leanness",
+      "severity": "medium",
+      "title": "'Most runs should propose nothing' was stated three times",
+      "location": "SKILL.md (twice); references/reading-the-numbers.md",
+      "evidence": "One rule, three copies, two of them in the always-paid entry file twenty-eight lines apart, with the closing clause near-verbatim in two.",
+      "recommendation": "APPLIED. Stated once, in The bar, where the stance belongs."
+    },
+    {
+      "id": "architecture-7",
+      "lens": "architecture",
+      "severity": "high",
+      "title": "assets/actuals.schema.json was referenced by nothing",
+      "location": "SKILL.md; references/; scripts/",
+      "evidence": "A grep for 'assets/' across the prompt, the references and the scripts returned zero hits. The schema is the contract analyze.py reads — field names, enums, and what each granularity level unlocks — and nothing validated against it or routed a reader to it. A typo in a field name would have surfaced months later as a project silently missing from a calibration sample.",
+      "recommendation": "APPLIED. ingest-actuals.py now validates every record against the schema before writing, with six tests, and degrades rather than blocks if the schema itself cannot be read. SKILL.md routes to it at the ingest step. Same class of defect as the orphaned reference on skill #2."
+    },
+    {
+      "id": "architecture-4",
+      "lens": "architecture",
+      "severity": "medium",
+      "title": "headless.md returned unbound paths, and reports landed outside the run folder",
+      "location": "references/headless.md; SKILL.md",
+      "evidence": "The headless return payload named three `<work>/...` paths after that token had been replaced everywhere else, so a caller was handed paths it could not resolve — in the one file that must stand alone under compaction. Separately, both render-report calls wrote to the parent folder rather than the dated run folder, so every run overwrote the previous accuracy-report.md, defeating the thing the dated folder was introduced to prevent.",
+      "recommendation": "APPLIED. headless.md uses {workspace} and restates the binding in one line so it resolves alone; both render calls write into the run folder."
+    },
+    {
+      "id": "architecture-5",
+      "lens": "architecture",
+      "severity": "medium",
+      "title": "A missing cost model reported a file error with no route",
+      "location": "scripts/analyze.py",
+      "evidence": "An absent cost-model.json produced a bare read error. It is seeded by est-estimate on first run, so its absence means nothing has been estimated yet — a routable state, not a failure.",
+      "recommendation": "APPLIED. The error now says what the absence means and points at est-estimate. An absent or empty ledger is separately treated as readiness."
+    },
+    {
+      "id": "architecture-6",
+      "lens": "architecture",
+      "severity": "medium",
+      "title": "report-only appeared in the modes table with no route in the flow",
+      "location": "SKILL.md",
+      "evidence": "The mode was named but the Calibrating flow never said where it stops, so the only headless mode had no defined shape.",
+      "recommendation": "APPLIED — and the first attempt was wrong, see architecture-10. The stop now sits after the backtest and before the approval."
+    },
+    {
+      "id": "architecture-10",
+      "lens": "architecture",
+      "severity": "medium",
+      "title": "The report-only fix contradicted headless.md and stripped a scheduled run of its evidence",
+      "location": "SKILL.md vs references/headless.md",
+      "evidence": "Introduced while fixing architecture-6: SKILL.md said 'in report-only, stop here' before the Backtest beat, while headless.md says an unattended run runs the backtests and returns evidenced pending proposals, and calls pending_proposals the load-bearing field. Since report-only is the only headless mode, the two files prescribed different runs and the scheduled run could no longer fill the field that gives it its value.",
+      "recommendation": "APPLIED. The stop moved to after the backtest and before the approval, verified by line order. A scheduled run exists to say a decision is waiting and show the case for it — it just must not make the decision."
+    },
+    {
+      "id": "architecture-8",
+      "lens": "architecture",
+      "severity": "medium",
+      "title": "The est-estimate dependency was undeclared and had no route when it failed",
+      "location": "scripts/backtest.py; SKILL.md",
+      "evidence": "backtest.py hardcodes a sibling path, correct only while both skills sit under one parent. The script degraded well, but SKILL.md never stated that the write path requires est-estimate installed alongside and gave the agent nothing to do when the refusal arrived. This mattered more after --allow-unbacktested was removed: a missing engine now blocks every proposal outright.",
+      "recommendation": "APPLIED. SKILL.md declares the dependency at the backtest beat and gives the route — look under the project's skills directory, pass --engine, and if it is genuinely absent report accuracy only and propose nothing. backtest.py takes --engine, with three tests."
+    },
+    {
+      "id": "architecture-9",
+      "lens": "architecture",
+      "severity": "low",
+      "title": "status and mode vocabulary diverged from the module and from the scripts",
+      "location": "references/headless.md; SKILL.md; scripts/analyze.py",
+      "evidence": "headless.md instructed `status: readiness` while both siblings use only complete and blocked, so a caller branching on those two values would fall through on a readiness run — the most likely run today. Separately one concept had two spellings: SKILL.md said calibrate, analyze.py emitted calibration, and the payload's `mode` had two possible sources.",
+      "recommendation": "APPLIED. status is complete or blocked as in both siblings, with readiness carried in mode. analyze.py now emits analysis_mode for what the analysis found, leaving mode to mean the skill's mode; headless.md states the distinction."
+    },
+    {
+      "id": "architecture-3b",
+      "lens": "architecture",
+      "severity": "low",
+      "title": "Same-day backups collided, leaving the rollback path pointing at a calibrated model",
+      "location": "scripts/apply.py",
+      "evidence": "The backup was named cost-model.<date>.bak.json, so a second calibration on the same day overwrote the first run's backup with an already-calibrated model. The log still carried the previous values so reversibility held in principle, but the file the rollback path reads no longer held the pre-change state.",
+      "recommendation": "APPLIED. Backups are numbered per run, with a test asserting the first survives a second same-day apply."
+    }
+  ]
+}

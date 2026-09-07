@@ -1,0 +1,74 @@
+---
+name: est-calibrate
+description: Turns delivered actuals into cost-model improvements. Use when user says "calibrate the estimator", "compare estimates to actuals", "how accurate are our estimates", or after a project closes. Supports headless report-only.
+---
+
+# est-calibrate
+
+## Overview
+
+This skill compares what projects were estimated at against what they actually cost, and proposes evidence-backed changes to the cost model. Act as an analyst who has to convince a sceptical delivery lead that a coefficient should move — the burden of proof is on the change. The outputs are an accuracy report, a batch of proposals with their backtests, and, only after a human accepts them, an updated model with an audit trail.
+
+`module-code: est`
+
+## Resolution rules
+
+- Bare paths and `{skill-root}` (e.g. `references/reading-the-numbers.md`) resolve from this skill's installed directory.
+- `{project-root}` → the project working directory.
+- `{memory}` → `{project-root}/_bmad/memory/est/`, holding `cost-model.json`, `ledger/`, `calibration-log.md` and `comparables.md`.
+- `{output_folder}` → from `{project-root}/_bmad/config.yaml`, defaulting to `{project-root}/_bmad-output`.
+- `{workspace}` → `{output_folder}/estimates/calibration/{date}/`, holding `analysis.json`, `backtest.json`, the reports and `.memlog.md`. One folder per calibration run, because a run is a decision record and the previous one should still be readable.
+
+## The bar
+
+The cost model is the company's accumulating asset and this is the only skill that writes to it. **No silent drift:** every change is approved by a named human, carries its evidence and sample size, is backtested against delivered history, and is reversible from the log alone. A coefficient that moved for reasons nobody can reconstruct is worse than one that never moved.
+
+The second bar is restraint. **Most runs should propose nothing** — report the accuracy figures, say the model is holding, and stop. A calibrator that finds something every time is fitting noise, and spends the trust the one genuinely important change will need.
+
+## Modes
+
+| Mode | When | Writes |
+| --- | --- | --- |
+| **readiness** | No ledger entry has usable actuals yet — the normal state until projects close | Nothing |
+| **calibrate** | Delivered projects with actuals exist. The default | The model, but only after a human accepts named proposals |
+| **report-only** | An accuracy check without touching anything; the only headless mode | A report |
+
+**Headless never writes to the cost model.** There is no conservative default for an approval gate, and `apply.py` enforces this itself rather than trusting the caller: it refuses to run without a terminal. See `references/headless.md`.
+
+## Calibrating
+
+**Check the module memory exists.** `{memory}/cost-model.json` is seeded by `est-estimate` on its first run; if it is absent, nothing has been estimated yet and there is nothing to calibrate — say so and point at `est-estimate` rather than reporting a file error. An absent or empty `{memory}/ledger/` is different and legitimate: that is readiness.
+
+**Open the workspace and check for an unfinished run.** Create `{workspace}` and init its memlog (`uv run {project-root}/_bmad/scripts/memlog.py init --path {workspace}/.memlog.md`). If a recent calibration folder already holds an `analysis.json` with proposals nobody finished deciding, read its memlog once and offer to resume rather than re-deriving the batch.
+
+**Attach actuals as projects close.** `uv run scripts/ingest-actuals.py --entry {memory}/ledger/<id>.json --from-export <time-export.csv> --scope as_estimated --source "<where it came from>"` — or `--total <hours>` when no export exists (`--help` for the interface). Three fields decide whether a project can be compared at all: `--scope`, because an estimate for ten features versus actuals for seven delivered ones is not evidence; `--exclude-hours` with its reason, because time sheets are full of waiting that is not delivery effort; and `--confidence`, because a PM's recollection should not move a coefficient as hard as a time-tracking export. `assets/actuals.schema.json` is the contract — what each field means, and what each granularity level unlocks — and the script validates against it before writing.
+
+**Analyse.** `uv run scripts/analyze.py --ledger {memory}/ledger --cost-model {memory}/cost-model.json -o {workspace}/analysis.json`. With nothing comparable it returns readiness instead of failing — present that and stop. Otherwise read the accuracy figures before the proposals. **`references/reading-the-numbers.md` is required reading before you put any proposal to a human** — it works through what band hit rate, the debiased residual spread and the shrinkage weight mean, and which of them is telling you something.
+
+**Backtest before showing anyone a proposal.** `uv run scripts/backtest.py --analysis {workspace}/analysis.json --ledger {memory}/ledger --cost-model {memory}/cost-model.json -o {workspace}/backtest.json` re-prices delivered history through est-estimate's own engine rather than reimplementing pricing.
+
+**That engine is a hard dependency of the write path.** A proposal without a backtest is a different guess, not a calibration, and `apply.py` refuses it outright — there is no override. If `backtest.py` reports the engine missing, look for `estimate.py` under the project's skills directory and pass it with `--engine`. If `est-estimate` genuinely is not installed, report the accuracy figures, propose nothing, and say why — an unbacktested coefficient change is exactly what this skill exists to prevent.
+
+**In `report-only`, stop here** — after the backtest, before the approval. Render the report and return the proposals as pending with their evidence attached. A scheduled run exists to tell someone a decision is waiting and show them the case for it; it just must not make the decision.
+
+**Put the batch to a human.** One table: proposal id, coefficient, current → proposed, the evidence, sample size, and what the backtest did to past estimates. Say plainly which are weak signals. Where a proposal overshoots — the data points one way and the proposal moves only part of it — explain that the rest arrives as more projects land. Accept and reject individually; deferring everything is a legitimate answer and often the right one on a first run. **Log each decision as the human gives it** — `memlog.py append --path {workspace}/.memlog.md --type decision --text "<id, accepted/rejected/deferred, and why>"` — so a batch interrupted halfway is recoverable rather than re-derived.
+
+**Apply only what was accepted.** `uv run scripts/apply.py --analysis {workspace}/analysis.json --backtest {workspace}/backtest.json --cost-model {memory}/cost-model.json --calibration-log {memory}/calibration-log.md --accept P2 P4 --approved-by "<name and role>"`. It backs up the model, writes the provenance into each changed coefficient's own `why`, and appends a log entry naming every ledger entry the change came from.
+
+**Then report and record.** `uv run scripts/render-report.py {workspace}/analysis.json --backtest {workspace}/backtest.json --out-dir {workspace}`. It also writes `accuracy-brief.json`, the small stable distillate `est-agent-estimator` loads to answer "how accurate are our estimates?" without parsing a report written for a person. Append the delivered projects to `{memory}/comparables.md` as anchors for future estimates — project, scope shape, estimate, actual — and log an `assumption` entry in the memlog for anything you had to infer.
+
+## Readiness — the mode that runs until projects close
+
+With no comparable actuals, `analyze.py` returns readiness rather than failing, and an empty ledger is treated the same way: day one is a legitimate state, not an error.
+
+Render it (`uv run scripts/render-report.py {workspace}/analysis.json --out-dir {workspace}`) and lead with the **chase list** — estimates that went out and never came back with hours, oldest first. That list is the actionable part; the have/need table below it reads the same every month and prompts nobody.
+
+Say plainly what the next level of data would buy. A single `delivery_hours` total per closed project, with `scope_delivered` and `excluded_hours`, is enough to calibrate band width and overall sizing — that is the whole ask, and it is worth making it small. Per-feature hours are what unlock review tier and compressibility, the module's core IP, and nothing else gets there cheaply on a handful of projects.
+
+## Gotchas
+
+- **A weak signal is not a small change.** Below the sample threshold the honest output is "watch this", not a smaller adjustment in the same direction.
+- **Never hand-edit the model to match a proposal.** Run `apply.py`, or the change loses its backup, its provenance and its reversibility.
+- **Bias and band width are separate faults with separate fixes.** Consistent residuals on a systematically biased model look like an over-wide band, and narrowing it makes the model confidently biased. The analysis debiases before judging the band — do not re-derive spread from raw residuals yourself (`references/reading-the-numbers.md` works it through).
+- **Retire the learning-curve modifier when it has served.** `new-to-bmad` is meant to decay: once a team's delivered projects stop showing the penalty, propose removing it for that team rather than leaving it inflating every estimate.
+- **Scope-changed and unknown-scope projects are excluded, not averaged in.** They appear in the report's "not comparable" list with the reason. Chasing them into the sample is how the model learns something untrue.

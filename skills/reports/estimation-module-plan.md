@@ -360,7 +360,29 @@ Each brief below is self-contained — a builder agent with zero conversation co
 - Guard against overfitting to a single unusual project — always report sample size, and require a configurable minimum before proposing a change as anything other than a weak signal.
 - Natural pairing with `bmad-retrospective`; the retro is when actuals are freshest and someone is already reflecting.
 
-**Relationships:** Last in the pipeline and last to build — it needs a populated ledger and closed projects before it can be validated at all.
+**Relationships:** Reads the ledger est-estimate writes. Feeds `est-agent-estimator` through `accuracy-brief.json`.
+
+**Status:** BUILT. `skills/est-calibrate/` — 5 scripts, 91 unit tests, 15 ground-truth recovery cases, and a completed Analyze pass.
+
+**Validated by recovery, not by waiting.** The original plan said this skill could not be validated until real projects closed. That turned out to be avoidable: `evals/ground-truth.py` perturbs a copy of the cost model, generates actuals from the perturbed model, runs the calibrator over ledger entries priced with the *unperturbed* one, and asserts it recovers the bias in the right coefficient and direction. Because the answer is known in advance this is stronger evidence than a handful of real projects would give, and it tests the failure directions that matter more than the successes — that a correct model produces no proposals, that one outlier moves nothing, and that a harmful change is visibly harmful.
+
+**Four statistical defects that validation caught before they could reach a real project:**
+
+1. **Band-width detection was chasing its own noise.** The residual-spread statistic is itself noisy at small samples — over eight projects an observed 1.13 is indistinguishable from 1.0 — and the original fixed dead-band ignored sample size. It now scales as `max(0.15, 1.5/√n)`.
+2. **Bias and band width were double-counting.** Estimates all wrong by the same +23% produce *very consistent* residuals, so measuring spread naively concluded the band was too wide and proposed narrowing it — making a systematically biased model confidently biased. Spread is now measured on debiased residuals.
+3. **The backtest called a harmful change neutral.** Narrowing a band leaves every central figure untouched, so an error-only verdict missed a change that would have collapsed band coverage from 71% to 14%. The verdict now weighs band movement, asymmetrically: too narrow promises precision the model lacks, too wide is merely uninformative.
+4. **The band-hit target was hardcoded at 68%** while being a function of the model's own `uncertainty.z` — which the cost model explicitly invites raising to 1.28 for an 80% band. Anyone taking that advice would have had correctly calibrated ranges judged far too wide. It is now derived as `erf(z/√2)`.
+
+**What it can and cannot learn, by data granularity.** This is the module's real constraint and worth stating plainly to anyone asking why per-tier calibration is not available yet:
+
+| Capture | Unlocks |
+| --- | --- |
+| One `delivery_hours` total per closed project | Band width and overall sizing scale |
+| Hours by BMad phase | planning review, planning, environments, QA and overhead coefficients |
+| Hours per feature | Review tier and compressibility — the module's core IP |
+| Hours per role | The role-weight split |
+
+Separating review tier and compressibility from project totals alone requires projects of genuinely different shape — a payments-heavy one and a CRUD-heavy one — not simply more of the same. Twelve identical projects carry the information of one, so the regression gate is a range check on tier mix rather than a sample-size check.
 
 ---
 
@@ -523,6 +545,12 @@ These emerged from building and analysing `est-scope-extract` and apply to every
 **5. Every human gate needs a stated unattended default.** A check that will not clear until a human decides something, beside a rule forbidding the agent from deciding it, deadlocks a batch run — or worse, gets resolved silently. Each gate names its conservative default, logs it as a memlog `assumption`, and surfaces it in `needs_confirmation`.
 
 **6. Deterministic work goes in scripts, including the merge.** If a script already computes what a prompt is about to reconstruct, have the script emit it. `inventory-diff --merge` exists because the model was otherwise retyping verbatim quotes by hand on every update run — over exactly the strings the traceability guarantee depends on.
+
+**7. Never let two pieces of code compute the same quantity.** In skill #2 the sensitivity analysis re-derived the estimate band with a different formula from the headline, so every reported figure became the gap between two formulas rather than the value it claimed to measure. The interactive report's JavaScript separately drifted from the engine and rendered half the real range. Both were fixed by making one definition and verifying the boundary by execution. Where duplication is unavoidable — a browser recompute — an executed parity harness guards it.
+
+**8. Enforce a guarantee in the tooling, not in prose.** "Headless never writes to the cost model" was true only while the agent still carried the sentence saying so; `apply.py` now refuses to run without a terminal, with no override. A rule a compaction can drop is not a guarantee.
+
+**9. Validate statistical claims against synthetic ground truth.** Perturb a model, generate data from it, and check the analysis recovers the perturbation — and equally that it proposes nothing when there is nothing to find. Four real defects in skill #4 surfaced this way, none of which a realistic-looking test would have caught.
 
 ## Build Roadmap
 

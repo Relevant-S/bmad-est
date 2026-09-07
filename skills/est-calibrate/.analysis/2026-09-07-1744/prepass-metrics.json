@@ -1,0 +1,123 @@
+{
+  "scanner": "prompt-metrics-prepass",
+  "script": "prepass-prompt-metrics.py",
+  "version": "2.0.0",
+  "skill_path": "skills/est-calibrate",
+  "timestamp": "2026-09-07T15:44:40.012452+00:00",
+  "budgets": {
+    "skill_md_tokens": [
+      1500,
+      2500
+    ],
+    "multi_branch_reference_tokens": 4500,
+    "single_purpose_reference_tokens": 9000
+  },
+  "skill_md": {
+    "tokens": 1410,
+    "token_method": "tiktoken",
+    "section_count": 6,
+    "frontmatter": {
+      "name": "est-calibrate",
+      "description": "Turns delivered actuals into cost-model improvements. Use when user says \"calibrate the estimator\", \"compare estimates to actuals\", \"how accurate are our estimates\", or after a project closes. Supports headless report-only.",
+      "description_chars": 223,
+      "description_has_angle_brackets": false,
+      "keys": [
+        "description",
+        "name"
+      ]
+    }
+  },
+  "aggregate": {
+    "total_files_scanned": 2,
+    "total_tokens": 2412,
+    "total_waste_patterns": 0,
+    "total_back_references": 0,
+    "files_with_numbered_prefix": 0
+  },
+  "reference_sizes": {
+    "headless.md": {
+      "tokens": 666,
+      "token_method": "tiktoken",
+      "numbered_prefix_filename": false
+    },
+    "reading-the-numbers.md": {
+      "tokens": 1150,
+      "token_method": "tiktoken",
+      "numbered_prefix_filename": false
+    }
+  },
+  "files": [
+    {
+      "file": "SKILL.md",
+      "tokens": 1410,
+      "token_method": "tiktoken",
+      "sections": [
+        {
+          "level": 2,
+          "title": "Overview"
+        },
+        {
+          "level": 2,
+          "title": "Resolution rules"
+        },
+        {
+          "level": 2,
+          "title": "The bar"
+        },
+        {
+          "level": 2,
+          "title": "Modes"
+        },
+        {
+          "level": 2,
+          "title": "Calibrating"
+        },
+        {
+          "level": 2,
+          "title": "Gotchas"
+        }
+      ],
+      "table_count": 1,
+      "table_rows": 5,
+      "fenced_block_count": 0,
+      "allcaps_directive_count": 0,
+      "numbered_prefix_filename": false,
+      "waste_patterns": [],
+      "back_references": [],
+      "frontmatter": {
+        "name": "est-calibrate",
+        "description": "Turns delivered actuals into cost-model improvements. Use when user says \"calibrate the estimator\", \"compare estimates to actuals\", \"how accurate are our estimates\", or after a project closes. Supports headless report-only.",
+        "description_chars": 223,
+        "description_has_angle_brackets": false,
+        "keys": [
+          "description",
+          "name"
+        ]
+      },
+      "is_skill_md": true
+    },
+    {
+      "file": ".memlog.md",
+      "tokens": 1002,
+      "token_method": "tiktoken",
+      "sections": [],
+      "table_count": 0,
+      "table_rows": 0,
+      "fenced_block_count": 0,
+      "allcaps_directive_count": 0,
+      "numbered_prefix_filename": false,
+      "waste_patterns": [],
+      "back_references": [],
+      "frontmatter": {
+        "name": "",
+        "description": "",
+        "description_chars": 0,
+        "description_has_angle_brackets": false,
+        "keys": [
+          "updated"
+        ]
+      },
+      "is_skill_md": false
+    }
+  ]
+}

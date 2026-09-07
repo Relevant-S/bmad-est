@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Actuals",
+  "description": "Real hours spent on a delivered estimate, attached to a ledger entry as `ledger.actuals`. Whatever data exists is usable: a single project total calibrates band width, and finer granularity unlocks more coefficients.",
+  "type": "object",
+  "required": ["granularity", "delivery_hours", "scope_delivered", "source", "captured"],
+  "properties": {
+    "granularity": {
+      "type": "string",
+      "enum": ["project", "phase", "feature"],
+      "description": "The finest level at which hours are known. 'project' is a single total and is enough to calibrate band width and overall sizing. 'phase' unlocks per-phase coefficients. 'feature' unlocks per-tier and per-class coefficients directly, without needing varied project mixes to separate them."
+    },
+
+    "delivery_hours": {
+      "type": "number",
+      "description": "Hours attributable to delivering this scope. This is what the estimate predicted, so it is what the estimate is compared against."
+    },
+
+    "excluded_hours": {
+      "type": "number",
+      "description": "Hours logged against the project that are NOT delivery effort — waiting on a client, a paused month, rework caused by a change of mind that was separately agreed. Real time sheets are full of these, and leaving them in makes the model look pessimistic and drives every coefficient the wrong way."
+    },
+    "excluded_why": {
+      "type": "string",
+      "description": "Required whenever excluded_hours is non-zero. An exclusion nobody can interrogate is a thumb on the scale."
+    },
+
+    "scope_delivered": {
+      "type": "string",
+      "enum": ["as_estimated", "reduced", "expanded", "unknown"],
+      "description": "Whether what shipped matches what was priced. This is the field most often missed and the one that most distorts calibration: comparing an estimate for ten features against the actuals for seven delivered ones makes the estimator look systematically pessimistic and would drive every coefficient down. Anything other than 'as_estimated' means the comparison needs adjusting or excluding, and the calibrator says so rather than quietly averaging it in."
+    },
+    "scope_note": {
+      "type": "string",
+      "description": "Required unless scope_delivered is 'as_estimated'. What changed, and which features were added or dropped."
+    },
+    "features_delivered": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Feature ids actually delivered, when scope changed. Lets the calibrator compare like with like by re-pricing only what shipped instead of discarding the project."
+    },
+
+    "by_phase": {
+      "type": "object",
+      "description": "Hours per BMad phase, using the same phase names the estimate reports: planning, planning-review, spec, build, review, rework, environments, qa, overhead. Partial is fine — name only the phases you actually know.",
+      "additionalProperties": { "type": "number" }
+    },
+    "by_feature": {
+      "type": "object",
+      "description": "Hours per feature id. The richest input: it makes per-review-tier and per-compressibility-class coefficients directly calibratable.",
+      "additionalProperties": { "type": "number" }
+    },
+    "by_role": {
+      "type": "object",
+      "description": "Hours per role (architect, dev, qa, ba, ux). Calibrates the role-weight split, which nothing else can.",
+      "additionalProperties": { "type": "number" }
+    },
+
+    "team_profile": {
+      "type": "string",
+      "description": "The team that actually did the work, if it differed from the profile the estimate assumed. An estimate priced for a balanced team and delivered by a junior one is not evidence that the model is wrong."
+    },
+
+    "source": {
+      "type": "string",
+      "description": "Where these numbers came from — 'Toggl export 2026-11-02', 'Jira worklog', 'PM's recollection'. Provenance decides how much weight the figure deserves."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["measured", "reconstructed", "estimated"],
+      "description": "measured: from a time-tracking system. reconstructed: assembled after the fact from tickets or calendars. estimated: someone's recollection. Low-confidence actuals still carry signal but should not move a coefficient on their own, and the calibrator weights them accordingly."
+    },
+    "captured": { "type": "string", "description": "ISO date the actuals were recorded" },
+    "notes": { "type": "string" }
+  }
+}

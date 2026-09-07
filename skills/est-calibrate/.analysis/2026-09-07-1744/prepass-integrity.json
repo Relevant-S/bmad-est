@@ -1,0 +1,73 @@
+{
+  "scanner": "workflow-integrity-prepass",
+  "script": "prepass-workflow-integrity.py",
+  "version": "1.0.0",
+  "skill_path": "skills/est-calibrate",
+  "timestamp": "2026-09-07T15:44:40.071377+00:00",
+  "status": "warning",
+  "metadata": {
+    "frontmatter": {
+      "name": "est-calibrate",
+      "description": "Turns delivered actuals into cost-model improvements. Use when user says \"calibrate the estimator\", \"compare estimates to actuals\", \"how accurate are our estimates\", or after a project closes. Supports headless report-only."
+    },
+    "sections": [
+      {
+        "level": 2,
+        "title": "Overview",
+        "line": 8
+      },
+      {
+        "level": 2,
+        "title": "Resolution rules",
+        "line": 14
+      },
+      {
+        "level": 2,
+        "title": "The bar",
+        "line": 21
+      },
+      {
+        "level": 2,
+        "title": "Modes",
+        "line": 27
+      },
+      {
+        "level": 2,
+        "title": "Calibrating",
+        "line": 37
+      },
+      {
+        "level": 2,
+        "title": "Gotchas",
+        "line": 51
+      }
+    ],
+    "workflow_type": "simple-utility"
+  },
+  "stage_summary": {
+    "total_stages": 0,
+    "referenced": [],
+    "actual": [],
+    "missing_stages": [],
+    "orphaned_stages": []
+  },
+  "prompt_details": [],
+  "issues": [
+    {
+      "file": "SKILL.md",
+      "line": 1,
+      "severity": "high",
+      "category": "sections",
+      "issue": "Missing ## On Activation section"
+    }
+  ],
+  "summary": {
+    "total_issues": 1,
+    "by_severity": {
+      "critical": 0,
+      "high": 1,
+      "medium": 0,
+      "low": 0
+    }
+  }
+}
