@@ -1,0 +1,105 @@
+code: est
+name: "BMad Delivery Estimator"
+description: "Turns any project input — transcript, PRD, SOW, RFP or backlog workbook — into a traceable scope inventory and a defensible, ranged hour estimate for delivery with the BMad method."
+module_version: 1.0.0
+default_selected: false
+module_greeting: >
+  The Delivery Estimator is installed. Point est-scope-extract at whatever the client sent —
+  any format, any language — and est-estimate will price it with a range whose width is computed
+  from how much the input actually said, so a thin brief cannot produce a confident number.
+
+  Two things are worth doing today. Run the company profile interview (ask Nadia, or run
+  est-agent-estimator) — generic coefficients priced against the wrong team shape are the fastest
+  way to lose trust in the first number. And start recording delivery_hours, scope_delivered and
+  excluded_hours on projects as they close: the seed cost model is a reasoned hypothesis until
+  est-calibrate has reconciled it against your own actuals, and nothing else in the module
+  compounds until those exist.
+
+est_output_folder:
+  prompt: "Where should estimates be written?"
+  default: "{project-root}/_bmad-output/estimates"
+  example: "one folder per project, holding the inventory, the estimate and its sources"
+
+est_default_fidelity:
+  prompt: "Default estimate depth when not specified"
+  default: "presale"
+  type: single-select
+  options:
+    - value: "quick"
+      label: "quick — a go/no-go in minutes, no ledger entry"
+    - value: "presale"
+      label: "presale — the client-facing estimate (recommended)"
+    - value: "delivery"
+      label: "delivery — scope inside a running project, team shape required"
+
+est_default_team_profile:
+  prompt: "Team seniority profile assumed when the assigned team is unknown"
+  default: "balanced"
+  type: single-select
+  options:
+    - value: "senior-heavy"
+      label: "senior-heavy — sharper specs, faster review, fewer loops"
+    - value: "balanced"
+      label: "balanced"
+    - value: "junior-heavy"
+      label: "junior-heavy — slower review, more loops to converge"
+
+est_output_formats:
+  prompt: "Which formats should estimates render by default?"
+  default: ["md", "csv", "html"]
+  type: multi-select
+  options:
+    - value: "md"
+      label: "Markdown — the written estimate with assumptions and exclusions"
+    - value: "csv"
+      label: "CSV — line items for sales"
+    - value: "html"
+      label: "HTML — the interactive report where unticking a feature recomputes the range live"
+
+est_show_manual_baseline:
+  prompt: "Include the human-only comparison in client-facing renders?"
+  default: false
+  type: confirm
+  example: "internal sanity check against pre-BMad intuition; usually off for client output"
+
+est_report_calendar_duration:
+  prompt: "Include derived calendar duration alongside hours?"
+  default: true
+  type: confirm
+  example: "always secondary to hours, and always rendered with the team shape it assumed"
+
+est_roles:
+  prompt: "Roles to split hours across"
+  default: "architect,dev,qa,ba,ux"
+  example: "no PM — the Architect absorbs PM responsibilities during planning"
+
+est_min_calibration_samples:
+  prompt: "Minimum delivered projects before a coefficient change counts as more than a weak signal"
+  default: 3
+
+est_sprint_length_days:
+  prompt: "Default sprint length in working days, for delivery-mode capacity fitting"
+  default: 10
+
+est_knowledge_pack_source:
+  prompt: "Shared location for the portable cost model (blank = local only)"
+  default: ""
+  example: "a git URL or path; leave blank to run fully self-contained on seeded coefficients"
+
+agents:
+  - code: est-agent-estimator
+    name: "Nadia"
+    title: "Delivery Estimator"
+    icon: "📐"
+    description: "Explains, defends and re-prices BMad delivery estimates; curates the cost model."
+
+directories:
+  - "{est_output_folder}"
+  - "{project-root}/_bmad/memory/est/ledger"
+
+post-install-notes: >
+  Two follow-ups the setup could not do for you. Run the company profile interview so estimates
+  are priced against your teams rather than industry averages — ask Nadia, and she will walk it.
+  And note that {project-root}/_bmad/memory/est/cost-model.json is seeded UNCALIBRATED: the shape
+  of an estimate is defensible today, the absolute hours are a reasoned hypothesis until
+  est-calibrate has reconciled them against delivered actuals.

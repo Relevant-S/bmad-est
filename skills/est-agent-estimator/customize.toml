@@ -8,7 +8,7 @@
 # every activation and est-estimate reads for its default profile inputs -- so a rule written
 # there reaches both, and a rule written here would reach only one. Coefficients live in
 # cost-model.json, under the audit trail est-calibrate enforces. The module's own settings
-# arrive in the `modules.est` config section once est-bmad-setup has run.
+# arrive in the `modules.est` config section once est-setup has run.
 #
 # A fourth surface is where the four begin to disagree, so if an org genuinely needs a
 # pre-activation hook this block can be added later -- the decision was that nothing today

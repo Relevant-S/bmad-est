@@ -67,7 +67,7 @@ All four skills read and write one shared memory folder — the cost model, comp
 
 **Why the cost model lives in memory rather than inside skill logic:** the user's hard constraint — *no black box coefficients*. Every number the estimator uses must be a line in a file a human can read, question and override. This is also what makes calibration mechanically possible: `est-calibrate` edits a data file, not prompt text.
 
-**Knowledge pack sync.** `est-bmad-setup` fetches the current pack from a configured shared source (`est_knowledge_pack_source` — a git repo, shared folder, or unset for local-only). `est-calibrate` publishes accepted coefficient changes back. If unset, the module runs fully self-contained on seeded defaults.
+**Knowledge pack sync.** `est-setup` fetches the current pack from a configured shared source (`est_knowledge_pack_source` — a git repo, shared folder, or unset for local-only). `est-calibrate` publishes accepted coefficient changes back. If unset, the module runs fully self-contained on seeded defaults.
 
 ### Memory Contract
 
@@ -441,7 +441,7 @@ Separating review tier and compressibility from project totals alone requires pr
 
 ## Configuration
 
-Collected by the module setup skill (`est-bmad-setup`) and written to the `est` section of the BMad config.
+Collected by the module setup skill (`est-setup`) and written to the `est` section of the BMad config.
 
 | Variable | Prompt | Default | Result Template | User Setting |
 | --- | --- | --- | --- | --- |
@@ -501,7 +501,7 @@ Both are good candidates for publishing as shareable artifacts.
 
 ## Setup Extensions
 
-Beyond writing config, `est-bmad-setup` must:
+Beyond writing config, `est-setup` must:
 
 1. **Scaffold and seed memory** — create `_bmad/memory/est/` with `index.md`, the default `cost-model.md` (from a module asset, so defaults are versioned and diffable), an empty `comparables.md`, `calibration-log.md`, and `ledger/`.
 2. **Run the company profile interview** — team shape and seniority mix, dominant stacks, BMad adoption depth per team, QA capabilities (explicitly asking about mobile-MCP automated QA), typical client engagement model, and the confirmed fact that the Architect absorbs PM responsibilities. Writes `company-profile.md`. This directly answers the user's "ignoring our context" failure mode.
@@ -585,8 +585,15 @@ These emerged from building and analysing `est-scope-extract` and apply to every
 
 **What was actually built, and in what order.** 1, 2, 4, 3 — `est-calibrate` came third rather than last. The roadmap put it last on the grounds that it could not be validated until real projects closed, and that turned out to be avoidable: perturbing the model and checking the calibrator recovers the perturbation is stronger evidence than a handful of real projects, and it tests the failure directions that matter more than the successes. `est-agent-estimator` moved to last for a better reason than the plan gave — it needed `est-calibrate` to exist so its model-curation capability had somewhere to route rather than somewhere to reimplement.
 
+**Module packaged.** `skills/est-setup/` — 3 scripts, 18 tests. `module.yaml` carries the ten settings, the agent roster and the directories to create; `module-help.csv` registers eleven capabilities into `_bmad/_config/bmad-help.csv`.
+
+**Two deviations from the module-builder template, both forced by this installation.** The stock `merge-config.py` writes `_bmad/config.yaml`, but BMad here reads a four-layer TOML stack through `resolve_config.py` — the scaffolded setup would have reported success and configured nothing. It was replaced with a TOML writer targeting `_bmad/custom/config.toml`, the layer the installer never regenerates, verified by reading the values back through BMad's own resolver. And `cleanup-legacy.py` was deleted rather than shipped: its documented invocation removes `_bmad/core/` and `_bmad/_config/`, and the second holds `bmad-help.csv` — the catalog the setup had just written into. There is no legacy here to migrate.
+
+**Two validator findings are limitations of `validate-module.py`, not of the module.** It has no notion of `_meta` rows, though three installed modules ship one and `bmad-help` reads them for module documentation; and its `parse_yaml_minimal` strips indentation, so the nested `name:` in the agents roster overwrites the module's own — it reports the module as being called "Nadia". Both were confirmed against a real YAML parse and the installed catalog.
+
 **Next steps:**
 
-1. All four skills are built. Return to **Create Module (CM)** to scaffold the module infrastructure — `est-bmad-setup`, memory seeding, the company-profile interview, and dependency installation (see Setup Extensions).
-2. Start capturing three fields on every closed project now: `delivery_hours`, `scope_delivered`, `excluded_hours` and its reason. Nothing else in this module compounds until those exist, and reconstructing them later is what makes them never happen.
-3. Run the proving ground above against two or three genuinely different past inputs, to find out whether the seed coefficients are in the right neighbourhood.
+1. Run `est-setup` to register the module in this project.
+2. Ask Nadia to run the company profile interview. Generic coefficients priced against the wrong team shape are the first thing that costs the tool its credibility.
+3. Start capturing three fields on every closed project now: `delivery_hours`, `scope_delivered`, and `excluded_hours` with its reason. Nothing else in this module compounds until those exist, and reconstructing them later is what makes them never happen.
+4. Run the proving ground above against two or three genuinely different past inputs, to find out whether the seed coefficients are in the right neighbourhood.
