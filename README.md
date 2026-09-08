@@ -240,10 +240,10 @@ Ten settings, written by `est-setup` to `_bmad/custom/config.toml`:
 
 | Setting | Default | What it does |
 |---|---|---|
-| `est_output_folder` | `{project-root}/_bmad-output/estimates` | Where estimates are written |
+| `est_output_folder` | `{project-root}/_bmad-output/estimates` | The root of every project workspace — move it and the skills follow |
 | `est_default_fidelity` | `presale` | `quick` for a go/no-go, `delivery` for scope inside a running project |
 | `est_default_team_profile` | `balanced` | Assumed when nobody knows who'll do the work |
-| `est_output_formats` | `md, csv, html` | What gets rendered |
+| `est_output_formats` | `md,csv,html,brief` | What gets rendered — a comma string, because arrays concatenate across config layers |
 | `est_show_manual_baseline` | `false` | Internal pre-BMad comparison; usually off for client output |
 | `est_report_calendar_duration` | `true` | Derived elapsed weeks, always secondary to hours |
 | `est_roles` | `architect, dev, devops, qa, ba, ux` | No PM — the Architect absorbs it during planning, and appears only on project-level work |
@@ -277,7 +277,7 @@ A single project total with those three fields is enough to start calibrating ba
 
 - **A BMad project.** The module reads BMad's config resolver and writes into its help catalog.
 - **Python 3.11+** and [`uv`](https://docs.astral.sh/uv/). Most scripts are stdlib-only; `uv run` handles the rest.
-- **Document converters** (optional): `markitdown`, `openpyxl`, `python-docx`, `pypdf`, `pdftotext`. Without them extraction still works — it falls back to reading each source natively, which is slower and loses spreadsheet row anchors. `est-setup` checks what's present.
+- **`pdftotext`** (poppler), optional. Everything else the converter needs — `openpyxl`, `python-docx`, `pypdf`, `python-pptx` — is declared inline in the script, so `uv run` fetches it; there is nothing to install by hand. Without `pdftotext` a PDF falls to `pypdf` and loses the layout that makes a page citation locatable; without either, extraction reads the original natively, which is slower and loses spreadsheet row anchors. `est-setup` checks what's present.
 
 ---
 

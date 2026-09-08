@@ -72,11 +72,22 @@ class Writing(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             _, _, custom = run(tmp, {"est_min_calibration_samples": 5,
                                      "est_show_manual_baseline": True,
-                                     "est_output_formats": ["md", "html"]})
+                                     "est_output_formats": "md,html"})
             values = table(custom)
             self.assertIsInstance(values["est_min_calibration_samples"], int)
             self.assertIs(values["est_show_manual_baseline"], True)
-            self.assertEqual(values["est_output_formats"], ["md", "html"])
+            self.assertEqual(values["est_output_formats"], "md,html")
+
+    def test_no_setting_is_written_as_an_array(self):
+        """The resolver APPENDS scalar arrays across layers rather than replacing them
+        (config_utils._merge_arrays), so an array-valued setting written here concatenates with
+        the installer's own copy in _bmad/config.toml. est_output_formats did exactly that and
+        rendered every format twice. Comma strings are the module's idiom for a reason — est_roles
+        has always been one."""
+        with tempfile.TemporaryDirectory() as tmp:
+            _, _, custom = run(tmp, {})
+            for key, value in table(custom).items():
+                self.assertNotIsInstance(value, list, f"{key} is an array and will duplicate")
 
     def test_a_project_root_token_is_written_literally(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -242,6 +253,35 @@ class ReadBack(unittest.TestCase):
                 capture_output=True, text=True)
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertEqual(json.loads(proc.stdout)["modules.est.est_default_fidelity"], "delivery")
+
+    def test_a_setting_the_installer_also_wrote_resolves_to_one_value(self):
+        """The base layer is installer-generated and already carries these keys. A value written
+        here has to REPLACE it, not extend it — and for arrays the resolver does the latter, which
+        is how one run produced ["md","csv","html","md","csv","html"]. Nothing covered this in
+        either direction before."""
+        resolver = PROJECT / "_bmad" / "scripts" / "resolve_config.py"
+        if not resolver.exists():
+            self.skipTest("resolver not present")
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "_bmad" / "custom").mkdir(parents=True)
+            (root / "_bmad" / "scripts").mkdir(parents=True)
+            for name in ("resolve_config.py", "config_utils.py"):
+                (root / "_bmad" / "scripts" / name).write_text(
+                    (resolver.parent / name).read_text(encoding="utf-8"), encoding="utf-8")
+            # Exactly what the installer writes: the whole [modules.est] table, base layer.
+            (root / "_bmad" / "config.toml").write_text(
+                '[core]\nproject_name = "t"\n\n[modules.est]\n'
+                'est_output_formats = "md,csv,html"\n', encoding="utf-8")
+            run(tmp, {"est_output_formats": "md"},
+                custom=root / "_bmad" / "custom" / "config.toml",
+                user=root / "_bmad" / "custom" / "config.user.toml")
+            proc = subprocess.run(
+                [sys.executable, str(root / "_bmad" / "scripts" / "resolve_config.py"),
+                 "-p", str(root), "-k", "modules.est.est_output_formats"],
+                capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(json.loads(proc.stdout)["modules.est.est_output_formats"], "md")
 
 
 if __name__ == "__main__":

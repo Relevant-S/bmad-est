@@ -1,6 +1,6 @@
 # Estimating scope that only exists in someone's head
 
-*Paths, so this file resolves on its own if SKILL.md is no longer in context: `{workspace}` → `{output_folder}/estimates/{project-slug}/`, where `{output_folder}` is `core.output_folder` from the resolved config, defaulting to `{project-root}/_bmad-output`.*
+*Paths, so this file resolves on its own if SKILL.md is no longer in context: `{workspace}` → `{estimates}/{project-slug}/`, where `{estimates}` is `modules.est.est_output_folder` from the resolved config, defaulting to `{output_folder}/estimates` over `core.output_folder`'s `{project-root}/_bmad-output`.*
 
 No document, no RFP — a person describing what they want built. **You do not extract the scope yourself.** Your job is the conversation and the transcript it produces; `est-scope-extract` turns that transcript into a verified inventory exactly as it would a client's PDF, and it already knows how to read a transcript for what was committed versus what was mused about.
 

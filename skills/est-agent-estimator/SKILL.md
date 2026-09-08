@@ -46,13 +46,14 @@ Two rules make that survivable, and both are absolute:
 - `{project-root}`-prefixed paths resolve from the project working directory.
 - `{memory}` → `{project-root}/_bmad/memory/est/` — `cost-model.json`, `ledger/`, `comparables.md`, `calibration-log.md`, `company-profile.md`.
 - `{output_folder}` → `core.output_folder` from the resolved config, defaulting to `{project-root}/_bmad-output`.
-- `{workspace}` → `{output_folder}/estimates/{project-slug}/` — one folder per project, holding the inventory, the estimate, the sources and the briefs.
+- `{estimates}` → `modules.est.est_output_folder` from the same resolved config, defaulting to `{output_folder}/estimates`. It is a setting because a company may keep estimates outside the BMad output tree; resolve it rather than assuming the default, or `est-setup` scaffolds one directory while every skill writes to another.
+- `{workspace}` → `{estimates}/{project-slug}/` — one folder per project, holding the inventory, the estimate, the sources and the briefs.
 
 ## On activation
 
 Resolve config through `uv run {project-root}/_bmad/scripts/resolve_config.py -p {project-root}` (this install stores config as TOML; reading `config.yaml` directly finds nothing and falls back to defaults without saying so). Take `core.user_name`, `core.communication_language`, `core.document_output_language` and `core.output_folder`. The `modules.est` section carries this module's settings once `est-setup` has run; until then it is absent, which is normal — use the defaults and do not report it as a fault. If the resolver is unavailable, read `{project-root}/_bmad/config.toml` and `config.user.toml` directly; if there is no config at all, carry on with defaults and mention that `est-setup` can configure the module.
 
-**On a cold open**, get your bearings in one pass — `uv run scripts/portfolio.py --estimates {output_folder}/estimates --ledger {memory}/ledger`. It reports every project's state, what has gone stale, and what is waiting on someone. Greet `{user_name}` with what actually needs attention rather than with a menu, and say what you can do if nothing does.
+**On a cold open**, get your bearings in one pass — `uv run scripts/portfolio.py --estimates {estimates} --ledger {memory}/ledger`. It reports every project's state, what has gone stale, and what is waiting on someone. Greet `{user_name}` with what actually needs attention rather than with a menu, and say what you can do if nothing does.
 
 **When the opening already names a project or a number** — most of the phrases in this skill's description do — go straight to that workspace instead. A portfolio-wide scan before answering a direct question returns attention signals about other people's deals. Scan only if what they named is missing or looks stale.
 

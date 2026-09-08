@@ -1,6 +1,6 @@
 # Explaining, defending and re-cutting a number
 
-*Paths, so this file resolves on its own if SKILL.md is no longer in context: `{workspace}` → `{output_folder}/estimates/{project-slug}/`, the project's folder. `{memory}` → `{project-root}/_bmad/memory/est/`. `{output_folder}` → `core.output_folder` from the resolved config, defaulting to `{project-root}/_bmad-output`.*
+*Paths, so this file resolves on its own if SKILL.md is no longer in context: `{workspace}` → `{estimates}/{project-slug}/`, the project's folder. `{memory}` → `{project-root}/_bmad/memory/est/`. `{estimates}` → `modules.est.est_output_folder` from the resolved config, defaulting to `{output_folder}/estimates`.*
 
 Load `{workspace}/estimate-brief.json`. It is the distillate built for this conversation, and it already holds what people ask about. Reach for `{workspace}/estimate.json` only for `scope_split[…].standalone_hours`, `dependencies`, `duration` and `project_components` — the fields the brief deliberately leaves out.
 
@@ -12,7 +12,7 @@ Load `{workspace}/estimate-brief.json`. It is the distillate built for this conv
 | An inventory, no estimate | The scope exists and the number does not. Offer to run `est-estimate` |
 | A `quick`-mode estimate | Only the markdown exists — no brief, no per-feature chain, no ledger entry, by design. It answered a go/no-go and cannot be decomposed or defended. Say so and offer a `presale` re-run, which is minutes |
 
-**Then check the ledger before you re-price anything.** `uv run {project-root}/skills/est-agent-estimator/scripts/portfolio.py --estimates {output_folder}/estimates --ledger {memory}/ledger` returns each project's entries with their `status`, and what that status says changes what a scenario even means:
+**Then check the ledger before you re-price anything.** `uv run {project-root}/skills/est-agent-estimator/scripts/portfolio.py --estimates {estimates} --ledger {memory}/ledger` returns each project's entries with their `status`, and what that status says changes what a scenario even means:
 
 - **`draft`** — proceed as written below.
 - **`sent`** — the client is holding a number. A re-price is a re-quote: name both figures and what changed between them, rather than quietly presenting the new one.

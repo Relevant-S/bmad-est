@@ -21,7 +21,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import importlib.util
+
 SCRIPT = Path(__file__).resolve().parents[1] / "merge-help-csv.py"
+_spec = importlib.util.spec_from_file_location("merge_help_csv", SCRIPT)
+registrar = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(registrar)
 PROJECT = Path(__file__).resolve().parents[4]
 SOURCE = Path(__file__).resolve().parents[2] / "assets" / "module-help.csv"
 
@@ -93,6 +98,22 @@ class Merging(unittest.TestCase):
                 continue
             self.assertTrue((skills / row["skill"] / "SKILL.md").is_file(),
                             f"{row['skill']} is registered but not installed")
+
+    def test_the_registrar_reports_a_row_whose_skill_it_cannot_find(self):
+        """The catalogue promises the thing it names can be run. This was asserted here and
+        nowhere at install time, which is how a menu entry ends up pointing at a path the
+        install never created."""
+        header, source_rows = registrar.read_csv_rows(str(SOURCE))
+        self.assertEqual(registrar.locate_skills(header, source_rows), [])
+        unresolved = registrar.locate_skills(header, source_rows, skills_dir="/nowhere")
+        self.assertEqual(sorted({u["skill"] for u in unresolved}),
+                         ["est-agent-estimator", "est-calibrate", "est-estimate",
+                          "est-scope-extract", "est-setup"])
+        self.assertTrue(all(u["looked_in"] == ["/nowhere"] for u in unresolved))
+
+    def test_the_meta_row_is_not_expected_to_be_a_skill(self):
+        header, rows_ = registrar.read_csv_rows(str(SOURCE))
+        self.assertNotIn("_meta", [u["skill"] for u in registrar.locate_skills(header, rows_, "/nowhere")])
 
     def test_menu_codes_are_unique_within_the_module(self):
         codes = [r["menu-code"] for r in rows(SOURCE) if r["menu-code"]]

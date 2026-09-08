@@ -11,9 +11,8 @@ module_greeting: >
   Two things are worth doing today. Run the company profile interview (ask Nadia, or run
   est-agent-estimator) — generic coefficients priced against the wrong team shape are the fastest
   way to lose trust in the first number. And start recording delivery_hours, scope_delivered and
-  excluded_hours on projects as they close: the seed cost model is a reasoned hypothesis until
-  est-calibrate has reconciled it against your own actuals, and nothing else in the module
-  compounds until those exist.
+  excluded_hours on projects as they close: the seed is fitted to a single delivered project, and
+  nothing else in the module compounds until your own actuals exist.
 
 est_output_folder:
   prompt: "Where should estimates be written?"
@@ -45,16 +44,16 @@ est_default_team_profile:
       label: "junior-heavy — slower review, more loops to converge"
 
 est_output_formats:
-  prompt: "Which formats should estimates render by default?"
-  default: ["md", "csv", "html"]
-  type: multi-select
-  options:
-    - value: "md"
-      label: "Markdown — the written estimate with assumptions and exclusions"
-    - value: "csv"
-      label: "CSV — line items for sales"
-    - value: "html"
-      label: "HTML — the interactive report where unticking a feature recomputes the range live"
+  prompt: "Which formats should estimates render by default? (comma-separated)"
+  default: "md,csv,html,brief"
+  example: >
+    md — the written estimate with its assumptions and exclusions.
+    csv — line items for sales.
+    html — the interactive report where unticking a feature recomputes the range live.
+    brief — estimate-brief.json, which is what Nadia loads to answer questions about a number.
+    A comma string rather than a list on purpose: the config resolver appends arrays across
+    layers rather than replacing them, so a list here would concatenate with the installer's
+    own copy and render every format twice.
 
 est_show_manual_baseline:
   prompt: "Include the human-only comparison in client-facing renders?"
@@ -100,6 +99,7 @@ directories:
 post-install-notes: >
   Two follow-ups the setup could not do for you. Run the company profile interview so estimates
   are priced against your teams rather than industry averages — ask Nadia, and she will walk it.
-  And note that {project-root}/_bmad/memory/est/cost-model.json is seeded UNCALIBRATED: the shape
-  of an estimate is defensible today, the absolute hours are a reasoned hypothesis until
-  est-calibrate has reconciled them against delivered actuals.
+  And read what {project-root}/_bmad/memory/est/cost-model.json says about its own calibration
+  rather than assuming: the seed ships fitted to one delivered BMad project, so the honest line
+  is n=1 — a far stronger start than industry averages, and still one project, which cannot
+  separate what is true of BMad delivery from what was true of that project.

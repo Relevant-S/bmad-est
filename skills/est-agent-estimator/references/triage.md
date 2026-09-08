@@ -1,10 +1,10 @@
 # Portfolio triage, bid/no-bid, and the company profile
 
-*Paths, so this file resolves on its own if SKILL.md is no longer in context: `{memory}` → `{project-root}/_bmad/memory/est/`. `{output_folder}` → `core.output_folder` from the resolved config, defaulting to `{project-root}/_bmad-output`.*
+*Paths, so this file resolves on its own if SKILL.md is no longer in context: `{memory}` → `{project-root}/_bmad/memory/est/`. `{estimates}` → `modules.est.est_output_folder` from the resolved config, defaulting to `{output_folder}/estimates`.*
 
 ## Reading the portfolio
 
-`uv run scripts/portfolio.py --estimates {output_folder}/estimates --ledger {memory}/ledger` returns every project's state in one pass. It orders by how much a wrong answer costs, not by importance — that judgement is yours.
+`uv run scripts/portfolio.py --estimates {estimates} --ledger {memory}/ledger` returns every project's state in one pass. It orders by how much a wrong answer costs, not by importance — that judgement is yours.
 
 `next_action` is derived strictly from what exists on disk, and two values deserve to be read out rather than summarised:
 

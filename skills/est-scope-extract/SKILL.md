@@ -18,6 +18,7 @@ This skill turns any project input — call transcript, PRD, SOW, RFP, backlog w
 - Bare paths and `{skill-root}` (e.g. `references/story-synthesis.md`) resolve from this skill's installed directory.
 - `{project-root}` → the project working directory.
 - `{output_folder}` → `core.output_folder` via `uv run {project-root}/_bmad/scripts/resolve_config.py -p {project-root}`, defaulting to `{project-root}/_bmad-output`. Config is TOML here, so reading `config.yaml` finds nothing and defaults silently.
+- `{estimates}` → `modules.est.est_output_folder` from the same resolved config, defaulting to `{output_folder}/estimates`. It is a setting because a company may keep estimates outside the BMad output tree; resolve it rather than assuming the default, or `est-setup` scaffolds one directory while every skill writes to another.
 - `{project-slug}` → kebab-case of the project or deal name the user gives.
 
 ## The bar
@@ -37,7 +38,7 @@ Read the user's intent and route. Ask the single disambiguating question only wh
 | **validate** | Read-only recheck of an inventory against its sources before it feeds an estimate | `references/update-and-validate.md` |
 | **resume** | A workspace holding a memlog and a partial inventory — a create run that was interrupted | Read `.memlog.md` once, then continue in Create from the last beat it records |
 
-Decide between them by looking, not by asking: once the project is named, check `{output_folder}/estimates/{project-slug}/`. A complete inventory means update, a partial one means resume, nothing there means create.
+Decide between them by looking, not by asking: once the project is named, check `{estimates}/{project-slug}/`. A complete inventory means update, a partial one means resume, nothing there means create.
 
 **Headless** — no TTY, a programmatic caller, `-H`/`--headless`, or every input supplied up front — changes what happens at each point that would otherwise ask a human. Load `references/headless.md` and follow it for the whole run.
 
@@ -45,7 +46,7 @@ Decide between them by looking, not by asking: once the project is named, check 
 
 **Settle three things first**, in two sentences, before converting anything: the project name, what the estimate is *for* (`granularity`: a whole project, an epic, a sprint, or a single feature), and **which source is contractual, if any**. That last one switches on the agreed-scope machinery, and discovering it accidentally mid-extraction is how it ends up applied inconsistently.
 
-**Then open the workspace** at `{output_folder}/estimates/{project-slug}/`, which holds `feature-inventory.json` (source of truth), the rendered `.md` and `.csv`, `extraction-report.md`, `normalized/` (converted sources plus `manifest.json`), and `.memlog.md` — init that with `uv run {project-root}/_bmad/scripts/memlog.py init --path <workspace>/.memlog.md`. State lives on disk from here on, so the user has the path and nothing depends on the conversation surviving.
+**Then open the workspace** at `{estimates}/{project-slug}/`, which holds `feature-inventory.json` (source of truth), the rendered `.md` and `.csv`, `extraction-report.md`, `normalized/` (converted sources plus `manifest.json`), and `.memlog.md` — init that with `uv run {project-root}/_bmad/scripts/memlog.py init --path <workspace>/.memlog.md`. State lives on disk from here on, so the user has the path and nothing depends on the conversation surviving.
 
 **Then plan the beats.** `uv run scripts/plan-beats.py <workspace>/normalized --manifest <workspace>/normalized/manifest.json -o <workspace>/beats.json` cuts each source into the units the reading fans out over. It cuts on the source's own structure — the sparse-filled grouping column, a catalogue tab kept whole, heading sections in prose — so every beat is a contiguous row range and a citation written inside one anchors exactly as it would have in a single pass. A partition chosen fresh each run is a partition nobody can reproduce, resume or check.
 

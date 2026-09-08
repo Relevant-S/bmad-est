@@ -13,7 +13,7 @@
 # single path segment.
 
 est-scope-extract:
-  workspace: "{output_folder}/estimates/{project-slug}"
+  workspace: "{est_output_folder}/{project-slug}"
   required:
     - path: feature-inventory.json
       role: source of truth
@@ -51,7 +51,7 @@ est-scope-extract:
       when: an interactive run produced a batch for a human to accept
 
 est-estimate:
-  workspace: "{output_folder}/estimates/{project-slug}"
+  workspace: "{est_output_folder}/{project-slug}"
   required:
     - path: classification.json
       role: what each story costs to build, keyed by feature id — this skill's judgement,
@@ -113,7 +113,7 @@ est-calibrate:
       when: delivered projects were recorded as anchors
 
 est-agent-estimator:
-  workspace: "{output_folder}/estimates/{project-slug}"
+  workspace: "{est_output_folder}/{project-slug}"
   required: []
   optional:
     - path: normalized/conversation.md

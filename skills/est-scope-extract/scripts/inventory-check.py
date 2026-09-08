@@ -26,6 +26,12 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "assets" / "feature-inventory.schema.json"
+# The classification's schema lives with the skill that writes it. Validated here because this is
+# where the two halves are read together, and because the judgement half should not be the
+# unchecked one — the inventory has a schema and the file that decides what everything costs
+# should be held to the same bar.
+CLASSIFICATION_SCHEMA_PATH = (Path(__file__).resolve().parent.parent.parent
+                              / "est-estimate" / "assets" / "classification.schema.json")
 
 # The bands are defined by the cost model, not by this script. Falling back to the shipped seed
 # matters: extraction legitimately runs before a project has a model of its own, and a band table
@@ -897,17 +903,25 @@ def main():
         print(json.dumps({"ok": False, "error": f"cannot read schema: {exc}"}, indent=2))
         return 2
 
-    classification, orphans = None, []
+    classification, orphans, classification_findings = None, [], []
     if args.classification:
         try:
             classification = json.loads(Path(args.classification).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             print(json.dumps({"ok": False, "error": f"cannot read classification: {exc}"}, indent=2))
             return 2
+        try:
+            cls_schema = json.loads(CLASSIFICATION_SCHEMA_PATH.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            cls_schema = None
+        classification_findings = (validate_schema(classification, cls_schema, cls_schema)
+                                   if cls_schema else [])
         orphans = join_classification(inv, classification)
     classified = classification is not None
 
     findings = validate_schema(inv, schema, schema) + check_integrity(inv, classified)
+    findings += [f"classification{f[1:]}" if f.startswith("$") else f
+                 for f in (classification_findings if classified else [])]
     if orphans:
         findings.append(
             f"classification: {len(orphans)} classified ids are not in this inventory "

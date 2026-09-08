@@ -1,6 +1,6 @@
 # Update and Validate
 
-Two read-mostly intents over an existing Feature Inventory. Both work on `feature-inventory.json` in the extraction workspace at `{output_folder}/estimates/{project-slug}/`, which is the source of truth; the `.md` and `.csv` beside it are regenerated projections and are never edited directly.
+Two read-mostly intents over an existing Feature Inventory. Both work on `feature-inventory.json` in the extraction workspace at `{estimates}/{project-slug}/`, which is the source of truth; the `.md` and `.csv` beside it are regenerated projections and are never edited directly.
 
 Both intents re-extract or re-read against the same three references a create run uses, and neither works without them:
 

@@ -68,6 +68,11 @@ def parse_args():
         action="store_true",
         help="Print detailed progress to stderr",
     )
+    parser.add_argument(
+        "--skills-dir",
+        help="where the skills are installed, if not beside this script or under "
+             ".claude/skills; every registered row is checked against it",
+    )
     return parser.parse_args()
 
 
@@ -163,6 +168,44 @@ def reject_unresolved_paths(named_paths: list[tuple[str, str]]) -> None:
             sys.exit(1)
 
 
+def locate_skills(header, rows, skills_dir=None):
+    """Rows whose skill cannot be found on disk.
+
+    A capability catalogue is a promise that the thing it names can be run. The test suite checks
+    this against the repo; nothing checked it at install time, which is how a catalogue ends up
+    pointing where the skills are not — the BMad installer writes its own manifest assuming
+    `_bmad/<module>/<skill>/SKILL.md`, while a plugin install puts them under `.claude/skills/`.
+
+    Reported, never repaired. This script owns the rows it wrote; guessing at another installer's
+    layout would only add a second wrong answer to the first.
+    """
+    try:
+        skill_col, code_col = header.index("skill"), header.index("menu-code")
+    except ValueError:
+        return []
+
+    here = Path(__file__).resolve()
+    roots = [Path(skills_dir)] if skills_dir else [
+        here.parents[2],                              # this module's own skills/ directory
+        here.parents[4] / ".claude" / "skills",       # where a plugin install puts them
+    ]
+    unresolved = []
+    for row in rows:
+        if len(row) <= skill_col:
+            continue
+        skill = row[skill_col].strip()
+        if not skill or skill == "_meta":
+            continue
+        if any((root / skill / "SKILL.md").is_file() for root in roots):
+            continue
+        unresolved.append({
+            "skill": skill,
+            "menu_code": row[code_col].strip() if len(row) > code_col else "",
+            "looked_in": [str(r) for r in roots],
+        })
+    return unresolved
+
+
 def main():
     args = parse_args()
 
@@ -228,6 +271,8 @@ def main():
             args.legacy_dir, args.module_code, args.verbose
         )
 
+    unresolved = locate_skills(header, source_rows, args.skills_dir)
+
     # Output result summary as JSON
     result = {
         "status": "success",
@@ -238,6 +283,7 @@ def main():
         "rows_added": len(source_rows),
         "total_rows": len(merged_rows),
         "legacy_csvs_deleted": legacy_deleted,
+        "unresolved_skills": unresolved,
     }
     print(json.dumps(result, indent=2))
 

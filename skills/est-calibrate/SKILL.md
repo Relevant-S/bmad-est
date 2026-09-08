@@ -17,7 +17,7 @@ This skill compares what projects were estimated at against what they actually c
 - `{project-root}` → the project working directory.
 - `{memory}` → `{project-root}/_bmad/memory/est/`, holding `cost-model.json`, `ledger/`, `calibration-log.md` and `comparables.md`.
 - `{output_folder}` → `core.output_folder` via `uv run {project-root}/_bmad/scripts/resolve_config.py -p {project-root}`, defaulting to `{project-root}/_bmad-output`. Config is TOML here, so reading `config.yaml` finds nothing and defaults silently.
-- `{workspace}` → `{output_folder}/calibration/{date}/`, holding `analysis.json`, `backtest.json`, the reports and `.memlog.md`. One folder per calibration run, because a run is a decision record and the previous one should still be readable. Deliberately outside `{output_folder}/estimates/`, which holds one folder per project: a calibration is portfolio-wide, and parking it there makes it read as a project that was never scoped.
+- `{workspace}` → `{output_folder}/calibration/{date}/`, holding `analysis.json`, `backtest.json`, the reports and `.memlog.md`. One folder per calibration run, because a run is a decision record and the previous one should still be readable. Deliberately outside the estimates tree (`modules.est.est_output_folder`), which holds one folder per project: a calibration is portfolio-wide, and parking it there makes it read as a project that was never scoped.
 
 ## The bar
 

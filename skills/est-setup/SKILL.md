@@ -13,7 +13,8 @@ Registers the Delivery Estimator into a project: writes its settings, scaffolds 
 
 ## Resolution rules
 
-- Bare paths (e.g. `assets/module.yaml`) resolve from this skill's installed directory.
+- Bare paths (e.g. `assets/module.yaml`) resolve from this skill's installed directory — but a **shell command** resolves against the working directory, not this one, so every invocation below spells it `{skill-root}/…` and you replace it with the real path. An agent sitting at the project root that runs `uv run scripts/merge-config.py` gets `No such file or directory`.
+- `{skill-root}` → this skill's installed directory. Its siblings are `{skill-root}/../est-estimate`, `../est-scope-extract` and so on, which is how they find each other in an install as well as in this repo.
 - `{project-root}` → the project working directory. **In config *values* it stays a literal token**, because the consuming skill resolves it. In the *path arguments* below it must be replaced with the real project root, or the scripts write into a directory literally named `{project-root}` — they refuse the unresolved token rather than doing that quietly.
 - `{memory}` → `{project-root}/_bmad/memory/est/`.
 
@@ -39,7 +40,7 @@ Settings go to **`custom/config.toml`**, not the base layer. The base file's own
 **Write them.** Put the answers in a temp JSON as `{"module": {...}}`, keeping the literal `{project-root}` token inside values, then:
 
 ```
-uv run scripts/merge-config.py --module-yaml assets/module.yaml --answers <temp.json> \
+uv run {skill-root}/scripts/merge-config.py --module-yaml {skill-root}/assets/module.yaml --answers <temp.json> \
   --custom-config {project-root}/_bmad/custom/config.toml \
   --custom-user-config {project-root}/_bmad/custom/config.user.toml
 ```
@@ -49,11 +50,13 @@ It replaces any previous `[modules.est]` table rather than merging over it, so a
 **Register the capabilities.**
 
 ```
-uv run scripts/merge-help-csv.py --target {project-root}/_bmad/_config/bmad-help.csv \
-  --source assets/module-help.csv
+uv run {skill-root}/scripts/merge-help-csv.py --target {project-root}/_bmad/_config/bmad-help.csv \
+  --source {skill-root}/assets/module-help.csv
 ```
 
 That catalog is what `bmad-help` reads. **Never pass `--legacy-dir` here** — it would delete `_bmad/core/module-help.csv`, which belongs to another module.
+
+Read `unresolved_skills` in its output. A catalogue row is a promise that the thing it names can be run, and the script checks each one against this module's own directory and `.claude/skills/`. Anything listed there is registered but unreachable — pass `--skills-dir` if the install put them somewhere else, and report it either way rather than leaving a menu entry that goes nowhere. The BMad installer keeps its own `_bmad/_config/skill-manifest.csv` assuming skills live at `_bmad/<module>/<skill>/`, which is not where a plugin install puts them; that file is the installer's and nothing in this module reads it, so say where the skills actually are and leave it alone.
 
 ## Headless
 
@@ -69,10 +72,10 @@ Two things change. **Never overwrite an existing `{memory}/cost-model.json`**, w
   "settings_written": 10,
   "help_entries": 11,
   "cost_model": "seeded | already present",
-  "converters_missing": ["markitdown"],
+  "converters_missing": ["pdftotext"],
   "needs_attention": [
     "company-profile.md not written — estimates will use default team assumptions",
-    "cost model is UNCALIBRATED"
+    "cost model calibrated against 1 delivered project (n=1) — read calibration_history, never assume"
   ]
 }
 ```
@@ -83,23 +86,29 @@ Two things change. **Never overwrite an existing `{memory}/cost-model.json`**, w
 
 The four skills share one memory at `{memory}`, and three of them expect it to exist. Create `{memory}/ledger/` and the configured `est_output_folder`.
 
-**Seed the cost model** by copying `{project-root}/skills/est-estimate/assets/cost-model.seed.json` to `{memory}/cost-model.json` — **only if it is not already there.** That file becomes the company's own model the moment it exists: `est-calibrate` writes to it under an audit trail, and overwriting it with the seed would discard every calibration and every logged judgement change. If it exists, leave it and say so.
+Scaffold `{est_output_folder}` while you are here — it is `modules.est.est_output_folder`, which every est skill now resolves as the root of its per-project workspace. It defaults to `{output_folder}/estimates`, so with the defaults it is the same directory either way; the point is that when someone changes it, the skills follow rather than writing to a path setup never created.
+
+**Seed the cost model** by copying `{skill-root}/../est-estimate/assets/cost-model.seed.json` to `{memory}/cost-model.json` — **only if it is not already there.** That file becomes the company's own model the moment it exists: `est-calibrate` writes to it under an audit trail, and overwriting it with the seed would discard every calibration and every logged judgement change. If it exists, leave it and say so.
 
 Then create the files the module appends to, if absent: an empty `{memory}/comparables.md` (with a one-line heading saying what it is) and `{memory}/calibration-log.md`. `est-estimate` also seeds the cost model on its own first run, so a missed seed here is recoverable — an overwritten one is not.
 
 ## Check the document converters
 
-`est-scope-extract` reads whatever the client sent. Without these it still works, falling back to reading each source natively, which is slower and loses spreadsheet row anchors. Check what is present and install what is missing:
+**There is almost nothing to install.** `convert-input.py` declares its libraries in a PEP 723 block, so `uv run` fetches them on demand — the operator does not provision them and `uv pip install` would need an active virtualenv anyway. What it reads with:
 
-| Tool | Covers | Install |
+| Format | Reader | Provisioned by |
 | --- | --- | --- |
-| `markitdown` | docx, pptx, html, pdf — the primary converter | `uv pip install markitdown` |
-| `openpyxl` | per-tab xlsx with real row numbers | `uv pip install openpyxl` |
-| `python-docx` | docx fallback with better structure | `uv pip install python-docx` |
-| `pypdf` | PDF text and tables | `uv pip install pypdf` |
-| `pdftotext` (poppler) | PDF fallback | system package |
+| xlsx, xlsm | `openpyxl` — per-tab, with the sheet's real row numbers | `uv run` |
+| docx | `python-docx` | `uv run` |
+| pptx | `python-pptx` | `uv run` |
+| pdf | `pdftotext -layout` first, `pypdf` `extract_text()` after | **system package** (poppler) / `uv run` |
+| csv, tsv, json, html, eml, md, txt | stdlib | nothing |
 
-Report what is available rather than failing — a missing converter degrades the extraction, it does not break it. `uv run {project-root}/skills/est-scope-extract/scripts/convert-input.py --help` names what each path needs.
+So the one thing worth checking is **`pdftotext`** — `shutil.which("pdftotext")`, a system package. Without it PDFs fall to `pypdf`, which loses the layout that makes a page citation locatable; without both, the source is marked `needs_native_read` and the agent reads the original directly.
+
+`markitdown` is **not** used and must not be installed for this: it was dropped deliberately because it flattens away the sheet rows and page markers that citations anchor to, and a citation that cannot name a verifiable location is not traceability.
+
+Report what is available rather than failing — a missing converter degrades the extraction, it does not break it. Every converter returns `needs_native_read` instead of raising, and the manifest lists what was missing.
 
 ## Then hand over
 
@@ -108,4 +117,4 @@ Show what was written: the settings and where, the help entries registered, whet
 Two things this setup cannot do, and both matter more than any setting here:
 
 - **The company profile is not written yet.** `{memory}/company-profile.md` is what stops estimates being priced against industry averages instead of this company's teams. Nadia (`est-agent-estimator`) runs the interview; it takes five minutes and every estimate afterwards rests on it.
-- **The cost model is UNCALIBRATED.** The shape of an estimate is defensible today; the absolute hours are a reasoned hypothesis until `est-calibrate` has reconciled them against delivered actuals. Say that plainly, because it is the one thing a client-facing number should never quietly assume away.
+- **Say what the cost model's calibration actually is — read it, do not assert it.** `{memory}/cost-model.json` carries `calibration_history`; a model with no entries, or only `kind: judgement` ones, is uncalibrated, and any other is calibrated against the largest `samples` count in it. The shipped seed is fitted to one delivered project, so the honest line is **n=1**: much stronger than industry averages, and still one project, which cannot separate what is true of BMad delivery from what was true of that project. Hard-coding either answer here is how a client gets told something the file contradicts — `est-estimate/scripts/estimate.py` decides it with `is_calibrated()` and `calibration_samples()`, and this must agree with them rather than reach its own verdict.

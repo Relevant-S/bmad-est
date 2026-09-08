@@ -647,7 +647,10 @@ class Bands(unittest.TestCase):
             features = [feature(f"F{i}", f"Thing {i}") for i in range(25)]
             inv_path.write_text(json.dumps(inventory(features=features)))
             cls_path = Path(tmp) / "classification.json"
-            cls_path.write_text(json.dumps({"features": {f["id"]: f["tags"] for f in features}}))
+            cls_path.write_text(json.dumps({
+                "schema_version": "1.0", "generated": "2026-09-08T00:00:00Z",
+                "inventory": str(inv_path),
+                "features": {f["id"]: f["tags"] for f in features}}))
             out = subprocess.run(
                 [_s.executable, str(Path(__file__).resolve().parent.parent / "inventory-check.py"),
                  str(inv_path), "--cost-model", str(old_model),
@@ -703,6 +706,25 @@ class ClassificationSplit(unittest.TestCase):
         orphans = check.join_classification(inv, {"features": rows})
         self.assertEqual(orphans, [])
         self.assertEqual(inv["features"][0]["tags"]["size_band"]["value"], "M")
+
+    def test_the_classification_is_held_to_its_own_schema(self):
+        """The inventory has a schema; the file that decides what everything costs should not be
+        the unchecked half. It shipped with one and nothing validated against it."""
+        import subprocess, sys as _s
+        with tempfile.TemporaryDirectory() as tmp:
+            inv_path, cls_path = Path(tmp) / "inv.json", Path(tmp) / "classification.json"
+            features = self.features(25)
+            inv_path.write_text(json.dumps(inventory(features=features)))
+            rows = {f["id"]: f["tags"] for f in features}
+            rows[features[0]["id"]]["size_band"] = {"value": "M"}      # no why, no status
+            cls_path.write_text(json.dumps({"features": rows}))        # and no schema_version
+            out = subprocess.run(
+                [_s.executable, str(Path(__file__).resolve().parent.parent / "inventory-check.py"),
+                 str(inv_path), "--classification", str(cls_path)],
+                capture_output=True, text=True)
+            findings = json.loads(out.stdout)["findings"]
+            self.assertTrue(any("classification.schema_version" in f for f in findings))
+            self.assertTrue(any("'why' is empty" in f for f in findings))
 
     def test_a_classification_for_a_feature_that_is_gone_is_named(self):
         """It means the classification was made against a different extraction, and pricing on
