@@ -15,17 +15,19 @@ Tag from the evidence in front of you. When the source does not say, tag what it
 
 ## size_band
 
-The **manual-equivalent** effort — what this would have cost a human team writing it by hand. Not the BMad effort. The cost model derives BMad hours from this band; conflating the two double-counts the compression.
+The **manual-equivalent** effort — what this **story** would have cost a human team writing it by hand. Not the BMad effort. The cost model derives BMad hours from this band; conflating the two double-counts the compression.
+
+**The unit is a story.** These bands described a *feature* until they were fitted against EPP, and a story is roughly a third of one — which made every story-grained inventory price about three times too high. If a row you are tagging looks like "authentication" rather than "log in with email and password", it is an epic and it should have been split.
 
 | Band | Manual-equivalent | Looks like |
 | --- | --- | --- |
-| `XS` | under 4h | A config change, a copy edit, one field added to an existing form |
-| `S` | 4–16h | A single endpoint, a simple form, a static page, one report column |
-| `M` | 16–60h | A CRUD resource with its UI, a documented third-party integration, a multi-step flow |
-| `L` | 60–160h | A subsystem: authentication, a payments flow, a reporting module, an admin area |
-| `XL` | over 160h | A product area, not a feature |
+| `XS` | under 2h | A config change, a copy edit, one field added to an existing form |
+| `S` | 2–7h | A single endpoint, a simple form, one static page, one report column |
+| `M` | 6–20h | One story: an endpoint plus its screen, a documented integration point, a single multi-step flow |
+| `L` | 20–55h | A story spanning several surfaces, or carrying a state machine or a new transport |
+| `XL` | over 55h | A story that should have been split — a subsystem tracked as one row |
 
-An `XL` tag is a signal to split. A feature that large hides too much variance to estimate as one item, and the range it produces will be uselessly wide. Split it into the parts the source describes and note the split in `assumptions`. Only leave it `XL` when the source genuinely gives nothing to split on — and then say so in the `why`, because that is itself an open question worth asking the client.
+An `XL` tag is a signal to split. A story that large hides too much variance to estimate as one item, and the range it produces will be uselessly wide. Split it into the parts the source describes and note the split in `assumptions`. Only leave it `XL` when the source genuinely gives nothing to split on — and then say so in the `why`, because that is itself an open question worth asking the client.
 
 ## compressibility
 

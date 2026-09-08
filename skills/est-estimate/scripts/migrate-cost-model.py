@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Move a cost model from schema 1.x to 2.0.
+"""Bring a cost model up to the shipped seed's schema.
 
 Three things changed shape, and none of them can be carried across by arithmetic:
 
@@ -14,7 +14,12 @@ Three things changed shape, and none of them can be carried across by arithmetic
                  conversion between a proportion and a rate — the old value says nothing
                  about how long a status call takes.
   env_infra      One opaque per-stack number became `standing_work`: itemised setup, pipeline,
-                 environment and release work, priced through the same engine as a story.
+                 environment and release work, with its own absolute hours rather than a size
+                 band, so a band re-scale cannot silently re-price the catalogue.
+  the unit       `size_bands` describes a STORY, not a feature. A 1.x model's bands are about
+                 three times too large for the unit now being priced, and the rates that sat
+                 alongside them were absorbing that error, so `compressibility`, `review_rate`,
+                 `clarity` and `qa` come across with them or the model is internally inconsistent.
 
 So those three are replaced with the shipped seed values and reported loudly. Everything a
 calibration actually measured — size bands, compressibility, review rates, clarity, novelty,
@@ -34,7 +39,16 @@ from datetime import date
 from pathlib import Path
 
 SEED = Path(__file__).resolve().parent.parent / "assets" / "cost-model.seed.json"
-REPLACED = ("role_weights", "overhead_rate", "surfaces", "standing_work", "phase_map")
+REPLACED = ("role_weights", "overhead_rate", "surfaces", "standing_work", "phase_map",
+            "size_bands", "compressibility", "review_rate", "clarity", "qa")
+
+# Sub-keys, because the rest of `planning` is not unit-dependent. `agent_hours` and
+# `review_hours` are hours per document, per epic and per story — real rates an operator may
+# have calibrated, and replacing them wholesale to fix a counting rule would throw that away.
+REPLACED_KEYS = {
+    "planning": ("stories_per_feature", "stories_per_feature_why",
+                 "features_per_epic", "features_per_epic_why"),
+}
 
 
 def migrate(model, seed):
@@ -50,10 +64,33 @@ def migrate(model, seed):
         out[key] = value
     for key in REPLACED:
         if key in out:
-            notes.append(f"{key} replaced with the 2.0 seed — its shape changed, so the old "
-                         f"values could not be carried across.")
+            notes.append(f"{key} replaced with the shipped seed — its shape or its unit changed, "
+                         f"so the old values could not be carried across.")
         out[key] = seed[key]
-    out["schema_version"] = "2.0"
+    for section, keys in REPLACED_KEYS.items():
+        if section not in out:
+            continue
+        for key in keys:
+            if key in seed.get(section, {}):
+                out[section][key] = seed[section][key]
+        notes.append(f"{section}.{{{', '.join(keys[::2])}}} replaced — they count the priced "
+                     f"unit, and the priced unit is now a story. The rest of {section} is "
+                     f"untouched.")
+
+    out["schema_version"] = seed["schema_version"]
+
+    # The replaced sections came from the seed, and the seed is fitted to a delivered project.
+    # Adopting its numbers without its history would leave the model announcing itself
+    # uncalibrated in every rendered estimate while carrying calibrated coefficients — the
+    # contradiction this whole marker exists to prevent. An operator's own history is never
+    # overwritten; theirs is the record of their projects, and it stays.
+    if not out.get("calibration_history") and seed.get("calibration_history"):
+        out["calibration_history"] = seed["calibration_history"]
+        out["calibration_status"] = seed["calibration_status"]
+        notes.append(
+            "calibration_history adopted from the seed, because the replaced coefficients are "
+            "the seed's and they are fitted to a delivered project. It is NOT a record of your "
+            "projects — read calibration_status for whose, and how many.")
     out["migrated"] = {
         "on": date.today().isoformat(),
         "from": model.get("schema_version", "1.0"),
@@ -82,9 +119,16 @@ def main():
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 2
 
-    if str(model.get("schema_version", "1.0")).startswith("2"):
+    # Compared against the shipped seed, not hard-coded to "starts with 2". 2.0 models exist
+    # in the wild whose standing_work and role_weights predate the story-scale calibration,
+    # and a guard that only knew about 1.x left them stranded on shapes the engine had moved past.
+    def version(value):
+        return tuple(int(part) for part in str(value).split(".") if part.isdigit())
+
+    if version(model.get("schema_version", "1.0")) >= version(seed["schema_version"]):
         print(json.dumps({"ok": True, "migrated": False,
-                          "note": f"already schema {model['schema_version']}"}, indent=2))
+                          "note": f"already schema {model['schema_version']}; the shipped seed "
+                                  f"is {seed['schema_version']}"}, indent=2))
         return 1
 
     migrated, notes = migrate(model, seed)

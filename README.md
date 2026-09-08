@@ -18,6 +18,8 @@ Three properties make it different from a spreadsheet:
 
 **Every task is priced per role, and only the roles actually on it.** Each story declares the surfaces it touches — backend, frontend, design, infra, data — and roles whose surface is absent are dropped from that story entirely. A nightly reconciliation job bills no designer. The shares renormalise, so the story still costs what it costs; the hours just land on the people doing the work. The architect appears only in project-level components, because the tech lead does not review individual stories.
 
+**The coefficients are fitted to a delivered project, and it says so.** The shipped model is calibrated against EPP Phase 1 — 76 stories, 540 hours, split across six roles — which re-prices to 569h, within 5%. That is one project, `calibration_history` records `n=1`, and every rendered estimate carries the sample size. One project is far better than a reasoned guess and is not a trend; the module never lets you confuse the two.
+
 **It learns from what you actually delivered.** When a project closes, you record the real hours. The calibrator backtests any proposed coefficient change against your delivery history and shows you "this would have improved 7 of your last 9 estimates" before you approve it. Nothing changes the model without a named human agreeing to it. **One delivered BMad project is enough to start** — it reads that project's own epics and stories for its shape, and stamps the resulting change `n=1` so nobody mistakes it for a trend.
 
 ### The one modelling idea worth understanding
@@ -26,14 +28,14 @@ Three properties make it different from a spreadsheet:
 
 Under BMad, the agent writes roughly the code a human would have written, in a fraction of the time. So compression collapses the *build* and leaves the *review* untouched. That single choice reproduces what teams actually experience — no special-casing needed.
 
-Two features, both sized M, both a 34-hour manual baseline:
+Two stories, both sized M, both an 11.7-hour manual baseline:
 
 | | Build | Review | **Total** |
 |---|---|---|---|
-| CRUD screen — compresses well, routine review | 4.9h | 3.0h | **14.6h** |
-| Payments flow — compresses badly, line-by-line review | 16.0h | 22.5h | **51.3h** |
+| CRUD screen — compresses well, routine review | 0.8h | 0.5h | **2.4h** |
+| Payments flow — compresses badly, line-by-line review | 2.7h | 3.8h | **8.1h** |
 
-Same size. 3.5× the cost. On the payments feature review now *exceeds* build, and BMad's speed advantage has mostly evaporated — which is exactly the deal you want to know about before you win it.
+Same size. 3.4× the cost. On the payments story review now *exceeds* build, and BMad's speed advantage has mostly evaporated — which is exactly the deal you want to know about before you win it.
 
 ---
 
@@ -275,7 +277,7 @@ A single project total with those three fields is enough to start calibrating ba
 ## Development
 
 ```bash
-# All suites (499 tests). Run through uv: est-setup's config tests need Python
+# All suites (520 tests). Run through uv: est-setup's config tests need Python
 # 3.11 for tomllib, the same requirement BMad's own config resolver carries.
 # -B matters too: macOS Python caches bytecode centrally, where a same-length
 # edit within one second can defeat cache invalidation and run stale code.

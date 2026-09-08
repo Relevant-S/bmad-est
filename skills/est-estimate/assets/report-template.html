@@ -166,9 +166,12 @@ function compute(ids) {
      round, since the rounded weeks are what the hours are multiplied by. */
   const cal = M.calendar;
   const people = Math.min(opts.team_size || cal.max_useful_parallelism, cal.max_useful_parallelism);
+  /* Standing work is out of the dependency graph: nothing waits on a CI pipeline, and at
+     story-scale bands the largest setup item otherwise became a one-node "critical path". */
+  const chainable = feats.filter(f => f.origin !== 'standing');
   const weight = {}, deps = {};
-  for (const f of feats) weight[f.id] = TP.mean(f.total);
-  for (const f of feats) deps[f.id] = (f.depends_on || []).filter(d => d in weight);
+  for (const f of chainable) weight[f.id] = TP.mean(f.total);
+  for (const f of chainable) deps[f.id] = (f.depends_on || []).filter(d => d in weight);
   const memo = {}, visiting = new Set();
   const longest = id => {
     if (id in memo) return memo[id];
@@ -179,7 +182,8 @@ function compute(ids) {
     visiting.delete(id);
     return (memo[id] = best + weight[id]);
   };
-  const pathHours = feats.length ? Math.round(Math.max(...feats.map(f => longest(f.id))) * 10) / 10 : 0;
+  const pathHours = chainable.length
+    ? Math.round(Math.max(...chainable.map(f => longest(f.id))) * 10) / 10 : 0;
   /* Three-point weeks, because a longer project holds more ceremony: collapsing the schedule
      to one number would give overhead a certainty the schedule does not have. */
   const planningTP = add(project.planning_agent, project.planning_review);
@@ -217,11 +221,14 @@ function compute(ids) {
     let total = 0;
     for (const [role, node] of Object.entries(M.role_weights[key])) {
       if (role.startsWith('_')) continue;
-      const w = (node && typeof node === 'object') ? node.w : node;
-      const requires = (node && typeof node === 'object') ? node.requires : null;
-      if (requires && surfaces && !surfaces.has(requires)) continue;
-      kept[role] = w;
-      total += w;
+      const spec = (node && typeof node === 'object') ? node : {w: node};
+      if (surfaces) {
+        if (spec.requires && !surfaces.has(spec.requires)) continue;
+        /* requires_any: dev is conditional too, so an infra-only story bills devops alone. */
+        if (spec.requires_any && !spec.requires_any.some(x => surfaces.has(x))) continue;
+      }
+      kept[role] = spec.w;
+      total += spec.w;
     }
     for (const role of Object.keys(kept)) kept[role] /= total;
     return kept;

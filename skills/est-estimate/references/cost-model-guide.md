@@ -6,7 +6,7 @@
 
 Read it once and the shape of a BMad estimate becomes obvious.
 
-**`size_bands`** give `manual_baseline` — what a feature would have cost a human team writing it by hand. Everything else derives from that, so it is the one place a wrong tag distorts the whole line item. It is deliberately *not* a BMad figure; conflating the two double-counts the compression.
+**`size_bands`** give `manual_baseline` — what a **story** would have cost a human team writing it by hand. The unit matters: these described a feature until the module moved to pricing stories, and a band table one unit out prices every project about three times too high while every individual coefficient still reads as reasonable. Everything else derives from that, so it is the one place a wrong tag distorts the whole line item. It is deliberately *not* a BMad figure; conflating the two double-counts the compression.
 
 **`compressibility`** divides `manual_baseline` to give build hours. It answers one question: how much of what this needs is already in the model's world? A Stripe integration is `high` because Stripe is thoroughly documented and thoroughly represented. The client's fifteen-year-old ERP over an undocumented SOAP endpoint is `low` — the same word "integration", an order of magnitude apart.
 

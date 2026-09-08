@@ -165,6 +165,31 @@ def validate(actuals):
     return problems
 
 
+def parse_roles(spec):
+    """`dev=280,ux=120,qa=40` — the only actuals most delivered projects can produce.
+
+    A typed project total was the whole `--total` path, and a per-role split is the one
+    attribution a delivery lead can give from memory without a time-tracking export. It is
+    also the only evidence that can ever calibrate the role weights, so refusing to record
+    it meant the richest thing on offer had to be hand-written into the ledger entry.
+    """
+    if not spec:
+        return {}
+    roles = {}
+    for pair in spec.split(","):
+        pair = pair.strip()
+        if not pair:
+            continue
+        if "=" not in pair:
+            raise SystemExit(f"--by-role: '{pair}' is not role=hours")
+        role, hours = pair.split("=", 1)
+        try:
+            roles[role.strip().lower()] = round(float(hours), 2)
+        except ValueError:
+            raise SystemExit(f"--by-role: '{hours.strip()}' is not a number of hours")
+    return roles
+
+
 def main():
     ap = argparse.ArgumentParser(
         description="Attach real spent hours to a ledger entry.",
@@ -173,6 +198,10 @@ def main():
     ap.add_argument("--entry", required=True, help="ledger entry JSON to attach actuals to")
     ap.add_argument("--from-export", help="time-tracking export (csv, tsv or xlsx)")
     ap.add_argument("--total", type=float, help="a single delivery-hours total, when no export exists")
+    ap.add_argument("--by-role", metavar="SPEC",
+                    help="per-role hours alongside --total, as 'dev=280,ux=120,qa=40'. The only "
+                         "evidence that can calibrate the role weights, and usually the one split "
+                         "a delivery lead can give without an export.")
     ap.add_argument("--exclude-hours", type=float, default=0.0,
                     help="hours logged that are not delivery effort")
     ap.add_argument("--exclude-why", help="required whenever --exclude-hours is non-zero")
@@ -181,11 +210,16 @@ def main():
     ap.add_argument("--scope-note", help="required unless scope is as_estimated")
     ap.add_argument("--features-delivered", nargs="*", help="feature ids actually delivered, when scope changed")
     ap.add_argument("--source", required=True, help="where these numbers came from")
-    ap.add_argument("--confidence", default="measured", choices=["measured", "reconstructed", "estimated"])
+    # `recalled` is what a delivery lead says they are doing; it was documented in the SKILL
+    # and rejected by argparse. Kept as an alias for `estimated` rather than a fourth level.
+    ap.add_argument("--confidence", default="measured",
+                    choices=["measured", "reconstructed", "estimated", "recalled"])
     ap.add_argument("--captured", help="ISO date recorded (default: today)")
     ap.add_argument("--team-profile", help="the team that actually did the work, if it differed")
     ap.add_argument("--notes")
     args = ap.parse_args()
+    if args.confidence == "recalled":
+        args.confidence = "estimated"
 
     if not args.from_export and args.total is None:
         ap.error("one of --from-export or --total is required")
@@ -211,7 +245,8 @@ def main():
         delivery = round(agg["total"] - args.exclude_hours, 2)
         granularity = ("feature" if agg["by_feature"] else "phase" if agg["by_phase"] else "project")
     else:
-        agg = {"by_phase": {}, "by_feature": {}, "by_role": {}, "unmapped": []}
+        agg = {"by_phase": {}, "by_feature": {}, "by_role": parse_roles(args.by_role),
+               "unmapped": []}
         delivery = round(args.total - args.exclude_hours, 2)
         granularity = "project"
 

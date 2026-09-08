@@ -185,8 +185,8 @@ class TestPlanningAnchor(unittest.TestCase):
 
     def test_planning_volume_is_derived_from_the_feature_set(self):
         e = hours(inventory([feature(f"F{i}", size="L") for i in range(1, 11)]))
-        self.assertEqual(e["planning_volume"]["epics"], 2)         # 10 features / 5
-        self.assertEqual(e["planning_volume"]["stories"], 40)      # 10 x 4 stories for L
+        self.assertEqual(e["planning_volume"]["epics"], 2)         # 10 stories / 8 per epic
+        self.assertEqual(e["planning_volume"]["stories"], 20)      # an L splits into 2
 
     def test_planning_scales_sublinearly_with_scope(self):
         small = hours(inventory([feature(f"F{i}") for i in range(1, 6)]))
@@ -263,6 +263,30 @@ class TestSplits(unittest.TestCase):
                                        m["team_profiles"]["balanced"])
             roles = est.feature_roles(priced, m)
             self.assertNotIn("architect", roles, f"architect billed on a {tier} story")
+
+    def test_no_surface_combination_leaves_a_component_with_nobody_on_it(self):
+        """Every role in build, spec, review and rework is now conditional, which means a
+        surface set nobody thought about can empty a component and raise mid-estimate. All
+        31 combinations are cheap to check, so there is no reason to find out in production."""
+        import itertools
+        m = model()
+        surfaces = ["backend", "frontend", "design", "infra", "data"]
+        for size in range(1, len(surfaces) + 1):
+            for combo in itertools.combinations(surfaces, size):
+                for component in ("build", "spec", "review", "rework"):
+                    roles = est.component_roles(m, component, set(combo))
+                    self.assertTrue(roles, f"{component} empty for {combo}")
+                    self.assertAlmostEqual(sum(roles.values()), 1.0, places=6)
+
+    def test_an_infra_only_story_is_devops_work_end_to_end(self):
+        """Nobody reviews a CI pipeline by being a developer. While `dev` was unconditional it
+        survived renormalisation on every infra story and billed the pipeline 91% developer."""
+        m = model()
+        priced = est.price_feature(feature("F1", surfaces=["infra"]), m,
+                                   m["team_profiles"]["balanced"])
+        roles = est.feature_roles(priced, m)
+        self.assertNotIn("dev", roles)
+        self.assertIn("devops", roles)
 
     def test_a_backend_story_bills_no_ux_and_no_devops(self):
         m = model()
@@ -343,6 +367,16 @@ class TestSplits(unittest.TestCase):
 
 
 class TestDependenciesAndDuration(unittest.TestCase):
+    def test_standing_work_is_not_the_critical_path(self):
+        """Nothing waits on the CI pipeline. Once the bands came down to story scale the
+        largest setup item outweighed every product story and became a one-node 'chain'."""
+        inv = inventory([feature("F1", "Integration", size="L"),
+                         feature("F2", "List view", size="M",
+                                 depends_on=[{"feature_id": "F1", "inferred": False, "evidence": "x"}])])
+        chain = hours(inv)["dependencies"]["chain"]
+        self.assertEqual(chain, ["F1", "F2"])
+        self.assertFalse([c for c in chain if c.startswith("SW-")])
+
     def test_critical_path_is_the_longest_chain_not_the_total(self):
         inv = inventory([
             feature("F1", "Integration", size="L"),
@@ -462,7 +496,10 @@ class TestModeAndSnapshot(unittest.TestCase):
 
     def test_the_cost_model_is_snapshotted_into_every_estimate(self):
         e = hours(inventory())
-        self.assertEqual(e["cost_model_snapshot"]["review_rate"]["sensitive"]["likely"], 0.35)
+        # Against the model file, not a literal: the guarantee is that the snapshot is the
+        # model that priced this estimate, and a hard-coded coefficient makes this test fail
+        # every time anyone calibrates — which trains people to edit it without reading it.
+        self.assertEqual(e["cost_model_snapshot"], model())
 
     def test_build_compression_compares_like_with_like(self):
         # Standing work is deliberately excluded here: setup and pipeline work barely
@@ -523,13 +560,31 @@ class TestModeAndSnapshot(unittest.TestCase):
 class CalibrationClaim(unittest.TestCase):
     """`calibrated` gates a claim made to a client, so it is structural, not a prose match."""
 
-    def test_the_seed_model_is_not_calibrated(self):
-        self.assertFalse(est.is_calibrated(model()))
+    def test_a_model_with_no_history_is_not_calibrated(self):
+        cost_model = model()
+        cost_model.pop("calibration_history", None)
+        self.assertFalse(est.is_calibrated(cost_model))
+
+    def test_the_shipped_model_declares_the_anchor_it_is_fitted_to(self):
+        """It is calibrated now, against one project. Both halves have to be true in the
+        file: the marker, so no rendered estimate calls itself uncalibrated while carrying
+        fitted coefficients, and the sample size, so nobody reads n=1 as a trend."""
+        cost_model = model()
+        self.assertTrue(est.is_calibrated(cost_model))
+        history = cost_model["calibration_history"]
+        self.assertEqual([h["samples"] for h in history], [1])
+        self.assertIn("n=1", cost_model["calibration_status"])
 
     def test_rewording_the_prose_status_cannot_flip_the_claim(self):
-        cost_model = model()
-        cost_model["calibration_status"] = "Not yet calibrated against any delivered project."
-        self.assertFalse(est.is_calibrated(cost_model))
+        """Both directions, because a prose match would be wrong in both."""
+        calibrated = model()
+        calibrated["calibration_status"] = "Not yet calibrated against any delivered project."
+        self.assertTrue(est.is_calibrated(calibrated))
+
+        bare = model()
+        bare.pop("calibration_history", None)
+        bare["calibration_status"] = "Fully calibrated against a decade of delivery."
+        self.assertFalse(est.is_calibrated(bare))
 
     def test_a_real_calibration_makes_it_true(self):
         cost_model = model()

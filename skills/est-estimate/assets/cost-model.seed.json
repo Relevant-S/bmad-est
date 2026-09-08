@@ -1,59 +1,84 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "seeded_from": "estimation-module-plan.md — Cost Model Specification",
-  "calibration_status": "UNCALIBRATED. Every value below is a reasoned starting point, not a measured one. est-calibrate replaces them with figures derived from real actuals; until it has, treat the numbers as a defensible hypothesis and say so in client-facing output.",
+  "calibration_status": "SINGLE-ANCHOR CALIBRATION (n=1). The coefficients below are fitted to ONE delivered BMad project — EPP Phase 1: 76 stories across 9 epics, 540 h actual, split dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30. That is far better than the reasoned hypothesis it replaces and far weaker than a trend: one project cannot separate what is true of BMad delivery from what is true of EPP. Say n=1 whenever a client asks how these numbers were arrived at. est-calibrate replaces them as more projects close.",
+  "calibration_history": [
+    {
+      "date": "2026-09-08",
+      "kind": "anchor",
+      "samples": 1,
+      "approved_by": "Ostap Dribniuk, delivery lead",
+      "project": "EPP Phase 1 (epics 1-9)",
+      "coefficients": [
+        "size_bands",
+        "compressibility",
+        "review_rate",
+        "clarity",
+        "qa",
+        "planning.stories_per_feature",
+        "planning.features_per_epic",
+        "role_weights.build",
+        "role_weights.spec",
+        "role_weights.planning_agent",
+        "role_weights.planning_review",
+        "role_weights.overhead",
+        "standing_work"
+      ],
+      "why": "The seeded model priced EPP at 3,147.5 h against 540 h actual — 5.83x. Two errors multiplied. The bands described a feature while the module prices a story, worth about 3x; and review, spec and QA rates assumed a human reading human-written output, while EPP ran an agent review pass per story, worth about 2x. Both were fitted against EPP's per-role actuals rather than loaded onto one coefficient, because a single scale that reproduces the total leaves every individual number indefensible. Re-priced: 569 h against 540 h actual, 1.05x, with every role within 1.2x except UX (0.74x, EPP included building a design system) and architect (1.89x, whose recorded 30 h explicitly excludes ongoing support the source notes would add 30-60 h)."
+    }
+  ],
   "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
   "size_bands": {
-    "_what": "manual_baseline in hours: what this feature would have cost a human team writing it by hand. NOT the BMad effort — the model derives that. Conflating the two double-counts the compression.",
+    "_what": "manual_baseline in hours: what this STORY would have cost a human team writing it by hand. NOT the BMad effort — the model derives that; conflating the two double-counts the compression. The unit is a story, not a feature: the priced item is one coherent unit of delivery, and these bands were three times too large while they still described a feature. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
     "XS": {
-      "lo": 1,
-      "likely": 2.5,
-      "hi": 4,
+      "lo": 0.5,
+      "likely": 1,
+      "hi": 2,
       "why": "A config change, a copy edit, one field on an existing form"
     },
     "S": {
-      "lo": 4,
-      "likely": 9,
-      "hi": 16,
-      "why": "A single endpoint, a simple form, a static page"
+      "lo": 2,
+      "likely": 4,
+      "hi": 7,
+      "why": "A single endpoint, a simple form, one static page, one report column"
     },
     "M": {
-      "lo": 16,
-      "likely": 32,
-      "hi": 60,
-      "why": "A CRUD resource with its UI, a documented integration, a multi-step flow"
+      "lo": 6,
+      "likely": 11,
+      "hi": 20,
+      "why": "One story: an endpoint plus its screen, a documented integration point, a single multi-step flow"
     },
     "L": {
-      "lo": 60,
-      "likely": 100,
-      "hi": 160,
-      "why": "A subsystem: authentication, a payments flow, a reporting module"
+      "lo": 20,
+      "likely": 33,
+      "hi": 55,
+      "why": "A story spanning several surfaces, or one carrying a state machine or a new transport"
     },
     "XL": {
-      "lo": 160,
-      "likely": 260,
-      "hi": 400,
-      "why": "A product area rather than a feature. The band is deliberately wide because an XL tag means the scope was never decomposed; the estimate says so rather than pretending otherwise"
+      "lo": 55,
+      "likely": 90,
+      "hi": 150,
+      "why": "A story that should have been split — a subsystem tracked as one row. The band is wide because an XL tag means the scope was never decomposed, and the estimate says so rather than pretending otherwise"
     }
   },
   "compressibility": {
-    "_what": "How many times faster BMad builds this than a human team would. Divides manual_baseline to give build_h. This is the axis that separates an AI-delivery estimate from a conventional one.",
+    "_what": "How many times faster BMad builds this than a human team would. Divides manual_baseline to give build_h. This is the axis that separates an AI-delivery estimate from a conventional one. CALIBRATION NOTE: roughly double the seeded figures. EPP Phase 1 delivered 76 stories against a manual-equivalent baseline of about 1,200 h in 540 h all-in — a whole-project compression of 6.9x, which only reconciles with a build compression well above it, since review, QA and planning compress far less. n=1.",
     "high": {
-      "lo": 5,
-      "likely": 8,
-      "hi": 12,
+      "lo": 10,
+      "likely": 16,
+      "hi": 24,
       "why": "CRUD, greenfield screens, scaffolding, well-documented APIs, tests, docs, config — thoroughly represented in the model's world, so generation is near-free"
     },
     "medium": {
-      "lo": 3,
-      "likely": 4.5,
-      "hi": 6,
+      "lo": 6,
+      "likely": 9,
+      "hi": 12,
       "why": "Conventional business logic, common integrations, standard mobile screens"
     },
     "low": {
-      "lo": 1.5,
-      "likely": 2.5,
-      "hi": 3.5,
+      "lo": 3,
+      "likely": 5,
+      "hi": 7,
       "why": "Undocumented legacy, client-proprietary systems, bespoke algorithms, dirty-data migration, pixel-level craft — the effort is discovery, and discovery does not compress"
     },
     "none": {
@@ -64,41 +89,41 @@
     }
   },
   "review_rate": {
-    "_what": "review_h as a share of manual_baseline — deliberately NOT of build_h. Review effort scales with the volume of output produced, not the time taken to produce it, so compression shrinks the build and leaves the review untouched. This single choice is why a payments feature stays expensive while CRUD collapses, with no special-casing anywhere.",
+    "_what": "review_h as a share of manual_baseline — deliberately NOT of build_h. Review effort scales with the volume of output produced, not the time taken to produce it, so compression shrinks the build and leaves the review untouched. This single choice is why a payments feature stays expensive while CRUD collapses, with no special-casing anywhere. CALIBRATION NOTE: these rates are roughly half the manual-era figures because this company runs a fresh-context agent review pass per story before a human reads it. The STRUCTURE is unchanged — review is still a share of manual_baseline, so sensitive work still stays expensive relative to CRUD — but the level now reflects a human reading already-reviewed output. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
     "routine": {
-      "lo": 0.05,
-      "likely": 0.08,
-      "hi": 0.12,
+      "lo": 0.025,
+      "likely": 0.04,
+      "hi": 0.06,
       "why": "Feature delegated whole; a spot-review of the blast-radius surfaces only — DB migrations, tests, CI/CD"
     },
     "sensitive": {
-      "lo": 0.25,
-      "likely": 0.35,
-      "hi": 0.5,
+      "lo": 0.12,
+      "likely": 0.17,
+      "hi": 0.25,
       "why": "Money, personal data, authentication and authorization: read line by line before anyone signs their name to it"
     },
     "critical": {
-      "lo": 0.45,
-      "likely": 0.6,
-      "hi": 0.85,
+      "lo": 0.22,
+      "likely": 0.3,
+      "hi": 0.42,
       "why": "Regulated data, irreversible financial effects, safety: line-by-line plus an external or compliance sign-off that runs on someone else's calendar"
     }
   },
   "clarity": {
-    "_what": "spec_rate and rework_rate as shares of manual_baseline and of (build+review) respectively. Under BMad, ambiguity is no longer resolved by a developer stopping to ask — it gets confidently implemented, reviewed, and rebuilt. Vagueness costs MORE than it did in manual delivery, which inverts the usual assumption.",
+    "_what": "spec_rate and rework_rate as shares of manual_baseline and of (build+review) respectively. Under BMad, ambiguity is no longer resolved by a developer stopping to ask — it gets confidently implemented, reviewed, and rebuilt. Vagueness costs MORE than it did in manual delivery, which inverts the usual assumption. Rates are about half the manual-era figures for the same reason review is: the agent drafts the specification and catches its own first-pass mistakes. The ordering is untouched — vagueness still costs more under BMad, not less. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
     "high": {
-      "spec_rate": 0.08,
-      "rework_rate": 0.1,
+      "spec_rate": 0.04,
+      "rework_rate": 0.05,
       "why": "Acceptance criteria present, data model implied, edge cases named"
     },
     "medium": {
-      "spec_rate": 0.15,
-      "rework_rate": 0.2,
+      "spec_rate": 0.075,
+      "rework_rate": 0.1,
       "why": "Clear in prose, intent unambiguous, details absent"
     },
     "low": {
-      "spec_rate": 0.25,
-      "rework_rate": 0.4,
+      "spec_rate": 0.125,
+      "rework_rate": 0.2,
       "why": "A line in a transcript, or inferred from context. The rework rate is the dominant term here and it is real, not padding"
     }
   },
@@ -141,16 +166,16 @@
   },
   "planning": {
     "_what": "The BMad planning pipeline. planning_review_h is the estimate's high-confidence anchor because this company reviews 100% of planning artefacts without exception — it is a predictable function of scope volume rather than a guess, and its bands are correspondingly tight.",
-    "features_per_epic": 5,
-    "features_per_epic_why": "Rule of thumb for how many extracted features cohere into one epic. Scales sublinearly with scope the way real planning does.",
+    "features_per_epic": 8,
+    "features_per_epic_why": "Fallback only, for an inventory whose stories carry no epic. EPP ran 76 stories across 9 epics — 8.4 per epic. The seeded 5 over-counted epics by 1.7x wherever it was reached.",
     "stories_per_feature": {
       "XS": 1,
       "S": 1,
-      "M": 2,
-      "L": 4,
-      "XL": 8
+      "M": 1,
+      "L": 2,
+      "XL": 3
     },
-    "stories_per_feature_why": "Bigger features decompose into more stories, and it is stories that drive spec and review volume.",
+    "stories_per_feature_why": "The priced item is a story, so it counts as one; only a genuinely under-decomposed row splits further. The seeded 1/1/2/4/8 dated from when a feature was the unit and turned EPP's 76 real stories into 178 modelled ones, inflating every planning figure derived from the count.",
     "agent_hours": {
       "_what": "Human time steering the BMad workflow that authors each artefact — already compressed, since the agent drafts.",
       "product_brief": {
@@ -234,11 +259,15 @@
     }
   },
   "standing_work": {
-    "_what": "Work every project pays and no client document describes. It used to be one opaque `env_infra` lookup — 13.7 hours for a multi-tenant SaaS with payments, calendar sync and bulk imports, which nobody could defend because there was nothing inside it to point at. Each item below is priced through the same engine as any story, so it carries a band, a role split and a line in the feature table, and a client can argue with it item by item instead of being handed a number. Items are selected by the `stacks` list against the --stack profile; `all` means every project pays it. Suppress the whole section with --no-standing-work when the client is bringing an existing platform. Each item's tags carry their own per-axis reason, like any other classification: a single sentence repeated across five axes is the boilerplate pattern inventory-check.py reports, and shipping it in the catalogue would be holding the module to a standard the model itself did not meet.",
+    "_what": "Work every project pays and no client document describes. It used to be one opaque `env_infra` lookup — 13.7 hours for a multi-tenant SaaS with payments, calendar sync and bulk imports, which nobody could defend because there was nothing inside it to point at. Each item below is priced through the same engine as any story, so it carries a band, a role split and a line in the feature table, and a client can argue with it item by item instead of being handed a number. Items are selected by the `stacks` list against the --stack profile; `all` means every project pays it. Suppress the whole section with --no-standing-work when the client is bringing an existing platform. Each item's tags carry their own per-axis reason, like any other classification: a single sentence repeated across five axes is the boilerplate pattern inventory-check.py reports, and shipping it in the catalogue would be holding the module to a standard the model itself did not meet. Items carry absolute `hours` rather than a size band: a pipeline costs what it costs however the product backlog is sliced, and while these resolved through the band table a re-scale of that table silently re-priced the whole catalogue with it.",
     "items": {
       "repo_scaffold": {
         "name": "Repository scaffold and shared configuration",
-        "size_band": "S",
+        "hours": {
+          "lo": 6,
+          "likely": 12,
+          "hi": 22
+        },
         "compressibility": "medium",
         "review_tier": "routine",
         "clarity": "high",
@@ -250,16 +279,20 @@
         "stacks": "all",
         "why": "Repo or monorepo layout, shared TypeScript/lint/format config, commit hooks, the test harness everything else is written against. Generated quickly, but the decisions in it are load-bearing for every story that follows.",
         "reasons": {
-          "size_band": "A day or two of decisions that everything after inherits",
           "compressibility": "The shape is conventional and generates well, but the choices are load-bearing and get read",
           "review_tier": "No money, no personal data — a spot-check of the config that ships",
           "clarity": "The stack decides it; there is nothing ambiguous left once that is chosen",
-          "novelty": "Every project starts this way"
+          "novelty": "Every project starts this way",
+          "hours": "A day or two of decisions that everything after inherits"
         }
       },
       "bmad_setup": {
         "name": "BMad setup and project context",
-        "size_band": "XS",
+        "hours": {
+          "lo": 2,
+          "likely": 4,
+          "hi": 7
+        },
         "compressibility": "none",
         "review_tier": "routine",
         "clarity": "high",
@@ -270,16 +303,20 @@
         "stacks": "all",
         "why": "Installing the module set, writing project-context, customising the agents to this codebase's conventions. No code is the deliverable, so nothing compresses — but it is real hours on every BMad project and pretending otherwise makes the first sprint look faster than it is.",
         "reasons": {
-          "size_band": "An afternoon of installation and project-context writing",
           "compressibility": "No code is the deliverable, so nothing compresses",
           "review_tier": "Configuration of a working process, not of anything a client depends on",
           "clarity": "A known checklist",
-          "novelty": "Routine for a team already running BMad"
+          "novelty": "Routine for a team already running BMad",
+          "hours": "An afternoon of installation and project-context writing"
         }
       },
       "ci_pipeline": {
         "name": "Build, test and deploy pipeline",
-        "size_band": "M",
+        "hours": {
+          "lo": 16,
+          "likely": 32,
+          "hi": 56
+        },
         "compressibility": "low",
         "review_tier": "routine",
         "clarity": "high",
@@ -290,16 +327,20 @@
         "stacks": "all",
         "why": "Pipeline per environment, caching, migrations in the deploy, preview builds. Low compressibility because the work is configuration against real systems with real credentials, and an agent cannot click through a cloud console.",
         "reasons": {
-          "size_band": "A pipeline per environment, with caching, migrations and preview builds",
           "compressibility": "Configuration against real systems with real credentials; an agent cannot click through a cloud console",
           "review_tier": "It deploys, but it holds no data of its own",
           "clarity": "The stack and the hosting decide almost all of it",
-          "novelty": "A shape the team has built before"
+          "novelty": "A shape the team has built before",
+          "hours": "A pipeline per environment, with caching, migrations and preview builds"
         }
       },
       "environments": {
         "name": "Environment provisioning and secrets",
-        "size_band": "M",
+        "hours": {
+          "lo": 16,
+          "likely": 32,
+          "hi": 60
+        },
         "compressibility": "low",
         "review_tier": "sensitive",
         "clarity": "high",
@@ -310,16 +351,20 @@
         "stacks": "all",
         "why": "Staging and production provisioning, DNS and TLS, secret storage and rotation. Sensitive tier because a mistake here exposes production credentials, and that is read line by line before anyone signs their name to it.",
         "reasons": {
-          "size_band": "Staging and production, with DNS, TLS and secret storage",
           "compressibility": "Provisioning is manual work against consoles and providers",
           "review_tier": "A mistake here exposes production credentials, so it is read line by line",
           "clarity": "The hosting choice settles the work",
-          "novelty": "Standard for the stack"
+          "novelty": "Standard for the stack",
+          "hours": "Staging and production, with DNS, TLS and secret storage"
         }
       },
       "observability": {
         "name": "Logging, metrics and alerting",
-        "size_band": "S",
+        "hours": {
+          "lo": 6,
+          "likely": 12,
+          "hi": 22
+        },
         "compressibility": "medium",
         "review_tier": "routine",
         "clarity": "high",
@@ -331,16 +376,20 @@
         "stacks": "all",
         "why": "Structured logs, error tracking, the handful of alerts someone will actually act on. Cheap to generate, and the first thing dropped from an estimate that has no line for it.",
         "reasons": {
-          "size_band": "Structured logs, error tracking and the few alerts anyone will act on",
           "compressibility": "Instrumentation is generated well once the libraries are chosen",
           "review_tier": "Watches the system rather than holding anything",
           "clarity": "Well understood; the only open question is what to alert on",
-          "novelty": "Familiar tooling"
+          "novelty": "Familiar tooling",
+          "hours": "Structured logs, error tracking and the few alerts anyone will act on"
         }
       },
       "release_process": {
         "name": "Release, rollback and migration process",
-        "size_band": "S",
+        "hours": {
+          "lo": 6,
+          "likely": 12,
+          "hi": 22
+        },
         "compressibility": "low",
         "review_tier": "sensitive",
         "clarity": "high",
@@ -351,16 +400,20 @@
         "stacks": "all",
         "why": "Versioning, forward-only migrations, a rollback that has been rehearsed rather than assumed. Sensitive because the first time it is exercised is usually the worst possible time.",
         "reasons": {
-          "size_band": "Versioning, forward-only migrations and a rehearsed rollback",
           "compressibility": "The rehearsal is the work, and rehearsals do not compress",
           "review_tier": "The first time it is exercised is usually the worst possible time",
           "clarity": "Follows from the deployment choice",
-          "novelty": "Conventional"
+          "novelty": "Conventional",
+          "hours": "Versioning, forward-only migrations and a rehearsed rollback"
         }
       },
       "mobile_release": {
         "name": "Store provisioning and release channels",
-        "size_band": "M",
+        "hours": {
+          "lo": 16,
+          "likely": 30,
+          "hi": 55
+        },
         "compressibility": "none",
         "review_tier": "routine",
         "clarity": "high",
@@ -373,16 +426,20 @@
         ],
         "why": "Signing identities, store listings, TestFlight and Play tracks, review turnaround. Runs on someone else's calendar, so it compresses not at all.",
         "reasons": {
-          "size_band": "Signing identities, store listings, and the tracks releases go out on",
           "compressibility": "Store review runs on someone else's calendar",
           "review_tier": "Process and credentials, not product data",
           "clarity": "The platforms document it exhaustively",
-          "novelty": "Routine for a team that ships mobile"
+          "novelty": "Routine for a team that ships mobile",
+          "hours": "Signing identities, store listings, and the tracks releases go out on"
         }
       },
       "service_integration_env": {
         "name": "Cross-service integration environment",
-        "size_band": "M",
+        "hours": {
+          "lo": 16,
+          "likely": 32,
+          "hi": 60
+        },
         "compressibility": "low",
         "review_tier": "routine",
         "clarity": "medium",
@@ -396,39 +453,39 @@
         ],
         "why": "An environment where the services actually talk to each other, with inter-service auth and seeded data. Routinely omitted at estimate time and routinely the reason integration slips.",
         "reasons": {
-          "size_band": "An environment where the services actually talk, with inter-service auth and seeded data",
           "compressibility": "Making several deployables agree is discovery work",
           "review_tier": "A test environment; nothing real passes through it",
           "clarity": "Depends on service boundaries that are usually still settling",
-          "novelty": "Common in multi-service work"
+          "novelty": "Common in multi-service work",
+          "hours": "An environment where the services actually talk, with inter-service auth and seeded data"
         }
       }
     }
   },
   "qa": {
-    "_what": "qa_h as a share of total manual_baseline. Test generation compresses well; running, triaging and re-running does not.",
+    "_what": "qa_h as a share of total manual_baseline. Test generation compresses well; running, triaging and re-running does not. Rates are a quarter of the industry defaults: generated suites plus AI-assisted triage. EPP spent 40 h of QA against a manual baseline of roughly 1,200 h at story scale. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
     "web": {
-      "lo": 0.1,
-      "likely": 0.15,
-      "hi": 0.22,
+      "lo": 0.02,
+      "likely": 0.03,
+      "hi": 0.05,
       "why": "Generated E2E suites plus exploratory testing and release verification"
     },
     "mobile_manual": {
-      "lo": 0.2,
-      "likely": 0.3,
-      "hi": 0.45,
+      "lo": 0.05,
+      "likely": 0.075,
+      "hi": 0.11,
       "why": "Device matrix, store review cycles, and manual regression — the industry default"
     },
     "mobile_mcp_automated": {
-      "lo": 0.06,
-      "likely": 0.1,
-      "hi": 0.15,
+      "lo": 0.015,
+      "likely": 0.025,
+      "hi": 0.04,
       "why": "This company runs mobile QA through the mobile MCP server, which covers most test cases automatically. Materially cheaper than the industry default, and an estimate that ignores it is wrong in the company's own disfavour"
     },
     "data_ml": {
-      "lo": 0.15,
-      "likely": 0.25,
-      "hi": 0.4,
+      "lo": 0.04,
+      "likely": 0.06,
+      "hi": 0.1,
       "why": "Validation is empirical and iterative; correctness is statistical rather than binary"
     }
   },
@@ -468,67 +525,105 @@
     "model_risk_why": "Systematic model uncertainty, as a share of the central estimate, combined in quadrature with the feature-level variance. Summing feature variances in quadrature assumes the errors are independent, and they are not: if the size-band or compression calibration is off, it is off for every feature at once. Quadrature therefore understates the real band, and understates it worst on large scopes — a hundred features would otherwise report a suspiciously tight interval. This floor represents systematic model error, which does not shrink however many features are counted. While the model is UNCALIBRATED it is set high, at 15%; est-calibrate should lower it once backtesting shows how far the model actually lands from actuals."
   },
   "role_weights": {
-    "_what": "How each component's hours divide across roles, and which roles are on the work at all. Each entry carries 'w' and optionally 'requires' — a surface the story must have before that role counts. Roles whose surface is absent are dropped and the survivors renormalise, so the split stays an allocation of the total rather than an adjustment to it. No PM: the Architect absorbs PM responsibilities. The Architect appears ONLY in project-level components — the tech lead does not review individual stories, the developer does, and EPP Phase 1 (480 h delivered across dev/QA/UX/BA) records no architect hours against story work at all. Spreading a fixed architect share over every story was inventing a quarter of the project out of a weight table.",
+    "_what": "How each component's hours divide across roles, and which roles are on the work at all. Each entry carries 'w' and optionally 'requires' — a surface the story must have before that role counts. Roles whose surface is absent are dropped and the survivors renormalise, so the split stays an allocation of the total rather than an adjustment to it. No PM: the Architect absorbs PM responsibilities. The Architect appears ONLY in project-level components — the tech lead does not review individual stories, the developer does, and EPP Phase 1 (480 h delivered across dev/QA/UX/BA) records no architect hours against story work at all. Spreading a fixed architect share over every story was inventing a quarter of the project out of a weight table. A weight may name `requires` (one surface) or `requires_any` (several). `dev` itself is conditional: while it was unconditional it survived renormalisation on an infra-only story and billed a CI pipeline 91% developer. EPP Phase 1: 76 stories, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
     "spec": {
       "ba": {
-        "w": 0.5,
+        "w": 0.42,
         "why": "Turning a client sentence into acceptance criteria is BA work"
       },
       "dev": {
-        "w": 0.3,
-        "why": "The technical half of a story spec — data shape, contract, edge cases — is written by whoever will build it"
+        "w": 0.28,
+        "why": "The technical half of a story spec — data shape, contract, edge cases — is written by whoever will build it",
+        "requires_any": [
+          "backend",
+          "frontend",
+          "data"
+        ]
       },
       "ux": {
-        "w": 0.2,
-        "requires": "design",
-        "why": "Only where the story has a design surface; a background job has no UX specification"
+        "w": 0.3,
+        "why": "Anything with a visual surface is specified with its interaction, not only the stories where a new design is drawn",
+        "requires_any": [
+          "frontend",
+          "design"
+        ]
       }
     },
     "build": {
       "dev": {
-        "w": 0.8,
+        "w": 0.52,
+        "requires_any": [
+          "backend",
+          "frontend",
+          "data"
+        ],
         "why": "Steering, correcting and integrating what the agent generates"
       },
       "ux": {
-        "w": 0.12,
-        "requires": "design",
-        "why": "Design runs through build on anything with a visual surface, not only through spec — this is where EPP's real UX share actually sat"
+        "w": 0.38,
+        "why": "Design runs through build on anything with a visual surface, not only where a new design is being drawn. Keying this on `design` alone put UX at 1.6% of EPP against a measured 22%, because 70 of its 76 stories were frontend and only 15 were tagged design",
+        "requires_any": [
+          "frontend",
+          "design"
+        ]
       },
       "devops": {
-        "w": 0.08,
+        "w": 0.1,
         "requires": "infra",
-        "why": "Pipeline, environment and deployment work carried inside the story rather than as a separate line"
+        "why": "Pipeline, environment and deployment work. With `dev` now also conditional, an infra-only story bills devops alone"
       }
     },
     "review": {
       "dev": {
-        "w": 1.0,
+        "w": 0.85,
+        "requires_any": [
+          "backend",
+          "frontend",
+          "data",
+          "design"
+        ],
         "why": "Story review is developer work, at every tier. The architect/tech lead does not review stories"
+      },
+      "devops": {
+        "w": 0.15,
+        "requires": "infra",
+        "why": "A pipeline or an environment change is reviewed by whoever operates it, and on an infra-only story that is the whole review"
       }
     },
     "rework": {
       "dev": {
-        "w": 1.0,
+        "w": 0.85,
+        "requires_any": [
+          "backend",
+          "frontend",
+          "data",
+          "design"
+        ],
         "why": "The loop back into the code is the developer's"
+      },
+      "devops": {
+        "w": 0.15,
+        "requires": "infra",
+        "why": "The loop back into a pipeline or an environment is the operator's"
       }
     },
     "planning_agent": {
       "architect": {
-        "w": 0.5,
+        "w": 0.35,
         "why": "Steering the BMad planning workflow, and the PM responsibilities folded into that role"
       },
       "ba": {
         "w": 0.3,
-        "why": "Requirements and acceptance criteria across the planning artefacts"
+        "why": "Requirements and acceptance criteria across the artefacts"
       },
       "ux": {
-        "w": 0.2,
-        "why": "The UX artefact and the design decisions the architecture depends on"
+        "w": 0.35,
+        "why": "The UX artefact and the design decisions the architecture rests on. EPP's design work started in planning and did not stop"
       }
     },
     "planning_review": {
       "architect": {
-        "w": 0.5,
+        "w": 0.35,
         "why": "The architecture and epics are read end to end by the person accountable for them"
       },
       "ba": {
@@ -536,7 +631,7 @@
         "why": "Requirements review against what the client actually asked for"
       },
       "ux": {
-        "w": 0.2,
+        "w": 0.35,
         "why": "Design review of the UX artefact"
       }
     },
@@ -558,12 +653,16 @@
     },
     "overhead": {
       "architect": {
-        "w": 0.5,
+        "w": 0.4,
         "why": "Demos, technical client conversations and coordination"
       },
       "ba": {
-        "w": 0.5,
+        "w": 0.3,
         "why": "Ceremony, status and the client communication around scope"
+      },
+      "dev": {
+        "w": 0.3,
+        "why": "Standups and demos are not free for the people delivering. Charging ceremony only to the architect and BA put both roughly double their measured share of EPP"
       }
     }
   },

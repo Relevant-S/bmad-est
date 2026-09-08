@@ -123,7 +123,10 @@ def markdown(est, show_manual_baseline=False):
                  }.get(f.get("scope_status"), "")
         split = f.get("by_role") or {}
         cells = "".join(f"{split[r]:,.1f} | " if split.get(r) else "— | " for r in roles)
-        out.append(f"| {f['id']} | {f['name']}{scope} | {f['tags']['size_band']} | "
+        # Standing work carries its own hours rather than a band, so the column is honestly
+        # empty for it instead of borrowing a label that no longer prices anything.
+        band = f["tags"].get("size_band") or "—"
+        out.append(f"| {f['id']} | {f['name']}{scope} | {band} | "
                    f"{f['tags']['compressibility']} | {f['tags']['review_tier']} | "
                    f"{f['tags']['clarity']} | {f['hours']:,.0f} | {cells}{cites} |")
 

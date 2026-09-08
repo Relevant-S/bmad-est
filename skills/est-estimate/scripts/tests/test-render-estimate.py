@@ -51,8 +51,17 @@ class TestMarkdown(unittest.TestCase):
         md = render.markdown(estimate_for([feature("F1", "Login")]))
         self.assertIn("S1 §1", md)
 
-    def test_uncalibrated_model_is_declared(self):
-        self.assertIn("Uncalibrated model", render.markdown(estimate_for()))
+    def test_an_uncalibrated_model_is_declared(self):
+        """The shipped model is now fitted to one project, so the banner has to be provoked
+        rather than assumed — and the thing worth protecting is that a model without a
+        calibration history never renders without saying so."""
+        e = estimate_for()
+        e["cost_model_snapshot"] = {k: v for k, v in e["cost_model_snapshot"].items()
+                                    if k != "calibration_history"}
+        self.assertIn("Uncalibrated model", render.markdown(e))
+
+    def test_a_calibrated_model_does_not_carry_the_banner(self):
+        self.assertNotIn("Uncalibrated model", render.markdown(estimate_for()))
 
     def test_planning_review_is_called_out_as_the_anchor(self):
         self.assertIn("defended hardest", render.markdown(estimate_for()))

@@ -87,16 +87,30 @@ story. Set `surfaces` from what each story actually touched.
 entry. The entry snapshots the model that priced it, which is what makes the comparison
 attributable later.
 
-**Attach the real hours.** `uv run scripts/ingest-actuals.py --entry {memory}/ledger/<id>.json --total <hours> --scope as_estimated --source "<where the number came from>" --confidence <recalled|reconstructed|measured>`.
-A per-role split belongs here too when it exists; it is the only thing that can calibrate the
-role weights. Be honest in `--confidence`: a recollection must not move a coefficient as hard
-as a time-tracking export, and the analysis weights it accordingly.
+**Attach the real hours.** `uv run scripts/ingest-actuals.py --entry {memory}/ledger/<id>.json --total <hours> --by-role "dev=280,ux=120,qa=40" --scope as_estimated --source "<where the number came from>" --confidence <measured|reconstructed|recalled>`.
+`--by-role` is worth insisting on: it is the only evidence that can calibrate the role weights,
+and it is usually the one split a delivery lead can give from memory. Be honest in
+`--confidence`: a recollection must not move a coefficient as hard as a time-tracking export,
+and the analysis weights it accordingly.
 
-**Then run the normal path.** With one entry, `analyze.py` reports accuracy and proposes
-nothing — the sample-size floor is doing its job, and `est_min_calibration_samples` is now the
-number it enforces. Use `curate.py --preview` to see what a change would do to recorded
-estimates, and `curate.py --approved-by` to apply it. That stamps `kind: judgement` and writes
-the history entry, so the model's own account of itself stays true.
+**Attribute the error before changing anything.** `uv run scripts/fit-anchor.py --entry {memory}/ledger/<id>.json --cost-model {memory}/cost-model.json`
+reads the per-role and per-phase actuals and says which coefficient families the evidence can
+separate and which it cannot. Only `qa` maps to a single component, so only `qa` comes back as
+a clean factor; everything else is reported as a blend, and what phase actuals would unlock is
+named rather than guessed at.
+
+**Do not reach for `analyze.py` here, and do not lower `est_min_calibration_samples` to make
+it speak.** It can propose seven coefficient paths in total, and from a project total only a
+uniform `size_bands.*` scale — which it then shrinks by n/(n+6), moving 14% of the way at n=1.
+Lowering the floor buys a weak proposal for a fraction of the correction, loaded onto the one
+family that happens to be reachable. That is how a model ends up with a review rate of 0.016:
+arithmetically right beside a band table three times too large, and indefensible on its own.
+
+**Then apply what you can attribute, through `curate.py`.** `--preview` first, to see what each
+change does to every recorded estimate and whether it moves them closer to the actuals you
+have. Then the same command with `--approved-by`. No shrinkage, every path validated against
+the model, `kind: judgement` stamped, and a `calibration_history` entry written — so the
+model's own account of itself stays true.
 
 **Say n=1 in the log and in the model.** Put the sample size in the `--why` of every change.
 The next person to read `calibration-log.md` needs to know the model is fitted to one project

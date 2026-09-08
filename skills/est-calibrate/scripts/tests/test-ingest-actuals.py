@@ -136,5 +136,28 @@ class TestFileReading(unittest.TestCase):
         self.assertIn("unsupported export format", str(ctx.exception))
 
 
+class PerRoleTotals(unittest.TestCase):
+    """The one attribution a delivery lead can give without a time-tracking export."""
+
+    def test_role_hours_are_parsed_from_the_flag(self):
+        self.assertEqual(ing.parse_roles("dev=280,ux=120,qa=40"),
+                         {"dev": 280.0, "ux": 120.0, "qa": 40.0})
+
+    def test_whitespace_and_case_do_not_matter(self):
+        self.assertEqual(ing.parse_roles(" Dev = 280 , UX=120 "),
+                         {"dev": 280.0, "ux": 120.0})
+
+    def test_nothing_given_is_an_empty_split_not_an_error(self):
+        self.assertEqual(ing.parse_roles(None), {})
+        self.assertEqual(ing.parse_roles(""), {})
+
+    def test_a_malformed_pair_is_refused_rather_than_dropped(self):
+        """Silently discarding a role would understate exactly the evidence being captured."""
+        with self.assertRaises(SystemExit):
+            ing.parse_roles("dev=280,ux")
+        with self.assertRaises(SystemExit):
+            ing.parse_roles("dev=lots")
+
+
 if __name__ == "__main__":
     unittest.main()

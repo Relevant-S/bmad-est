@@ -107,7 +107,12 @@ def make_ledger(rng, count, perturbed_model, noise=0.10, shares=None, completene
     entries = []
     for i in range(count):
         share = shares[i % len(shares)] if shares else 0.4
-        inv = inventory(f"Project {i+1}", project_mix(rng, 8, share, uniform))
+        # 24 stories per project, not 8. Since the bands moved to story scale, 8 stories is a
+        # fortnight of work whose fixed planning cost dominates the total — so a 20% band
+        # perturbation moved the project total by less than the 8% deadband, and the
+        # calibrator correctly proposed nothing. That made every recovery case a statement
+        # about fixture size rather than about whether the bias is detectable.
+        inv = inventory(f"Project {i+1}", project_mix(rng, 24, share, uniform))
         estimate = price(inv, SEED_MODEL, completeness)
         truth = price(inv, perturbed_model, completeness)
         actual = truth["total_hours"]["likely"] * (1 + rng.gauss(0, noise))
@@ -367,14 +372,20 @@ def case_shrinkage_converges_as_projects_accumulate():
         rng = random.Random(151)
         a = run(make_ledger(rng, n, truth, noise=0.06))
         proposals.append(find(a["proposals"], "size_bands.*"))
+    # The assertions are about the shrinkage mechanism, not about recovering 1.3 at the
+    # project level. A 1.3x band perturbation does not move a project total by 30%: planning
+    # is priced per epic and per story and does not scale with the bands at all, so the
+    # measured signal arrives diluted to about 1.14–1.21. Pinning the test to 1.3 made it a
+    # statement about how much of a project the bands happen to drive.
+    closed = [(p["proposed"] - 1.0) / (p["point_estimate"] - 1.0) for p in proposals]
     return {"proposals": [], "accuracy": {"samples": 0}}, [
         ("a proposal is raised at every sample size", all(p is not None for p in proposals)),
         ("each larger sample moves further toward the truth",
          proposals[0]["proposed"] < proposals[1]["proposed"] < proposals[2]["proposed"]),
-        ("thirty projects gets most of the way there", proposals[2]["proposed"] > 1.17),
-        ("four projects deliberately does not", proposals[0]["proposed"] < 1.15),
-        ("the underlying signal is reported unshrunk throughout",
-         all(1.15 < p["point_estimate"] < 1.40 for p in proposals)),
+        ("thirty projects closes most of the gap to the measured signal", closed[2] > 0.8),
+        ("four projects deliberately does not", closed[0] < 0.45),
+        ("the signal is reported unshrunk alongside every proposal",
+         all(p["proposed"] < p["point_estimate"] for p in proposals)),
     ]
 
 

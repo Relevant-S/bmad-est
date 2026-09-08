@@ -241,18 +241,34 @@ class Decomposable(unittest.TestCase):
 
 
 class Cutline(unittest.TestCase):
+    """Budgets are a share of the fixture's own total, never an absolute.
+
+    These were pinned at 150 h, which is more than the whole fixture costs once the bands
+    moved to story scale — so each one asked for a budget already met and passed without
+    cutting anything, and the restore case failed because there was nothing to restore. A
+    cut-line test whose budget exceeds the total is not testing a cut line.
+    """
+
+    def budget(self, estimate, share=0.75):
+        return estimate["total_hours"]["likely"] * share
+
     def test_reaches_a_feasible_budget(self):
-        cut = run(priced(chain_features()), to_budget=150.0)["cutline"]
+        estimate = priced(chain_features())
+        target = self.budget(estimate)
+        cut = run(estimate, to_budget=target)["cutline"]
         self.assertTrue(cut["under_target"])
-        self.assertLessEqual(cut["achieved_likely"], 150.0)
+        self.assertLessEqual(cut["achieved_likely"], target)
 
     def test_restores_cuts_the_budget_did_not_need(self):
-        cut = run(priced(chain_features()), to_budget=150.0)["cutline"]
+        estimate = priced(chain_features())
+        cut = run(estimate, to_budget=self.budget(estimate))["cutline"]
         self.assertIn("F4", cut["restored_as_unnecessary"])
         self.assertNotIn("F4", cut["proposed_drop"])
 
     def test_a_dropped_feature_takes_its_dependents_with_it(self):
-        cut = run(priced(chain_features()), to_budget=150.0)["cutline"]
+        """F3 depends on F1, so F1 cannot go while F3 stays."""
+        estimate = priced(chain_features())
+        cut = run(estimate, to_budget=self.budget(estimate))["cutline"]
         if "F1" in cut["proposed_drop"]:
             self.assertIn("F3", cut["proposed_drop"])
 
@@ -351,11 +367,16 @@ class CutlineOrdering(unittest.TestCase):
         self.assertIn("BIG", cut["proposed_drop"])
 
     def test_outside_agreed_scope_goes_before_committed_work(self):
+        """The budget is derived from what dropping B actually achieves, rather than a
+        percentage. A fixed percentage silently became unreachable-by-one-story the moment
+        the bands moved to story scale, and the test then failed for arithmetic reasons
+        while the ordering rule it names was working perfectly."""
         features = [fx.feature("A", size="M"),
                     fx.feature("B", size="M", scope_status="outside_agreed_scope"),
                     fx.feature("C", size="M")]
         estimate = priced(features)
-        cut = run(estimate, to_budget=estimate["total_hours"]["likely"] * 0.9)["cutline"]
+        reachable = run(estimate, drop=["B"])["scenario_estimate"]["total_hours"]["likely"]
+        cut = run(estimate, to_budget=reachable)["cutline"]
         self.assertEqual(cut["proposed_drop"], ["B"])
 
     def test_no_proposed_cut_is_unnecessary(self):

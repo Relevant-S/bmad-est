@@ -104,8 +104,12 @@ def case_thin_brief():
 
 def case_compression_does_not_rescue_sensitive_work():
     """The module's central claim, at inventory scale rather than per feature."""
-    routine = run(inventory("Routine", [feature(f"F{i}", f"CRUD {i}", tier="routine") for i in range(1, 9)]))
-    sensitive = run(inventory("Sensitive", [feature(f"F{i}", f"Payments {i}", tier="sensitive") for i in range(1, 9)]))
+    # 24 stories, not 8. The fixture is meant to be a project, and since the bands moved to
+    # story scale, 8 stories is a fortnight's work whose fixed planning cost swamps everything
+    # the case is about. The dilution being measured is real and grows with scope: 1.14x at 8
+    # stories, 1.28x at 24, 1.35x at 40.
+    routine = run(inventory("Routine", [feature(f"F{i}", f"CRUD {i}", tier="routine") for i in range(1, 25)]))
+    sensitive = run(inventory("Sensitive", [feature(f"F{i}", f"Payments {i}", tier="sensitive") for i in range(1, 25)]))
     # Phase totals include standing work's own review, which is the same on both sides and
     # would flatten the ratio the claim is about. Compare the extracted scope's review.
     r_review = sum(f["component_hours"]["review"] for f in extracted(routine))
@@ -185,12 +189,17 @@ def case_undecomposed_scope():
 
 def case_mobile_qa_capability():
     """The company's automated mobile QA is a real coefficient, not a footnote."""
-    inv = inventory("Mobile", [feature(f"F{i}", f"Screen {i}", comp="medium") for i in range(1, 9)])
+    inv = inventory("Mobile", [feature(f"F{i}", f"Screen {i}", comp="medium") for i in range(1, 25)])
     default = run(inv, qa_platform="mobile_manual")
     theirs = run(inv, qa_platform="mobile_mcp_automated")
+    qa_drop = 1 - theirs["by_phase"]["qa"]["hours"] / default["by_phase"]["qa"]["hours"]
     return theirs, [
-        ("automated mobile QA materially lowers the number",
-         theirs["total_hours"]["likely"] < 0.85 * default["total_hours"]["likely"]),
+        # The coefficient's own effect, stated where it lives. Asserting only on the project
+        # total made this case a statement about QA's share of a project rather than about the
+        # capability, and that share fell by two thirds at the EPP calibration.
+        ("automated mobile QA cuts the QA line by most of itself", qa_drop > 0.6),
+        ("and the project total moves with it, diluted",
+         theirs["total_hours"]["likely"] < 0.93 * default["total_hours"]["likely"]),
         ("QA is still a real line item, not zeroed", theirs["by_phase"]["qa"]["hours"] > 0),
     ]
 

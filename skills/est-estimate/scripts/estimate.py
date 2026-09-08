@@ -141,7 +141,12 @@ def standing_features(model, options):
             # Its own scope group. Labelling it "outside agreed scope" would put setup and
             # pipeline work in the column a client reads as "things we tried to add".
             "scope_status": "standing_work",
-            "tags": {axis: {"value": spec[axis], "why": spec["reasons"][axis],
+            # Its own hours, not a size band. Standing work is a fixed catalogue of real
+            # effort — a CI pipeline costs what it costs however the product backlog is
+            # sliced — so tying it to a band that describes product stories meant re-scaling
+            # the band silently re-priced the pipeline with it.
+            "manual_hours": spec["hours"],
+            "tags": {axis: {"value": spec.get(axis), "why": spec["reasons"].get(axis),
                             "status": "standing"} for axis in AXES},
             "surfaces": spec["surfaces"],
             "depends_on": [],
@@ -160,7 +165,9 @@ def price_feature(feature, model, team):
     size, comp_class = value("size_band"), value("compressibility")
     tier, clarity, novelty = value("review_tier"), value("clarity"), value("novelty")
 
-    manual = tp(model, "size_bands", size)
+    override = feature.get("manual_hours")
+    manual = (override["lo"], override["likely"], override["hi"]) if override \
+        else tp(model, "size_bands", size)
     compression = tp(model, "compressibility", comp_class)
     clarity_row = model["clarity"][clarity]
     novelty_factor = model["novelty_rework_multiplier"][novelty]["factor"]
@@ -307,11 +314,18 @@ def component_roles(model, component, surfaces):
     for role, node in model["role_weights"][component].items():
         if role.startswith("_"):
             continue
-        weight = node["w"] if isinstance(node, dict) else node
-        requires = node.get("requires") if isinstance(node, dict) else None
-        if requires and surfaces is not None and requires not in surfaces:
-            continue
-        entries[role] = float(weight)
+        spec = node if isinstance(node, dict) else {"w": node}
+        requires, any_of = spec.get("requires"), spec.get("requires_any")
+        if surfaces is not None:
+            if requires and requires not in surfaces:
+                continue
+            # `requires_any` is what lets a role be conditional without being niche. Making
+            # `dev` require backend-or-frontend is the only way an infra-only story reaches
+            # devops: while dev was unconditional it survived renormalisation and billed a CI
+            # pipeline 91% developer, which is not who builds a CI pipeline.
+            if any_of and not set(any_of) & set(surfaces):
+                continue
+        entries[role] = float(spec["w"])
     total = sum(entries.values())
     if not total:
         raise ValueError(
@@ -420,8 +434,14 @@ def agreed_split(priced, project, model, options):
 # --- dependencies and duration ----------------------------------------------
 
 def critical_path(priced):
-    """Longest dependency chain by mean feature hours. Cycles are impossible here —
-    est-scope-extract's checker rejects them — but guard anyway rather than recurse forever."""
+    """Longest dependency chain by mean story hours. Cycles are impossible here —
+    est-scope-extract's checker rejects them — but guard anyway rather than recurse forever.
+
+    Standing work is excluded. It has no dependencies and nothing waits on it, so with the
+    bands at story scale the single largest setup item simply became "the critical path" — a
+    one-node chain that told a reader nothing about what actually gates delivery.
+    """
+    priced = [f for f in priced if f.get("origin") != "standing"]
     weight = {f["id"]: pert(f["total"])[0] for f in priced}
     deps = {f["id"]: [d for d in f["depends_on"] if d in weight] for f in priced}
     memo, visiting = {}, set()

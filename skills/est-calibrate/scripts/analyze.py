@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 PHASES = ["planning", "planning-review", "spec", "build", "review", "rework",
-          "environments", "qa", "overhead"]
+          "qa", "overhead"]
 
 CONFIDENCE_WEIGHT = {"measured": 1.0, "reconstructed": 0.6, "estimated": 0.3}
 
@@ -393,7 +393,6 @@ def phase_deltas(entries, min_samples):
 PHASE_COEFFICIENTS = {
     "planning-review": "planning.review_hours",
     "planning": "planning.agent_hours",
-    "environments": "env_infra",
     "qa": "qa",
     "overhead": "overhead_rate",
 }
