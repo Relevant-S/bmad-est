@@ -110,13 +110,35 @@ def parse_range(spec):
     return keep
 
 
-def skeleton(project, epics, stories):
-    """A feature inventory with the shape filled in and every judgement left blank.
+AXES = ("size_band", "compressibility", "review_tier", "clarity", "novelty")
 
-    The tags are null on purpose. A calibration anchored on one project is fragile enough
-    without the classification being invented by the same run that consumes it.
+
+def blank_classification(project, features):
+    """The companion classification, with every judgement deliberately unset.
+
+    A calibration anchored on one project is fragile enough without the classification being
+    invented by the same run that consumes it. `unclassified` is a real status in the
+    classification schema rather than a null the validator would reject, so this file is a
+    legal artefact that est-estimate refuses to price — which is the intended outcome.
     """
-    axes = ("size_band", "compressibility", "review_tier", "clarity", "novelty")
+    return {
+        "schema_version": "1.0",
+        "generated": None,
+        "inventory": f"recovered shape of {project}",
+        "how": "recovered from delivered artefacts; nothing here has been judged yet",
+        "features": {
+            f["id"]: {axis: {"value": None, "why": None, "status": "unclassified"} for axis in AXES}
+            for f in features
+        },
+    }
+
+
+def skeleton(project, epics, stories):
+    """A feature inventory with the shape filled in and nothing about cost in it.
+
+    Classification lives in its own file now, so this recovers what was delivered and
+    `blank_classification` records that none of it has been judged.
+    """
     features = []
     for story in stories:
         features.append({
@@ -131,7 +153,6 @@ def skeleton(project, epics, stories):
                 "quote": f"Story {story['number']}: {story['name']}",
             }],
             "commitment": "committed",
-            "tags": {axis: {"value": None, "why": None, "status": "unclassified"} for axis in axes},
             "tasks_recorded": story["tasks"],
             "depends_on": [],
             "open_questions": [],
@@ -213,6 +234,8 @@ def main():
         "skipped": skipped,
         "epics_files_read": epic_files,
         "skeleton": skeleton(root.name, epics, selected),
+        "classification": blank_classification(
+            root.name, skeleton(root.name, epics, selected)["features"]),
         "next": ("Tag every feature against its story file — the tags are null and pricing will "
                  "refuse them — then price with est-estimate, record the ledger entry, and attach "
                  "the project's real hours with ingest-actuals.py."),

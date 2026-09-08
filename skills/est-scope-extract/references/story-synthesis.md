@@ -77,13 +77,31 @@ Size the **story**, not the sum of its rows. Ten rows describing one screen is o
 
 ## Surfaces
 
-Each story carries `surfaces` — which of `backend`, `frontend`, `design`, `infra`, `data` the
-work actually touches. This is not descriptive: it decides which roles are billed to the
-story, and a role whose surface is absent is dropped from the split entirely. A nightly
-reconciliation job tagged `[backend]` bills no designer.
+Each story carries `surfaces` — which kinds of work it actually touches. This is the one
+classification-shaped field extraction still sets, because it is an observation rather than a
+judgement about cost: it does not scale the hours, it decides **which roles are billed to the
+story at all**. A role whose surface is absent is dropped from the split and the rest
+renormalise, so the story still costs what it costs and the hours go to the people doing it.
 
-Omitting the field is not a way to say "none". An untagged story keeps every role, because
-silence must not quietly discount. Tag it, or accept the full split.
+| Surface | The work |
+| --- | --- |
+| `backend` | Server-side logic, data model, APIs, background jobs, third-party integrations |
+| `frontend` | Screens, client state, forms, tables — implementing a design that exists |
+| `design` | Visual or interaction design: new screens, a design-system component, an accessibility or microcopy pass |
+| `infra` | Environments, pipelines, deployment, observability, secrets, migrations against real systems |
+| `data` | Schema migration, import and export, backfills, reporting queries |
+
+Most stories carry two. A nightly reconciliation job is `[backend]` and bills no designer. A
+new onboarding flow is `[frontend, design]` and often `[backend]` too. A CSV importer is
+`[backend, data]`.
+
+`frontend` is not `design`. Building a screen from an existing design system is frontend work;
+`design` means someone is deciding what it looks like. Tagging every screen `design` puts a
+designer on the whole project, which is how a role split stops meaning anything.
+
+**Omitting the field is not a way to say "none".** An untagged story keeps every role, because
+silence must not quietly discount. If you cannot tell, leave it off and let the full split
+stand — then say in the extraction report that surfaces were not classified.
 
 ## Before you finish
 

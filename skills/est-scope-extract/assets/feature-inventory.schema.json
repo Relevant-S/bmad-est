@@ -94,8 +94,7 @@
           "name",
           "description",
           "citations",
-          "commitment",
-          "tags"
+          "commitment"
         ],
         "properties": {
           "id": {
@@ -160,39 +159,6 @@
             ],
             "description": "committed: the source states it as in scope. implied: follows necessarily from something committed. speculative: raised as a possibility, a future phase, or a client aspiration."
           },
-          "tags": {
-            "type": "object",
-            "required": [
-              "size_band",
-              "compressibility",
-              "review_tier",
-              "clarity",
-              "novelty"
-            ],
-            "description": "The four-axis classification est-estimate's cost model consumes, plus novelty. Every tag carries its justification and its status.",
-            "properties": {
-              "size_band": {
-                "$ref": "#/$defs/tag",
-                "description": "XS/S/M/L/XL band of manual-equivalent effort"
-              },
-              "compressibility": {
-                "$ref": "#/$defs/tag",
-                "description": "How much BMad compresses building this"
-              },
-              "review_tier": {
-                "$ref": "#/$defs/tag",
-                "description": "routine / sensitive / critical human review burden"
-              },
-              "clarity": {
-                "$ref": "#/$defs/tag",
-                "description": "How precisely the source specifies it"
-              },
-              "novelty": {
-                "$ref": "#/$defs/tag",
-                "description": "standard or novel relative to work the team has done before"
-              }
-            }
-          },
           "depends_on": {
             "type": "array",
             "items": {
@@ -241,7 +207,7 @@
                 "data"
               ]
             },
-            "description": "Which kinds of work this story touches. It decides which roles are billed to it: a role whose surface is absent is dropped from the split entirely, which is what keeps BA and UX hours off a pure backend task. Omitting it is not a way to say 'none' — an untagged story keeps every role, because silence must not quietly discount."
+            "description": "Which kinds of work this story touches. It decides which roles are billed to it: a role whose surface is absent is dropped from the split entirely, which is what keeps BA and UX hours off a pure backend task. Omitting it is not a way to say 'none' — an untagged story keeps every role, because silence must not quietly discount. Extraction states which kinds of work a story touches; est-estimate decides what it costs. This is the one classification-shaped field that stays here, because it is an observation about the scope rather than a judgement about effort."
           },
           "tasks": {
             "type": "array",
@@ -483,8 +449,7 @@
           "id",
           "name",
           "description",
-          "rationale",
-          "tags"
+          "rationale"
         ],
         "properties": {
           "id": {
@@ -515,39 +480,6 @@
               "speculative"
             ],
             "description": "committed: the source states it as in scope. implied: follows necessarily from something committed. speculative: raised as a possibility, a future phase, or a client aspiration."
-          },
-          "tags": {
-            "type": "object",
-            "required": [
-              "size_band",
-              "compressibility",
-              "review_tier",
-              "clarity",
-              "novelty"
-            ],
-            "description": "The four-axis classification est-estimate's cost model consumes, plus novelty. Every tag carries its justification and its status.",
-            "properties": {
-              "size_band": {
-                "$ref": "#/$defs/tag",
-                "description": "XS/S/M/L/XL band of manual-equivalent effort"
-              },
-              "compressibility": {
-                "$ref": "#/$defs/tag",
-                "description": "How much BMad compresses building this"
-              },
-              "review_tier": {
-                "$ref": "#/$defs/tag",
-                "description": "routine / sensitive / critical human review burden"
-              },
-              "clarity": {
-                "$ref": "#/$defs/tag",
-                "description": "How precisely the source specifies it"
-              },
-              "novelty": {
-                "$ref": "#/$defs/tag",
-                "description": "standard or novel relative to work the team has done before"
-              }
-            }
           },
           "depends_on": {
             "type": "array",
@@ -683,39 +615,6 @@
             "confirmed",
             "overridden"
           ]
-        }
-      }
-    },
-    "tag": {
-      "type": "object",
-      "required": [
-        "value",
-        "why",
-        "status"
-      ],
-      "properties": {
-        "value": {
-          "type": "string"
-        },
-        "why": {
-          "type": "string",
-          "description": "One line. A tag without a reason is a black box coefficient, which this module does not ship."
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "inferred",
-            "confirmed",
-            "overridden"
-          ],
-          "description": "inferred: set by extraction. confirmed: a human agreed. overridden: a human changed it. Re-extraction must never downgrade confirmed or overridden back to inferred."
-        },
-        "triggers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "For review_tier: the source phrases that raised the tier, quoted."
         }
       }
     }

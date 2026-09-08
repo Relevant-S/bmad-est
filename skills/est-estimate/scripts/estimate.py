@@ -103,12 +103,13 @@ def surfaces_of(feature):
     None means "unknown", and unknown keeps every conditional role in — so an inventory
     written before surfaces existed prices exactly as it used to instead of silently
     shedding the roles it never got the chance to declare.
+
+    One placement, on the feature. It used to be read out of the tag block first and off the
+    feature second, which meant the field the schema defined was the one that lost. Surfaces
+    is an observation about the scope, not a judgement about cost, so it stayed with the
+    inventory when the tags left.
     """
-    node = (feature.get("tags") or {}).get("surfaces")
-    if isinstance(node, dict):
-        node = node.get("value")
-    if node is None:
-        node = feature.get("surfaces")
+    node = feature.get("surfaces")
     if node is None:
         return None
     return sorted({node} if isinstance(node, str) else {str(x) for x in node})
@@ -588,6 +589,31 @@ def traceability(inventory, priced):
     }
 
 
+def load_scope(inventory, classification):
+    """A Feature Inventory with its classification joined on, ready to price.
+
+    The join happens here rather than inside the engine, so everything downstream — including
+    `inventory_from`, which three other skills re-price through — keeps working on one shape.
+
+    A feature with no classification row is named, never priced. Silently defaulting it would
+    put a story in the total at whatever the cost model's first band happens to be, and the
+    reader would have no way of telling that hours from a guess from hours from a judgement.
+    """
+    rows = (classification or {}).get("features") or {}
+    joined = json.loads(json.dumps(inventory))
+    missing = []
+    for key in ("features", "implicit_scope"):
+        for feature in joined.get(key) or []:
+            tags = rows.get(feature.get("id"))
+            if not tags:
+                missing.append(feature.get("id"))
+                continue
+            feature["tags"] = json.loads(json.dumps(tags))
+    orphans = sorted(set(rows) - {f.get("id") for k in ("features", "implicit_scope")
+                                  for f in joined.get(k) or []})
+    return joined, missing, orphans
+
+
 # --- facts about a model that more than one skill needs to agree on -------------
 
 def is_calibrated(model):
@@ -876,6 +902,10 @@ def main():
     ap.add_argument("--no-standing-work", action="store_true",
                     help="omit setup, pipeline, environment and release work — only when the "
                          "client is bringing an existing platform that already has it")
+    ap.add_argument("--classification", metavar="PATH", required=True,
+                    help="classification.json — what each story costs to build, keyed by feature "
+                         "id. Written by this skill's classification pass; the inventory holds "
+                         "what the source said and nothing about effort")
     ap.add_argument("--check-report", metavar="PATH",
                     help="JSON output of est-scope-extract's inventory-check.py; supplies the "
                          "input completeness score and confirms the inventory validated")
@@ -887,8 +917,33 @@ def main():
     try:
         inventory = json.loads(Path(args.inventory).read_text(encoding="utf-8"))
         model = json.loads(Path(args.cost_model).read_text(encoding="utf-8"))
+        classification = json.loads(Path(args.classification).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        return 2
+
+    if inventory.get("features") and "tags" in (inventory["features"][0] or {}):
+        print(json.dumps({
+            "ok": False,
+            "error": "this inventory carries its classification inline, which is the shape from "
+                     "before extraction and estimation were separated. Split it first: "
+                     "uv run split-inventory.py <inventory> --in-place",
+        }, indent=2))
+        return 2
+
+    inventory, unclassified, orphans = load_scope(inventory, classification)
+    orphan_note = ([f"{len(orphans)} classified features are not in this inventory "
+                    f"(e.g. {', '.join(orphans[:3])}) — the classification was made against a "
+                    f"different extraction. Re-key it with classification-merge.py"]
+                   if orphans else [])
+    if unclassified:
+        print(json.dumps({
+            "ok": False,
+            "error": "these features have no classification, and a story priced on a default is "
+                     "indistinguishable in the total from one priced on a judgement",
+            "unclassified": unclassified[:20],
+            "count": len(unclassified),
+        }, indent=2))
         return 2
 
     completeness, check_findings, check_warnings = args.completeness, None, []
@@ -936,7 +991,7 @@ def main():
         "engagement": args.engagement,
         "team_size": args.team_size,
         "no_standing_work": args.no_standing_work,
-        "inventory_warnings": check_warnings,
+        "inventory_warnings": list(check_warnings) + orphan_note,
         "granularity": inventory.get("granularity", "project"),
         "input_completeness": float(completeness),
         "inventory_path": args.inventory,

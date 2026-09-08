@@ -7,10 +7,12 @@
 Matches features by id first, then by name similarity, because a re-extraction of a
 revised document renumbers freely. Reports what was added, removed, and changed.
 
-The load-bearing output is `protected`: every tag a human confirmed or overrode in the
-old inventory that the re-extraction would silently revert to a machine guess. Those
-must be carried forward, not applied. Losing a human's classification correction is the
-one failure that makes people stop trusting the tool.
+This diffs scope only. Classification lives in classification.json now, so a
+re-extraction cannot revert a human's judgement — it can only orphan one by renumbering
+the feature it belonged to. `est-estimate/scripts/classification-merge.py` re-keys it,
+reusing `match_features` from here so the two agree on what "the same story" means.
+Losing a human's classification correction is still the one failure that makes people
+stop trusting the tool; the split moved where it is prevented, not whether it is.
 """
 
 import argparse
@@ -19,12 +21,7 @@ import sys
 from difflib import SequenceMatcher
 from pathlib import Path
 
-AXES = ["size_band", "compressibility", "review_tier", "clarity", "novelty"]
 NAME_MATCH_THRESHOLD = 0.72
-
-
-def tag(feature, axis, field="value"):
-    return (feature.get("tags", {}).get(axis) or {}).get(field)
 
 
 def similarity(a, b):
@@ -75,14 +72,6 @@ def compare(old, new):
     if old.get("commitment") != new.get("commitment"):
         changes.append({"field": "commitment", "from": old.get("commitment"), "to": new.get("commitment")})
 
-    for axis in AXES:
-        if tag(old, axis) != tag(new, axis):
-            changes.append({
-                "field": f"tags.{axis}",
-                "from": tag(old, axis), "to": tag(new, axis),
-                "old_status": tag(old, axis, "status"), "new_status": tag(new, axis, "status"),
-            })
-
     old_deps = {d.get("feature_id") for d in old.get("depends_on", [])}
     new_deps = {d.get("feature_id") for d in new.get("depends_on", [])}
     if old_deps != new_deps:
@@ -93,48 +82,18 @@ def compare(old, new):
     return changes
 
 
-def protected_tags(old, new):
-    """Human decisions the re-extraction would silently discard."""
-    out = []
-    for axis in AXES:
-        old_status = tag(old, axis, "status")
-        if old_status not in ("confirmed", "overridden"):
-            continue
-        if tag(new, axis, "status") == "inferred" or tag(old, axis) != tag(new, axis):
-            out.append({
-                "feature": old.get("id"),
-                "axis": axis,
-                "human_value": tag(old, axis),
-                "human_status": old_status,
-                "human_why": tag(old, axis, "why"),
-                "reextracted_value": tag(new, axis),
-                "action": "carry the human value forward; do not apply the re-extracted one without asking",
-            })
-    return out
-
-
-def summarize_tier_shift(pairs, added, removed):
-    def count(features):
-        return {t: sum(1 for f in features if tag(f, "review_tier") == t)
-                for t in ("routine", "sensitive", "critical")}
-    return {"added": count(added), "removed": count(removed),
-            "retiered": [
-                {"feature": n.get("id"), "from": tag(o, "review_tier"), "to": tag(n, "review_tier")}
-                for o, n, _ in pairs if tag(o, "review_tier") != tag(n, "review_tier")
-            ]}
-
-
 def build_merge(old_inv, new_inv, pairs, added, removed):
     """Produce the merged inventory deterministically, and list what a human must still decide.
 
-    The new pass is the base, because it reflects the current documents. Onto it are restored
-    every human classification the diff marked protected, and the stable feature ids from the
-    old inventory — a ledger entry elsewhere may already reference them. Cases the prompt is
-    explicitly told not to decide alone come back as needs_decision rather than being decided.
+    The new pass is the base, because it reflects the current documents. Onto it go the stable
+    feature ids from the old inventory — a ledger entry, and now a classification, may already
+    reference them, and keeping them is what stops a re-extraction orphaning judgements it
+    never touched. Cases the prompt is explicitly told not to decide alone come back as
+    needs_decision rather than being decided.
     """
     merged = json.loads(json.dumps(new_inv))          # deep copy, no shared state
     by_identity = {id(n): (o, how) for o, n, how in pairs}
-    needs_decision, restored = [], []
+    needs_decision = []
 
     taken = {o.get("id") for o, _, _ in pairs}
     next_id = max([int(f["id"][1:]) for f in old_inv.get("features", []) + new_inv.get("features", [])
@@ -160,20 +119,6 @@ def build_merge(old_inv, new_inv, pairs, added, removed):
         if not old:
             continue
 
-        # A human's classification outranks a fresh inference — restore it.
-        for entry in protected_tags(old, feature):
-            axis = entry["axis"]
-            feature["tags"][axis] = json.loads(json.dumps(old["tags"][axis]))
-            restored.append({"feature": feature["id"], "axis": axis,
-                             "value": entry["human_value"], "status": entry["human_status"]})
-            # If the source text behind the feature changed, the human's call may no longer hold.
-            if similarity(old.get("description"), feature.get("description")) < 0.95:
-                needs_decision.append({
-                    "feature": feature["id"], "kind": "protected_tag_over_changed_source",
-                    "detail": (f"{axis} was set to '{entry['human_value']}' by a human, but this "
-                               f"feature's description changed in the new sources. The human value "
-                               f"was carried forward — confirm it still holds."),
-                })
         if old.get("scope_status") and not feature.get("scope_status"):
             feature["scope_status"] = old["scope_status"]
 
@@ -190,7 +135,7 @@ def build_merge(old_inv, new_inv, pairs, added, removed):
         })
 
     merged["generated"] = new_inv.get("generated")
-    return merged, needs_decision, restored
+    return merged, needs_decision
 
 
 def main():
@@ -202,8 +147,9 @@ def main():
     ap.add_argument("new", help="the freshly extracted feature-inventory.json")
     ap.add_argument("-o", "--output", help="write the JSON diff here instead of stdout")
     ap.add_argument("--merge", metavar="OUT",
-                    help="also write the merged inventory here: the new pass with every human "
-                         "classification restored and stable feature ids preserved")
+                    help="also write the merged inventory here: the new pass with the old "
+                         "inventory's stable feature ids preserved, so classification.json still "
+                         "keys onto it")
     args = ap.parse_args()
 
     try:
@@ -215,13 +161,12 @@ def main():
 
     pairs, added, removed = match_features(old_inv.get("features", []), new_inv.get("features", []))
 
-    changed, protected = [], []
+    changed = []
     for o, n, how in pairs:
         diffs = compare(o, n)
         if diffs:
             changed.append({"old_id": o.get("id"), "new_id": n.get("id"),
                             "name": n.get("name"), "matched_by": how, "changes": diffs})
-        protected.extend(protected_tags(o, n))
 
     result = {
         "ok": True,
@@ -230,23 +175,21 @@ def main():
         "summary": {
             "added": len(added), "removed": len(removed),
             "changed": len(changed), "unchanged": len(pairs) - len(changed),
-            "protected_tags": len(protected),
         },
-        "added": [{"id": f.get("id"), "name": f.get("name"),
-                   "review_tier": tag(f, "review_tier"), "size_band": tag(f, "size_band")} for f in added],
-        "removed": [{"id": f.get("id"), "name": f.get("name"),
-                     "review_tier": tag(f, "review_tier"), "size_band": tag(f, "size_band")} for f in removed],
+        "added": [{"id": f.get("id"), "name": f.get("name")} for f in added],
+        "removed": [{"id": f.get("id"), "name": f.get("name")} for f in removed],
         "changed": changed,
-        "protected": protected,
-        "review_tier_shift": summarize_tier_shift(pairs, added, removed),
+        # Ids that moved, so classification-merge.py can re-key judgements onto the new pass
+        # without re-deriving the match this already computed.
+        "matched": [{"old_id": o.get("id"), "new_id": n.get("id"), "matched_by": how}
+                    for o, n, how in pairs],
     }
 
     if args.merge:
-        merged, needs_decision, restored = build_merge(old_inv, new_inv, pairs, added, removed)
+        merged, needs_decision = build_merge(old_inv, new_inv, pairs, added, removed)
         Path(args.merge).write_text(
             json.dumps(merged, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        result["merge"] = {"written": args.merge, "restored_tags": restored,
-                           "needs_decision": needs_decision}
+        result["merge"] = {"written": args.merge, "needs_decision": needs_decision}
 
     text = json.dumps(result, indent=2, ensure_ascii=False)
     if args.output:

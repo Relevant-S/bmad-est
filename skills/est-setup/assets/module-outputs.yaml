@@ -30,6 +30,10 @@ est-scope-extract:
   optional:
     - path: "normalized/S{n}-{stem}.md"
       when: one per converted source
+    - path: beats.json
+      when: plan-beats.py cut the sources into units of parallel extraction
+    - path: "extract/{beat_id}.json"
+      when: an extraction subagent wrote its beat to disk instead of returning it
     - path: "review/{source_id}.json"
       when: a review subagent wrote its findings to disk instead of returning them
     - path: check.json
@@ -49,6 +53,9 @@ est-scope-extract:
 est-estimate:
   workspace: "{output_folder}/estimates/{project-slug}"
   required:
+    - path: classification.json
+      role: what each story costs to build, keyed by feature id — this skill's judgement,
+            kept out of the inventory so a re-extraction cannot revert it
     - path: estimate.json
       role: source of truth
     - path: estimate.md
@@ -62,6 +69,11 @@ est-estimate:
       when: brief is in est_output_formats; what est-agent-estimator loads
     - path: check.json
       when: the inventory was validated in this run
+    - path: "classify/{epic_id}.json"
+      when: a classification subagent wrote its epic to disk instead of returning it
+    - path: feature-inventory.json.bak
+      when: split-inventory.py migrated an inventory that still carried inline tags;
+            delete it once the split estimate has been read
     - path: .memlog.md
       when: shared with est-scope-extract in the same workspace
   also_writes:

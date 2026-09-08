@@ -118,13 +118,25 @@ class Skeleton(unittest.TestCase):
         selected = [s for s in stories.values() if (s["status"] or "") == "done"]
         return anchor.skeleton("Test", epics, selected)
 
-    def test_no_tag_is_guessed(self):
-        """A script that invented size bands would be manufacturing the evidence the
-        calibration is supposed to weigh."""
+    def test_the_recovered_shape_carries_no_classification_at_all(self):
+        """Classification lives in its own file, so the recovered inventory is pure scope."""
         with tempfile.TemporaryDirectory() as tmp:
             for f in self.build(tmp)["features"]:
-                for axis, tag in f["tags"].items():
-                    self.assertIsNone(tag["value"], axis)
+                self.assertNotIn("tags", f)
+
+    def test_no_tag_is_guessed(self):
+        """A script that invented size bands would be manufacturing the evidence the
+        calibration is supposed to weigh. `unclassified` is a real status rather than a null
+        the validator rejects, so the companion file is legal and est-estimate still refuses
+        to price it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            skeleton = self.build(tmp)
+            companion = anchor.blank_classification("Test", skeleton["features"])
+            self.assertEqual(sorted(companion["features"]),
+                             sorted(f["id"] for f in skeleton["features"]))
+            for fid, tags in companion["features"].items():
+                for axis, tag in tags.items():
+                    self.assertIsNone(tag["value"], f"{fid}.{axis}")
                     self.assertEqual(tag["status"], "unclassified")
 
     def test_every_story_keeps_a_pointer_back_to_its_file(self):

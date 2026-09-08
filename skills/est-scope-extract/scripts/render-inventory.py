@@ -8,6 +8,10 @@ feature-inventory.json is the source of truth; the .md and .csv are projections
 regenerated on demand rather than maintained. Features render as sections rather than
 table rows because verbatim citations carry pipes, newlines and non-Latin text that a
 markdown table destroys — and destroying the quote destroys the traceability.
+
+These views carry scope, not cost. The classification a story is priced on lives in
+classification.json and renders through est-estimate, so a reviewer reading this is reading
+what the client asked for with nothing about effort mixed into it.
 """
 
 import argparse
@@ -16,14 +20,8 @@ import json
 import sys
 from pathlib import Path
 
-AXES = ["size_band", "compressibility", "review_tier", "clarity", "novelty"]
-TIER_MARK = {"routine": "", "sensitive": " ⚠ sensitive", "critical": " ⛔ critical"}
 SCOPE_MARK = {"outside_agreed_scope": " · outside agreed scope",
               "no_agreed_scope_defined": " · no agreed scope defined"}
-
-
-def tag(feature, axis, field="value"):
-    return (feature.get("tags", {}).get(axis) or {}).get(field, "")
 
 
 def render_markdown(inv):
@@ -71,24 +69,11 @@ def render_markdown(inv):
 
     out += ["## Stories", ""]
     for f in features + implicit:
-        tier = tag(f, "review_tier")
         out.append(
             f"### {f.get('id')} — {f.get('name')}"
-            f"{TIER_MARK.get(tier, '')}{SCOPE_MARK.get(f.get('scope_status'), '')}"
+            f"{SCOPE_MARK.get(f.get('scope_status'), '')}"
         )
         out += ["", f.get("description", ""), ""]
-
-        out.append("| axis | value | why | status |")
-        out.append("| --- | --- | --- | --- |")
-        for axis in AXES:
-            why = tag(f, axis, "why").replace("|", "\\|")
-            out.append(f"| {axis} | **{tag(f, axis)}** | {why} | {tag(f, axis, 'status')} |")
-        out.append("")
-
-        triggers = (f.get("tags", {}).get("review_tier") or {}).get("triggers") or []
-        if triggers:
-            out.append("**Review-tier triggers:** " + ", ".join(f"“{t}”" for t in triggers))
-            out.append("")
 
         surfaces = f.get("surfaces")
         if surfaces:
@@ -155,9 +140,7 @@ def render_csv(inv, target):
     columns = [
         "id", "name", "description", "epic_id", "surfaces", "tasks", "origin",
         "commitment", "scope_status",
-        "size_band", "size_band_why", "compressibility", "compressibility_why",
-        "review_tier", "review_tier_why", "clarity", "novelty",
-        "depends_on", "tag_status", "sources", "locations",
+        "depends_on", "sources", "locations",
         "primary_quote", "open_questions",
     ]
     with open(target, "w", newline="", encoding="utf-8-sig") as fh:
@@ -165,7 +148,6 @@ def render_csv(inv, target):
         writer.writeheader()
         for f in list(inv.get("features", [])) + list(inv.get("implicit_scope") or []):
             citations = f.get("citations", [])
-            statuses = {tag(f, a, "status") for a in AXES}
             writer.writerow({
                 "id": f.get("id"),
                 "name": f.get("name"),
@@ -176,16 +158,7 @@ def render_csv(inv, target):
                 "origin": f.get("origin") or ("implicit" if f.get("rationale") else "extracted"),
                 "commitment": f.get("commitment"),
                 "scope_status": f.get("scope_status") or "in_agreed_scope",
-                "size_band": tag(f, "size_band"),
-                "size_band_why": tag(f, "size_band", "why"),
-                "compressibility": tag(f, "compressibility"),
-                "compressibility_why": tag(f, "compressibility", "why"),
-                "review_tier": tag(f, "review_tier"),
-                "review_tier_why": tag(f, "review_tier", "why"),
-                "clarity": tag(f, "clarity"),
-                "novelty": tag(f, "novelty"),
                 "depends_on": "; ".join(d.get("feature_id", "") for d in f.get("depends_on", [])),
-                "tag_status": "confirmed" if statuses == {"confirmed"} else "; ".join(sorted(s for s in statuses if s)),
                 "sources": "; ".join(
                     Path(src_by_id.get(c.get("source_id"), {}).get("path", c.get("source_id", ""))).name
                     for c in citations

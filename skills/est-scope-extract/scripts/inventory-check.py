@@ -340,7 +340,7 @@ def reconcile_manifest(inv, manifest_path):
 
 # --- integrity rules a schema cannot express ---
 
-def check_integrity(inv):
+def check_integrity(inv, classified=False):
     findings = []
     features = inv.get("features", [])
     sources = inv.get("sources", [])
@@ -378,6 +378,14 @@ def check_integrity(inv):
         for axis, allowed in TAG_VOCABULARY.items():
             tag = tags.get(axis)
             if not isinstance(tag, dict):
+                # The inventory schema no longer requires tags — they live in classification.json
+                # now — so an absent axis on a feature being checked WITH a classification is a
+                # gap in that file, not a shape the schema would have caught.
+                if classified:
+                    findings.append(
+                        f"{fid}.tags.{axis}: no classification — every priced story needs all "
+                        f"five axes, and est-estimate refuses to price without them"
+                    )
                 continue
             if tag.get("value") not in allowed:
                 findings.append(f"{fid}.tags.{axis}: '{tag.get('value')}' is not one of {allowed}")
@@ -524,6 +532,24 @@ def check_boilerplate_tags(features, threshold=0.2, floor=20):
                     f"judgement; classify them or say in the report that they were defaulted"
                 )
     return findings
+
+
+def join_classification(inv, classification):
+    """Hang each feature's classification back on it, in memory only.
+
+    Joining once here means every check below keeps reading `f["tags"]` exactly as it did when
+    the inventory carried them inline — the tags moved skills, not shape. Mirrors
+    est-estimate's `load_scope`, and the two must agree or the checker and the engine would be
+    validating different things.
+    """
+    rows = (classification or {}).get("features") or {}
+    for key in ("features", "implicit_scope"):
+        for feature in inv.get(key) or []:
+            row = rows.get(feature.get("id"))
+            if row:
+                feature["tags"] = row
+    return sorted(set(rows) - {f.get("id") for key in ("features", "implicit_scope")
+                               for f in inv.get(key) or []})
 
 
 def load_bands(cost_model=None):
@@ -704,7 +730,16 @@ def find_cycles(features):
 
 # --- scoring ---
 
-def score(inv):
+def score(inv, classified=False):
+    """The input completeness score, or an explicit refusal to compute one.
+
+    `clarity_quality` is 18% of this and comes from a tag that now lives in classification.json.
+    Computed without one, every feature scores 0.0 for clarity — no exception, no finding — the
+    ceiling silently becomes 0.82, and since band width is 1 + k(1-completeness)^p, every
+    estimate quietly widens with nothing to point at. So an unclassified inventory returns
+    `input_completeness: null` and says what is missing. est-estimate already refuses to price
+    without a score, which makes "classification never ran" a refusal rather than a wide band.
+    """
     signals = inv.get("completeness_signals", {})
     features = inv.get("features", [])
 
@@ -714,15 +749,24 @@ def score(inv):
         value = signal.get("value") if isinstance(signal, dict) else None
         points[name] = allowed.get(value, 0.0)
 
-    if features:
-        points["clarity_quality"] = sum(
-            CLARITY_POINTS.get((f.get("tags", {}).get("clarity") or {}).get("value"), 0.0) for f in features
-        ) / len(features)
-        points["commitment_quality"] = sum(
-            COMMITMENT_POINTS.get(f.get("commitment"), 0.0) for f in features
-        ) / len(features)
-    else:
-        points["clarity_quality"] = points["commitment_quality"] = 0.0
+    points["commitment_quality"] = (sum(
+        COMMITMENT_POINTS.get(f.get("commitment"), 0.0) for f in features
+    ) / len(features)) if features else 0.0
+
+    if not classified:
+        return {
+            "input_completeness": None,
+            "pending": ["clarity_quality"],
+            "why": ("clarity is 18% of the score and lives in classification.json. Run this again "
+                    "with --classification once est-estimate has classified the scope; a score "
+                    "computed without it would read as a thin brief rather than an unclassified one."),
+            "points": {k: round(v, 3) for k, v in points.items()},
+            "weights": SIGNAL_WEIGHTS,
+        }
+
+    points["clarity_quality"] = (sum(
+        CLARITY_POINTS.get((f.get("tags", {}).get("clarity") or {}).get("value"), 0.0) for f in features
+    ) / len(features)) if features else 0.0
 
     contributions = {k: round(points[k] * w, 4) for k, w in SIGNAL_WEIGHTS.items()}
     return {
@@ -733,7 +777,7 @@ def score(inv):
     }
 
 
-def coverage(inv):
+def coverage(inv, classified=False):
     features = inv.get("features", [])
     tag_status, cited_sources = {}, set()
     for f in features:
@@ -756,6 +800,10 @@ def coverage(inv):
         "inferred_dependencies": sum(
             1 for f in features for d in f.get("depends_on", []) if d.get("inferred")
         ),
+        # Tag histograms are omitted rather than reported as zeros when no classification was
+        # supplied — a coverage report full of empty bands reads as a badly classified project
+        # instead of an unclassified one.
+        **({} if not classified else {
         "review_tiers": {
             tier: sum(1 for f in features
                       if (f.get("tags", {}).get("review_tier") or {}).get("value") == tier)
@@ -767,14 +815,15 @@ def coverage(inv):
             band: sum(1 for f in features if band_of(f) == band)
             for band in TAG_VOCABULARY["size_band"]
         },
-        "source_lines_per_story": round(
-            sum(source_lines(f) for f in features) / len(features), 2) if features else 0,
         # Ids, not just counts: the confirmation batch needs the items themselves, and
         # re-deriving them means re-reading the inventory the script just walked.
         "sensitive_or_critical": [
             f.get("id") for f in features
             if (f.get("tags", {}).get("review_tier") or {}).get("value") in ("sensitive", "critical")
         ],
+        }),
+        "source_lines_per_story": round(
+            sum(source_lines(f) for f in features) / len(features), 2) if features else 0,
         "inferred_dependency_pairs": [
             {"feature": f.get("id"), "depends_on": d.get("feature_id")}
             for f in features for d in f.get("depends_on", []) if d.get("inferred")
@@ -800,6 +849,11 @@ def main():
     ap.add_argument("--manifest", metavar="PATH",
                     help="convert-input manifest; reconciles converted sources against the "
                          "inventory's sources array")
+    ap.add_argument("--classification", metavar="PATH",
+                    help="classification.json from est-estimate. Without it the tag checks and "
+                         "the completeness score do not run — clarity is 18%% of that score, and "
+                         "a score computed without it reads as a thin brief rather than an "
+                         "unclassified one")
     ap.add_argument("--cost-model", metavar="PATH",
                     help="cost-model.json, for the band table and the delivery anchor the sizing "
                          "report compares against; falls back to the shipped seed")
@@ -843,22 +897,47 @@ def main():
         print(json.dumps({"ok": False, "error": f"cannot read schema: {exc}"}, indent=2))
         return 2
 
-    findings = validate_schema(inv, schema, schema) + check_integrity(inv)
+    classification, orphans = None, []
+    if args.classification:
+        try:
+            classification = json.loads(Path(args.classification).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            print(json.dumps({"ok": False, "error": f"cannot read classification: {exc}"}, indent=2))
+            return 2
+        orphans = join_classification(inv, classification)
+    classified = classification is not None
+
+    findings = validate_schema(inv, schema, schema) + check_integrity(inv, classified)
+    if orphans:
+        findings.append(
+            f"classification: {len(orphans)} classified ids are not in this inventory "
+            f"(e.g. {', '.join(orphans[:3])}). The classification was made against a different "
+            f"extraction — re-key it with est-estimate's classification-merge.py"
+        )
     result = {
         "ok": True,
         "inventory": str(path),
+        "classification": args.classification or None,
         "citations_verified": bool(args.normalized),
-        "coverage": coverage(inv),
-        "scoring": score(inv),
+        "coverage": coverage(inv, classified),
+        "scoring": score(inv, classified),
         # Warnings do not block pricing. A backlog of fifty near-identical CRUD screens
         # legitimately shares a justification, and refusing to estimate it would be wrong;
         # what would also be wrong is pricing it as though every band had been judged. So the
         # estimate carries these into its own assumptions instead, where a client reads them.
-        "warnings": check_boilerplate_tags(inv.get("features", []), args.boilerplate_threshold),
+        "warnings": (check_boilerplate_tags(inv.get("features", []), args.boilerplate_threshold)
+                     if classified else []),
     }
-    bands, band_path, band_source = load_bands(args.cost_model)
-    sizing_warnings, sizing = check_sizing(inv.get("features", []), bands)
-    if args.cost_model and band_path != Path(args.cost_model):
+    if not classified:
+        # Said out loud: silence here is indistinguishable from a clean sizing report.
+        result["sizing"] = {"skipped": "no --classification; the tags this judges live in "
+                                       "classification.json, written by est-estimate"}
+        bands = band_path = None
+        sizing_warnings, sizing = [], {}
+    else:
+        bands, band_path, band_source = load_bands(args.cost_model)
+        sizing_warnings, sizing = check_sizing(inv.get("features", []), bands)
+    if classified and args.cost_model and band_path != Path(args.cost_model):
         # The project has its own model and the bands were read from somewhere else. If that
         # model has ever been recalibrated, the reference class being applied here is the wrong
         # one — and a wrong reference class that nobody mentions is how this went wrong before.
@@ -868,10 +947,11 @@ def main():
             f"re-run est-estimate's migrate-cost-model.py so the reference class matches the "
             f"hours it will actually be priced at"
         )
-    result["sizing"] = {"anchor": band_source,
-                        "distribution": result["coverage"]["size_bands"],
-                        "source_lines_per_story": result["coverage"]["source_lines_per_story"]} | sizing
-    result["warnings"] += sizing_warnings
+    if classified:
+        result["sizing"] = {"anchor": band_source,
+                            "distribution": result["coverage"]["size_bands"],
+                            "source_lines_per_story": result["coverage"]["source_lines_per_story"]} | sizing
+        result["warnings"] += sizing_warnings
     if args.normalized:
         findings += verify_citations(inv, args.normalized) + check_anchors(inv, args.normalized)
         result["unreferenced_regions"] = coverage_regions(inv, args.normalized)

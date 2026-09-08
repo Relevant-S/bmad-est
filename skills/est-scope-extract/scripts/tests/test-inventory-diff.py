@@ -48,12 +48,6 @@ class TestMatching(unittest.TestCase):
 
 
 class TestCompare(unittest.TestCase):
-    def test_detects_review_tier_change(self):
-        old = feature()
-        new = feature(tags={**feature()["tags"], "review_tier": tag("critical")})
-        fields = [c["field"] for c in diff.compare(old, new)]
-        self.assertIn("tags.review_tier", fields)
-
     def test_detects_commitment_change(self):
         new = feature(commitment="speculative")
         self.assertIn("commitment", [c["field"] for c in diff.compare(feature(), new)])
@@ -67,42 +61,6 @@ class TestCompare(unittest.TestCase):
         self.assertEqual(diff.compare(feature(), feature()), [])
 
 
-class TestProtection(unittest.TestCase):
-    def test_confirmed_tag_reverted_to_inferred_is_protected(self):
-        old = feature(tags={**feature()["tags"], "review_tier": tag("critical", status="confirmed")})
-        new = feature(tags={**feature()["tags"], "review_tier": tag("routine", status="inferred")})
-        protected = diff.protected_tags(old, new)
-        self.assertEqual(len(protected), 1)
-        self.assertEqual(protected[0]["human_value"], "critical")
-        self.assertEqual(protected[0]["reextracted_value"], "routine")
-
-    def test_overridden_tag_is_protected(self):
-        old = feature(tags={**feature()["tags"], "size_band": tag("L", status="overridden")})
-        new = feature(tags={**feature()["tags"], "size_band": tag("M", status="inferred")})
-        self.assertEqual([p["axis"] for p in diff.protected_tags(old, new)], ["size_band"])
-
-    def test_confirmed_tag_that_survives_unchanged_is_not_flagged(self):
-        old = feature(tags={**feature()["tags"], "review_tier": tag("sensitive", status="confirmed")})
-        new = feature(tags={**feature()["tags"], "review_tier": tag("sensitive", status="confirmed")})
-        self.assertEqual(diff.protected_tags(old, new), [])
-
-    def test_inferred_tag_changing_is_not_protected(self):
-        old = feature(tags={**feature()["tags"], "clarity": tag("low", status="inferred")})
-        new = feature(tags={**feature()["tags"], "clarity": tag("high", status="inferred")})
-        self.assertEqual(diff.protected_tags(old, new), [])
-
-
-class TestTierShift(unittest.TestCase):
-    def test_reports_retiering_and_added_tiers(self):
-        old = [feature("F1", "Checkout", tags={**feature()["tags"], "review_tier": tag("routine")})]
-        new = [feature("F1", "Checkout", tags={**feature()["tags"], "review_tier": tag("critical")}),
-               feature("F2", "Refunds", tags={**feature()["tags"], "review_tier": tag("sensitive")})]
-        pairs, added, removed = diff.match_features(old, new)
-        shift = diff.summarize_tier_shift(pairs, added, removed)
-        self.assertEqual(shift["added"]["sensitive"], 1)
-        self.assertEqual(shift["retiered"], [{"feature": "F1", "from": "routine", "to": "critical"}])
-
-
 class TestMerge(unittest.TestCase):
     """The merge is deterministic; only what a human must decide comes back as a question."""
 
@@ -111,30 +69,23 @@ class TestMerge(unittest.TestCase):
         pairs, added, removed = diff.match_features(old["features"], new["features"])
         return diff.build_merge(old, new, pairs, added, removed)
 
+    def merged(self, old_features, new_features):
+        return self.merge(old_features, new_features)[0]
+
     def test_stable_feature_ids_survive_renumbering(self):
-        merged, _, _ = self.merge([feature("F1", "User login")], [feature("F90", "User login")])
+        merged = self.merged([feature("F1", "User login")], [feature("F90", "User login")])
         self.assertEqual([f["id"] for f in merged["features"]], ["F1"])
 
-    def test_human_tag_is_restored_with_its_reason_and_status(self):
-        old = feature("F1", "Checkout", tags={**feature()["tags"],
-                      "review_tier": tag("critical", "PCI confirmed with the client", "overridden")})
-        new = feature("F1", "Checkout", tags={**feature()["tags"], "review_tier": tag("routine")})
-        merged, _, restored = self.merge([old], [new])
-        carried = merged["features"][0]["tags"]["review_tier"]
-        self.assertEqual((carried["value"], carried["status"]), ("critical", "overridden"))
-        self.assertEqual(carried["why"], "PCI confirmed with the client")
-        self.assertEqual(len(restored), 1)
-
     def test_new_feature_gets_an_id_that_collides_with_nothing(self):
-        merged, _, _ = self.merge([feature("F1", "User login"), feature("F2", "Export")],
-                                  [feature("F1", "User login"), feature("F9", "Tracking page")])
+        merged = self.merged([feature("F1", "User login"), feature("F2", "Export")],
+                             [feature("F1", "User login"), feature("F9", "Tracking page")])
         ids = [f["id"] for f in merged["features"]]
         self.assertEqual(len(ids), len(set(ids)))
         self.assertNotIn("F2", ids[1:])
 
     def test_removed_feature_is_raised_as_a_decision_not_dropped_silently(self):
-        _, needs, _ = self.merge([feature("F1", "Login"), feature("F2", "Route prediction")],
-                                 [feature("F1", "Login")])
+        _, needs = self.merge([feature("F1", "Login"), feature("F2", "Route prediction")],
+                              [feature("F1", "Login")])
         self.assertEqual([n["kind"] for n in needs], ["feature_absent_from_new_sources"])
         self.assertEqual(needs[0]["feature"], "F2")
 
@@ -142,22 +93,29 @@ class TestMerge(unittest.TestCase):
         old = [feature("F1", "User login"), feature("F2", "User profile page")]
         new = [feature("F80", "User login"),
                feature("F81", "User profile page", depends_on=[{"feature_id": "F80", "inferred": True}])]
-        merged, _, _ = self.merge(old, new)
+        merged = self.merged(old, new)
         self.assertEqual(merged["features"][1]["depends_on"][0]["feature_id"], "F1")
 
     def test_identical_features_are_not_confused_for_one_another(self):
         old = [feature("F1", "Alpha report"), feature("F2", "Alpha report")]
         new = [feature("F1", "Alpha report"), feature("F2", "Alpha report")]
-        merged, _, _ = self.merge(old, new)
+        merged = self.merged(old, new)
         self.assertEqual([f["id"] for f in merged["features"]], ["F1", "F2"])
 
-    def test_protected_tag_over_changed_source_is_flagged_for_confirmation(self):
-        old = feature("F1", "Checkout", tags={**feature()["tags"],
-                      "review_tier": tag("critical", "handles refunds", "confirmed")})
-        new = feature("F1", "Checkout", tags={**feature()["tags"], "review_tier": tag("routine")},
-                      description="Completely rewritten in v2: now a read-only order summary.")
-        _, needs, _ = self.merge([old], [new])
-        self.assertIn("protected_tag_over_changed_source", [n["kind"] for n in needs])
+    def test_stable_ids_are_what_stops_a_re_extraction_orphaning_a_judgement(self):
+        """The merge no longer carries tags — it carries ids. That is now the whole protection:
+        classification.json keys onto feature ids, so a renumber that the merge undoes is a
+        renumber that never reaches the judgements."""
+        def scope(fid, name):                      # what an inventory holds after the split
+            f = feature(fid, name)
+            del f["tags"]
+            return f
+
+        merged, needs = self.merge([scope("F1", "Checkout"), scope("F2", "Refunds")],
+                                   [scope("F70", "Checkout"), scope("F71", "Refunds")])
+        self.assertEqual([f["id"] for f in merged["features"]], ["F1", "F2"])
+        self.assertNotIn("tags", merged["features"][0])
+        self.assertEqual(needs, [], "a renumber alone is not a question for a human")
 
 
 if __name__ == "__main__":

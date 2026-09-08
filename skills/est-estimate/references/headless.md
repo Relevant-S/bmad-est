@@ -1,6 +1,6 @@
 # Headless
 
-An unattended run of `est-estimate` — batch presale triage, a scheduled re-estimate, or a call from a sibling skill. Everything in the interactive flow still applies: validate the inventory, settle the profile inputs, compute, render, record. What changes is every point that would otherwise ask a human, and what comes back at the end.
+An unattended run of `est-estimate` — batch presale triage, a scheduled re-estimate, or a call from a sibling skill. Everything in the interactive flow still applies: validate the inventory, classify it, settle the profile inputs, compute, render, record. What changes is every point that would otherwise ask a human, and what comes back at the end.
 
 Headless holds for the whole run once recognised — do not fall back to asking partway through.
 
@@ -12,6 +12,9 @@ Each of these replaces a question. **Take the default, then log it.** An unatten
 | --- | --- | --- |
 | Inventory has unresolved check findings | Fix them, or ask | **Stop.** Return `blocked` with the findings. Pricing a broken inventory is the one failure that produces a confident wrong number |
 | No Feature Inventory, only raw documents | Point at `est-scope-extract` | **Stop.** Return `blocked` naming the skill to run first — never extract scope here |
+| No classification yet | Classify it | Classify it here too — it is this skill's judgement, not a question for the operator. Fan out if subagents are available, work the epics in order if not, and say which way it ran |
+| Sizing warnings after the reconcile pass | Re-judge, or answer them | Run the reconcile pass once, then proceed and put anything still flagged at the top of `needs_attention`. A band shape away from the anchor can be right; an unexamined one cannot be called right |
+| An inventory carrying inline tags | Split it | Run `scripts/split-inventory.py --in-place`, log it as an assumption, and carry on. It is a move, not a judgement |
 | Team profile unknown | Ask, or take `company-profile.md` | `balanced`, or the profile in `{memory}/company-profile.md` |
 | Stack / QA platform / engagement unknown | Ask | `standard_saas` / `web` / `standard`, unless the inventory's own features indicate mobile, in which case `mobile_mcp_automated` where the company profile says the MCP server is in use |
 | Large `outside_agreed_scope` share | Raise it with the operator | Proceed, and put it at the top of `needs_attention` |

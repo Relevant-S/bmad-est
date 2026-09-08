@@ -314,17 +314,20 @@ class TestSplits(unittest.TestCase):
         self.assertAlmostEqual(sum(est.feature_roles(wide, m).values()),
                                sum(est.feature_roles(narrow, m).values()), delta=0.01)
 
-    def test_surfaces_are_read_from_either_the_feature_or_its_tags(self):
-        """Both placements exist in the wild — the schema puts surfaces on the story, and a
-        classifier writing all five axes at once naturally puts it with the tags. Reading only
-        one would silently drop every role restriction the other way round."""
+    def test_surfaces_are_read_from_the_story_and_only_from_there(self):
+        """One placement. It used to be read out of the tag block first and off the story
+        second, so the field the schema actually defines was the one that lost — and when the
+        tags moved to classification.json, surfaces stayed behind, because which kinds of work
+        a story touches is an observation about the scope rather than a judgement about cost."""
         m = model()
-        on_feature = feature("F1", surfaces=["backend"])
-        in_tags = feature("F2", surfaces=None)
-        in_tags["tags"]["surfaces"] = {"value": ["backend"], "why": "x", "status": "inferred"}
-        for raw in (on_feature, in_tags):
-            priced = est.price_feature(raw, m, m["team_profiles"]["balanced"])
-            self.assertEqual(sorted(est.feature_roles(priced, m)), ["ba", "dev"], raw["id"])
+        priced = est.price_feature(feature("F1", surfaces=["backend"]), m,
+                                   m["team_profiles"]["balanced"])
+        self.assertEqual(sorted(est.feature_roles(priced, m)), ["ba", "dev"])
+
+        stray = feature("F2", surfaces=None)
+        stray["tags"]["surfaces"] = {"value": ["backend"], "why": "x", "status": "inferred"}
+        priced = est.price_feature(stray, m, m["team_profiles"]["balanced"])
+        self.assertIsNone(priced["surfaces"], "a surfaces tag is not a surfaces field")
 
     def test_implicit_scope_is_priced_and_needs_a_reason_not_a_quote(self):
         """Work the source implies but never states is real, and pretending it has a quote

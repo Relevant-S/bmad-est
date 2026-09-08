@@ -219,7 +219,7 @@ class TestScoring(unittest.TestCase):
                 integrations_named="all", nfrs_stated="most",
                 data_model_described="detailed", ui_defined="designed"),
         )
-        self.assertAlmostEqual(check.score(inv)["input_completeness"], 1.0, places=3)
+        self.assertAlmostEqual(check.score(inv, classified=True)["input_completeness"], 1.0, places=3)
 
     def test_thinnest_possible_input_scores_zero(self):
         inv = inventory(
@@ -230,7 +230,7 @@ class TestScoring(unittest.TestCase):
                 data_model_described="none", ui_defined="none"),
         )
         # commitment 'speculative' still contributes 0.1 of its 0.08 weight
-        self.assertLess(check.score(inv)["input_completeness"], 0.02)
+        self.assertLess(check.score(inv, classified=True)["input_completeness"], 0.02)
 
     def test_thin_transcript_scores_below_rich_spec(self):
         thin = inventory(
@@ -247,11 +247,11 @@ class TestScoring(unittest.TestCase):
                 integrations_named="all", nfrs_stated="most",
                 data_model_described="detailed", ui_defined="designed"),
         )
-        self.assertLess(check.score(thin)["input_completeness"], check.score(rich)["input_completeness"])
+        self.assertLess(check.score(thin, classified=True)["input_completeness"], check.score(rich, classified=True)["input_completeness"])
 
     def test_score_is_reproducible(self):
         inv = inventory()
-        self.assertEqual(check.score(inv)["input_completeness"], check.score(inv)["input_completeness"])
+        self.assertEqual(check.score(inv, classified=True)["input_completeness"], check.score(inv, classified=True)["input_completeness"])
 
 
 class TestAnchorsAndCoverage(unittest.TestCase):
@@ -415,7 +415,7 @@ class TestCoverage(unittest.TestCase):
     def test_counts_review_tiers(self):
         a = feature("F1", "Login")
         b = feature("F2", "Marketing page", tags={**feature()["tags"], "review_tier": tag("routine")})
-        cov = check.coverage(inventory(features=[a, b]))
+        cov = check.coverage(inventory(features=[a, b]), classified=True)
         self.assertEqual(cov["review_tiers"]["sensitive"], 1)
         self.assertEqual(cov["review_tiers"]["routine"], 1)
 
@@ -435,7 +435,7 @@ class TestCoverage(unittest.TestCase):
         a = feature("F1", "Login")                                    # sensitive by fixture default
         b = feature("F2", "Marketing page", tags={**feature()["tags"], "review_tier": tag("routine")},
                     depends_on=[{"feature_id": "F1", "inferred": True}])
-        cov = check.coverage(inventory(features=[a, b]))
+        cov = check.coverage(inventory(features=[a, b]), classified=True)
         self.assertEqual(cov["sensitive_or_critical"], ["F1"])
         self.assertEqual(cov["inferred_dependency_pairs"], [{"feature": "F2", "depends_on": "F1"}])
 
@@ -644,9 +644,14 @@ class Bands(unittest.TestCase):
             inv_path = Path(tmp) / "inv.json"
             inv_path.write_text(json.dumps(inventory(features=[
                 feature(f"F{i}", f"Thing {i}") for i in range(25)])))
+            features = [feature(f"F{i}", f"Thing {i}") for i in range(25)]
+            inv_path.write_text(json.dumps(inventory(features=features)))
+            cls_path = Path(tmp) / "classification.json"
+            cls_path.write_text(json.dumps({"features": {f["id"]: f["tags"] for f in features}}))
             out = subprocess.run(
                 [_s.executable, str(Path(__file__).resolve().parent.parent / "inventory-check.py"),
-                 str(inv_path), "--cost-model", str(old_model)],
+                 str(inv_path), "--cost-model", str(old_model),
+                 "--classification", str(cls_path)],
                 capture_output=True, text=True)
             result = json.loads(out.stdout)
             self.assertTrue(any("carries no size_bands._anchor" in w for w in result["warnings"]))
@@ -658,6 +663,55 @@ class Bands(unittest.TestCase):
             bands, _, source = check.load_bands(missing)
             self.assertIn("shipped seed", source)
             self.assertTrue(bands)
+
+
+class ClassificationSplit(unittest.TestCase):
+    """The tags live in classification.json now. What must never happen is a quiet degrade."""
+
+    def features(self, n=25):
+        return [feature(f"F{i}", f"Thing {i}") for i in range(n)]
+
+    def test_the_score_refuses_rather_than_losing_18_percent_of_itself(self):
+        """clarity is 0.18 of input_completeness. Scored without a classification every feature
+        reads clarity 0.0 — no exception, no finding — the ceiling silently becomes 0.82, and
+        since band width is 1 + k(1-completeness)^p every estimate quietly widens with nothing
+        to point at. So it returns null and says what is missing."""
+        inv = inventory(features=self.features())
+        scoring = check.score(inv, classified=False)
+        self.assertIsNone(scoring["input_completeness"])
+        self.assertIn("clarity_quality", scoring["pending"])
+        self.assertNotIn("clarity_quality", scoring["points"])
+
+    def test_commitment_still_scores_without_a_classification(self):
+        """commitment is a field on the story, not a tag — it never moved."""
+        inv = inventory(features=self.features())
+        self.assertEqual(check.score(inv, classified=False)["points"]["commitment_quality"], 1.0)
+
+    def test_a_missing_axis_is_a_finding_once_a_classification_exists(self):
+        """The inventory schema no longer requires tags, so an absent axis is a gap in the
+        classification rather than a shape validate_schema would have caught."""
+        f = feature("F1")
+        del f["tags"]["size_band"]
+        findings = check.check_integrity(inventory(features=[f]), classified=True)
+        self.assertTrue(any("F1.tags.size_band" in x and "no classification" in x for x in findings))
+        self.assertEqual(check.check_integrity(inventory(features=[f]), classified=False), [])
+
+    def test_the_join_puts_the_tags_back_where_every_check_reads_them(self):
+        features = [dict(f) for f in self.features(3)]
+        rows = {f["id"]: f.pop("tags") for f in features}
+        inv = inventory(features=features)
+        orphans = check.join_classification(inv, {"features": rows})
+        self.assertEqual(orphans, [])
+        self.assertEqual(inv["features"][0]["tags"]["size_band"]["value"], "M")
+
+    def test_a_classification_for_a_feature_that_is_gone_is_named(self):
+        """It means the classification was made against a different extraction, and pricing on
+        it would quietly mis-key every judgement after the one that moved."""
+        features = [dict(f) for f in self.features(2)]
+        rows = {f["id"]: f.pop("tags") for f in features}
+        rows["F99"] = rows[features[0]["id"]]
+        orphans = check.join_classification(inventory(features=features), {"features": rows})
+        self.assertEqual(orphans, ["F99"])
 
 
 if __name__ == "__main__":

@@ -39,14 +39,14 @@ class Missing(unittest.TestCase):
 
     def test_a_complete_run_is_clean(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = workspace(tmp, "estimate.json", "estimate.md")
+            root = workspace(tmp, "estimate.json", "estimate.md", "classification.json")
             result = co.check("est-estimate", root, MANIFEST)
             self.assertEqual(result["missing"], [])
             self.assertEqual(result["undeclared"], [])
 
     def test_an_optional_file_being_absent_is_never_a_finding(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = workspace(tmp, "estimate.json", "estimate.md")
+            root = workspace(tmp, "estimate.json", "estimate.md", "classification.json")
             self.assertEqual(co.check("est-estimate", root, MANIFEST)["findings"], [])
 
 

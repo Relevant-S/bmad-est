@@ -60,12 +60,14 @@ class TestRender(unittest.TestCase):
         md = render.render_markdown(inventory(features=[f]))
         self.assertIn("Користувачі повинні входити в систему.", md)
 
-    def test_markdown_marks_sensitive_features(self):
-        self.assertIn("⚠ sensitive", render.render_markdown(inventory()))
-
-    def test_markdown_renders_tag_justifications(self):
+    def test_markdown_carries_scope_and_says_nothing_about_cost(self):
+        """These views render what the client asked for. The classification a story is priced
+        on lives in classification.json and renders through est-estimate, so a reviewer reading
+        this is checking the scope against the source with no effort judgement mixed in."""
         md = render.render_markdown(inventory())
-        self.assertIn("| size_band | **M** | because | inferred |", md)
+        for axis in ("size_band", "compressibility", "review_tier", "clarity", "novelty"):
+            self.assertNotIn(f"| {axis} |", md)
+        self.assertIn("Users must be able to log in", md)
 
     def test_markdown_includes_not_scope_section(self):
         md = render.render_markdown(inventory())
@@ -84,15 +86,17 @@ class TestRender(unittest.TestCase):
             row = next(iter(csv.DictReader(fh)))
         self.assertEqual(row["scope_status"], "in_agreed_scope")
 
-    def test_csv_row_carries_the_cost_model_axes(self):
+    def test_csv_row_carries_the_scope_columns_and_no_cost_axis(self):
         target = self.dir / "feature-inventory.csv"
         render.render_csv(inventory(), target)
         with target.open(encoding="utf-8-sig") as fh:
-            row = next(iter(csv.DictReader(fh)))
-        self.assertEqual(row["size_band"], "M")
-        self.assertEqual(row["review_tier"], "sensitive")
-        self.assertEqual(row["compressibility"], "high")
+            reader = csv.DictReader(fh)
+            row = next(iter(reader))
+            columns = reader.fieldnames
         self.assertEqual(row["id"], "F1")
+        self.assertEqual(row["commitment"], "committed")
+        for axis in ("size_band", "compressibility", "review_tier", "clarity", "novelty"):
+            self.assertNotIn(axis, columns)
 
     def test_csv_survives_a_quote_containing_a_comma_and_newline(self):
         f = feature()

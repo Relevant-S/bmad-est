@@ -1,6 +1,6 @@
 # Headless
 
-An unattended run of `est-scope-extract` — batch presale triage, a scheduled job, or a call from a sibling skill such as `est-estimate`. Everything in the interactive flow still applies: convert, extract, classify, account for coverage, check, review, render, report. What changes is every point that would otherwise ask a human, and what comes back at the end.
+An unattended run of `est-scope-extract` — batch presale triage, a scheduled job, or a call from a sibling skill such as `est-estimate`. Everything in the interactive flow still applies: convert, plan the beats, extract, account for coverage, check, review, render, report. What changes is every point that would otherwise ask a human, and what comes back at the end.
 
 ## Recognising it
 
@@ -14,13 +14,13 @@ Each of these replaces a question. **Take the default, then log it** — an unat
 
 | Gate | Interactive | Headless |
 | --- | --- | --- |
-| Feature tagged `sensitive` or `critical` | Confirm with the operator | Leave `status: inferred`; list in `needs_confirmation` |
+| A feature the contract does not obviously cover | Confirm with the operator | Take the conservative reading below, and list it |
 | Inferred dependency | Confirm with the operator | Leave `inferred: true`; list in `needs_confirmation` |
 | Feature not traceable to a contractual source | Ask: inside, outside, or not scope | Set `scope_status: outside_agreed_scope` — the conservative reading, since it is reported as an addition rather than folded into the agreed number — and list it |
 | Sources that contradict each other | Surface for resolution | Record in `conflicts` and leave unresolved; never pick one |
 | Per-source review pass | Subagents, or sequential fallback | Same; when neither is available, say so in the report rather than skipping it |
 
-The conservative choice is always the one that keeps the decision visible: a tag stays `inferred` rather than being asserted, and uncovered work is priced separately rather than absorbed into an agreed number someone will later be held to.
+The conservative choice is always the one that keeps the decision visible: an inference stays marked as one rather than being asserted, and uncovered work is priced separately rather than absorbed into an agreed number someone will later be held to.
 
 ## Logging every assumption
 
@@ -31,7 +31,7 @@ uv run {project-root}/_bmad/scripts/memlog.py append --path <workspace>/.memlog.
   --type assumption --text "<what was assumed, and what would have been asked>"
 ```
 
-This is the whole audit trail for an unattended run. Without it the next person cannot tell which classifications a human stood behind and which the machine guessed, and the `status` field alone does not say what the alternative was.
+This is the whole audit trail for an unattended run. Without it the next person cannot tell which calls a human stood behind and which the machine guessed, and a status field alone does not say what the alternative was.
 
 ## Returning
 
@@ -46,9 +46,9 @@ Emit this and nothing else — a caller needs paths, not prose:
   "report": "<path>/extraction-report.md",
   "memlog": "<path>/.memlog.md",
   "features": 12,
-  "input_completeness": 0.41,
+  "input_completeness": null,
   "needs_confirmation": [
-    {"feature": "F4", "kind": "review_tier", "detail": "tagged sensitive from 'signature capture'"},
+    {"feature": "F4", "kind": "outside_agreed_scope", "detail": "raised on the call, absent from the SOW"},
     {"feature": "F7", "kind": "scope_status", "detail": "not covered by the SOW; defaulted to outside_agreed_scope"}
   ]
 }

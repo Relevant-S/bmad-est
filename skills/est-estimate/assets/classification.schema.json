@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Classification",
+  "description": "What each story in a Feature Inventory costs to build, keyed by its feature id. Separate from the inventory on purpose: the inventory records what the source says, and this records the judgements the cost model prices on. An extraction skill that also assigned these was deciding what things cost, and a re-extraction could silently revert a human's correction. Now a re-extraction cannot touch a judgement at all — it can only orphan one, which classification-merge.py reports rather than drops. Written by est-estimate; every axis maps to a coefficient family in cost-model.json.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated",
+    "inventory",
+    "features"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$"
+    },
+    "generated": {
+      "type": "string",
+      "description": "ISO 8601."
+    },
+    "inventory": {
+      "type": "string",
+      "description": "Path of the Feature Inventory these judgements were made against. The join is by feature id, so a classification pointed at a different inventory is a silent mis-pricing waiting to happen."
+    },
+    "cost_model": {
+      "type": "string",
+      "description": "Path of the cost model whose bands and exemplars the classifier read. A band table means nothing without the exemplars it was calibrated with."
+    },
+    "how": {
+      "type": "string",
+      "description": "Whether the pass ran fanned out across subagents or sequentially, and whether a reconciliation pass ran. A reader comparing two classifications needs to know which way each was produced."
+    },
+    "seed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The feature ids classified first, as this run's own reference class. Every classifier was given these, so they are the thing to re-read when the bands look inconsistent across epics."
+    },
+    "features": {
+      "type": "object",
+      "description": "Keyed by feature id — F* for extracted, I* for implicit scope. Standing work (SW-*) is not here: est-estimate synthesises its tags from the cost model's standing_work catalogue, because it is the same on every project.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "size_band",
+          "compressibility",
+          "review_tier",
+          "clarity",
+          "novelty"
+        ],
+        "properties": {
+          "size_band": {
+            "$ref": "#/$defs/tag",
+            "description": "XS/S/M/L/XL band of manual-equivalent effort"
+          },
+          "compressibility": {
+            "$ref": "#/$defs/tag",
+            "description": "How much BMad compresses building this"
+          },
+          "review_tier": {
+            "$ref": "#/$defs/tag",
+            "description": "routine / sensitive / critical human review burden"
+          },
+          "clarity": {
+            "$ref": "#/$defs/tag",
+            "description": "How precisely the source specifies it"
+          },
+          "novelty": {
+            "$ref": "#/$defs/tag",
+            "description": "standard or novel relative to work the team has done before"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tag": {
+      "type": "object",
+      "required": [
+        "value",
+        "why",
+        "status"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string",
+          "description": "One line, about THIS story. A tag without a reason is a black box coefficient, which this module does not ship."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "inferred",
+            "confirmed",
+            "overridden",
+            "unclassified"
+          ],
+          "description": "inferred: set by a classification pass. confirmed: a human agreed. overridden: a human changed it. unclassified: the shape is known and the judgement is deliberately absent — a recovered anchor project, which must be classified before it can be priced. Re-classification must never downgrade confirmed or overridden back to inferred."
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "For review_tier: the source phrases that raised the tier, quoted."
+        }
+      }
+    }
+  }
+}

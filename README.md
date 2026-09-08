@@ -46,10 +46,11 @@ flowchart TB
     DOCS["📄 SOW · RFP · PRD · transcript<br/>backlog.xlsx · email thread<br/>any format, any language"]
     TALK["💬 A conversation<br/>no documents at all"]
 
-    EXTRACT["est-scope-extract<br/>─────────────<br/>every feature cites the<br/>sentence it came from"]
+    EXTRACT["est-scope-extract<br/>─────────────<br/>scope only, read in parallel beats<br/>every feature cites the<br/>sentence it came from"]
     INV[("feature-inventory.json")]
 
-    ESTIMATE["est-estimate<br/>─────────────<br/>band width computed from<br/>input completeness<br/>roles per story, from its surfaces"]
+    ESTIMATE["est-estimate<br/>─────────────<br/>classifies, then prices<br/>band width computed from<br/>input completeness<br/>roles per story, from its surfaces"]
+    CLASS[("classification.json<br/>what each story costs")]
     STANDING["standing work<br/>─────────────<br/>scaffold · pipeline · environments<br/>release — every project pays it"]
     OUTPUT["estimate.md · estimate.csv<br/>interactive estimate.html"]
     LEDGER[("ledger entry<br/>+ cost model snapshot")]
@@ -63,6 +64,7 @@ flowchart TB
     DOCS --> EXTRACT
     TALK -.->|"Nadia captures a<br/>citable transcript"| EXTRACT
     EXTRACT --> INV --> ESTIMATE
+    ESTIMATE --> CLASS --> ESTIMATE
     STANDING -.->|"added openly, on its<br/>own lines"| ESTIMATE
     ESTIMATE --> OUTPUT
     ESTIMATE --> LEDGER
@@ -164,11 +166,15 @@ extract scope from ./client-docs/
 
 Reads every file in the folder, produces `feature-inventory.json`, and shows you a coverage report — what it found, what it deliberately didn't treat as scope, and what the documents failed to say. **Review this before pricing it.** A wrong inventory produces a confident wrong number, and this review is where invented scope gets caught.
 
+It records what your documents *say* and nothing about what any of it costs. A big workbook is cut into beats along its own grouping column and read in parallel, so the reading of a 900-row spreadsheet is not one pass trying to hold all of it at once.
+
 ```
 estimate it
 ```
 
-Produces the range, split by BMad phase (`planning`, `planning-review`, `spec`, `build`, `review`, `rework`, `qa`, `overhead`), by role (`dev`, `devops`, `qa`, `ba`, `ux`, `architect`) **and by role per story**, plus a ledger entry that snapshots the exact coefficients used.
+First it classifies: how big each story is, how much BMad compresses it, how hard it has to be reviewed, how clearly the source specified it, and whether the team has built its shape before. Those five judgements land in `classification.json` keyed by story, made against worked exemplars from a delivered project rather than against adjectives — and a run of them is checked for drift before anything is priced. They live apart from the inventory so that re-reading the client's documents can never quietly overwrite a call you made.
+
+Then it produces the range, split by BMad phase (`planning`, `planning-review`, `spec`, `build`, `review`, `rework`, `qa`, `overhead`), by role (`dev`, `devops`, `qa`, `ba`, `ux`, `architect`) **and by role per story**, plus a ledger entry that snapshots the exact coefficients used.
 
 It also adds the work no client document describes — repo scaffold, pipeline, environments, release process — from the cost model's `standing_work` catalogue. Those appear as their own labelled lines with their own total, never folded into the number silently. `--no-standing-work` drops the block when the client is bringing a platform that already has it.
 
@@ -216,6 +222,7 @@ _bmad/memory/est/               ← shared by all five skills
 
 {output_folder}/estimates/{project}/
 ├── feature-inventory.json      ← epics → stories → the source rows behind each
+├── classification.json         ← what each story costs to build, keyed by story id
 ├── estimate.json               ← the full estimate, with per-story role splits
 ├── estimate.md / .csv / .html  ← the shareable renders
 └── normalized/                 ← converted sources, so citations stay verifiable
