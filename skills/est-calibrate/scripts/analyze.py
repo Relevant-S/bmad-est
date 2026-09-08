@@ -127,15 +127,20 @@ def configured_min_samples(project_root, fallback=3):
     resolver = Path(project_root) / "_bmad" / "scripts" / "resolve_config.py"
     if not resolver.exists():
         return fallback
+    # `-k` is the resolver's own interface for asking one question, and it answers in a flat
+    # dict keyed by the dotted path. Omitting it returns the whole nested config instead, where
+    # a dotted key matches nothing and this silently fell back to 3 — the exact failure the
+    # docstring above claims to have fixed.
+    key = "modules.est.est_min_calibration_samples"
     try:
-        proc = subprocess.run([sys.executable, str(resolver), "-p", str(project_root)],
+        proc = subprocess.run([sys.executable, str(resolver), "-p", str(project_root), "-k", key],
                               capture_output=True, text=True, timeout=30)
         if proc.returncode != 0:
             return fallback
         config = json.loads(proc.stdout)
     except (OSError, ValueError, subprocess.SubprocessError):
         return fallback
-    value = config.get("modules.est.est_min_calibration_samples")
+    value = config.get(key)
     try:
         return max(1, int(value))
     except (TypeError, ValueError):

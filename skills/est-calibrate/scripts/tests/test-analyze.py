@@ -12,6 +12,8 @@ import importlib.util
 import sys
 import tempfile
 import json
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -298,18 +300,54 @@ class TestReadiness(unittest.TestCase):
         self.assertIn("delivery_hours", an.readiness([])["advice"])
 
 
+BMAD_SCRIPTS = Path(__file__).resolve().parents[4] / "_bmad" / "scripts"
+# resolve_config.py imports config_utils as a sibling, so a fixture that copies only the one
+# file gets ModuleNotFoundError and an empty stdout — which is indistinguishable from "no
+# setting configured" unless the test looks.
+RESOLVER_FILES = ("resolve_config.py", "config_utils.py")
+
+
 class ConfiguredThreshold(unittest.TestCase):
-    """est_min_calibration_samples was collected by est-setup and read by nothing."""
+    """est_min_calibration_samples was collected by est-setup and read by nothing.
+
+    These tests copy in BMad's REAL resolver and write real TOML, because the first version
+    of them stubbed it with a flat dict — which was the author's assumption about the output
+    shape, not the resolver's actual behaviour. It returns a nested config unless asked for a
+    single key, so the flat lookup matched nothing and every project silently got the default.
+    The test passed throughout, because it was asserting the assumption back to itself. A
+    stub can only ever confirm what its author already believed about the other side.
+    """
 
     def project(self, tmp, value):
         root = Path(tmp)
         scripts = root / "_bmad" / "scripts"
         scripts.mkdir(parents=True)
-        payload = "{}" if value is None else json.dumps(
-            {"modules.est.est_min_calibration_samples": value})
-        (scripts / "resolve_config.py").write_text(
-            f"import sys\nprint({payload!r})\n", encoding="utf-8")
+        for name in RESOLVER_FILES:
+            shutil.copyfile(BMAD_SCRIPTS / name, scripts / name)
+        (root / "_bmad" / "config.toml").write_text(
+            '[core]\nproject_name = "test"\n', encoding="utf-8")
+        (root / "_bmad" / "custom").mkdir()
+        table = "" if value is None else (
+            f"\n[modules.est]\nest_min_calibration_samples = "
+            f"{json.dumps(value) if not isinstance(value, str) else json.dumps(value)}\n")
+        (root / "_bmad" / "custom" / "config.toml").write_text(
+            f'# est settings{table}', encoding="utf-8")
         return root
+
+    def test_the_resolver_really_does_answer_flat_only_when_asked_for_one_key(self):
+        """The assumption the stub encoded, checked against the thing itself."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.project(tmp, 5)
+            key = "modules.est.est_min_calibration_samples"
+            full = json.loads(subprocess.run(
+                [sys.executable, str(root / "_bmad/scripts/resolve_config.py"), "-p", str(root)],
+                capture_output=True, text=True).stdout)
+            one = json.loads(subprocess.run(
+                [sys.executable, str(root / "_bmad/scripts/resolve_config.py"), "-p", str(root),
+                 "-k", key], capture_output=True, text=True).stdout)
+            self.assertIsNone(full.get(key), "a full dump is nested; a dotted key matches nothing")
+            self.assertEqual(full["modules"]["est"]["est_min_calibration_samples"], 5)
+            self.assertEqual(one[key], 5)
 
     def test_the_configured_value_is_the_one_enforced(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -330,6 +368,13 @@ class ConfiguredThreshold(unittest.TestCase):
     def test_no_resolver_at_all_falls_back(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(an.configured_min_samples(tmp), 3)
+
+    def test_a_resolver_that_cannot_run_falls_back_rather_than_crashing(self):
+        """It exits non-zero with an empty stdout, which must not read as a configured value."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self.project(tmp, 5)
+            (root / "_bmad" / "scripts" / "config_utils.py").unlink()
+            self.assertEqual(an.configured_min_samples(root), 3)
 
 
 if __name__ == "__main__":
