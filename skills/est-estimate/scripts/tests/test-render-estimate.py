@@ -64,9 +64,37 @@ class TestMarkdown(unittest.TestCase):
         self.assertIn("Legacy payments bridge", md)
 
     def test_no_risk_section_when_nothing_is_in_that_quadrant(self):
+        # Standing work is off here because environment and release work is genuinely
+        # low-compressibility and sensitive, so it always populates the quadrant — which is
+        # true, and would make this test about the catalogue rather than about the section.
         md = render.markdown(estimate_for([
-            feature("F1", "Marketing page", compressibility="high", review_tier="routine")]))
+            feature("F1", "Marketing page", compressibility="high", review_tier="routine")],
+            no_standing_work=True))
         self.assertNotIn("Where the risk is", md)
+
+    def test_the_feature_table_shows_who_does_the_work(self):
+        """A row reading "9h" invites a haggle; a row reading "dev 6.1, ba 1.5" invites a
+        conversation about who is on it — and the dash against ux is the visible half of
+        the fix, since a reader has to be able to see that a role was excluded rather than
+        rounded away."""
+        md = render.markdown(estimate_for([
+            feature("F1", "Nightly reconciliation job", surfaces=["backend"]),
+            feature("F2", "Onboarding screens", surfaces=["frontend", "design"])]))
+        header = next(l for l in md.split("\n") if l.startswith("| ID | Feature"))
+        columns = [c.strip() for c in header.split("|")]
+        self.assertIn("dev", columns)
+        self.assertIn("ux", columns)
+        backend = next(l for l in md.split("\n") if l.startswith("| F1 |"))
+        design = next(l for l in md.split("\n") if l.startswith("| F2 |"))
+        ux = columns.index("ux")
+        self.assertEqual(backend.split("|")[ux].strip(), "—")
+        self.assertNotEqual(design.split("|")[ux].strip(), "—")
+
+    def test_standing_work_is_not_labelled_as_something_the_client_can_decline(self):
+        md = render.markdown(estimate_for([feature("F1", "Marketing page")]))
+        row = next(l for l in md.split("\n") if "SW-ci_pipeline" in l)
+        self.assertIn("standing work", row)
+        self.assertNotIn("outside agreed scope", row)
 
     def test_build_compression_is_internal_only(self):
         e = estimate_for()
@@ -134,6 +162,14 @@ class TestBrief(unittest.TestCase):
     def test_the_dominant_cost_driver_is_named_per_feature(self):
         b = render.brief(estimate_for([feature("F1", "Payments", review_tier="critical")]))
         self.assertEqual(b["features"][0]["dominant_component"], "review")
+
+    def test_the_brief_can_answer_who_does_this_work(self):
+        """Nadia's rule is that no number is asserted that cannot be decomposed on demand.
+        A per-story figure with no role split decomposes to hours and stops exactly where
+        the question usually goes next."""
+        b = render.brief(estimate_for([feature("F1", "Reconciliation", surfaces=["backend"])]))
+        row = next(f for f in b["features"] if f["id"] == "F1")
+        self.assertEqual(sorted(row["by_role"]), ["ba", "dev"])
 
     def test_the_brief_drops_the_cost_model_snapshot(self):
         b = render.brief(estimate_for())

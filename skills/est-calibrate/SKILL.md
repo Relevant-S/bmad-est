@@ -30,6 +30,7 @@ The second bar is restraint. **Most runs should propose nothing** — report the
 | Mode | When | Writes |
 | --- | --- | --- |
 | **readiness** | No ledger entry has usable actuals yet — the normal state until projects close | Nothing |
+| **anchor** | No ledger at all, but one BMad project has been delivered | A ledger entry, then the model through the same gate |
 | **calibrate** | Delivered projects with actuals exist. The default | The model, but only after a human accepts named proposals |
 | **report-only** | An accuracy check without touching anything; the only headless mode | A report |
 
@@ -43,7 +44,7 @@ The second bar is restraint. **Most runs should propose nothing** — report the
 
 **Attach actuals as projects close.** `uv run scripts/ingest-actuals.py --entry {memory}/ledger/<id>.json --from-export <time-export.csv> --scope as_estimated --source "<where it came from>"` — or `--total <hours>` when no export exists (`--help` for the interface). Three fields decide whether a project can be compared at all: `--scope`, because an estimate for ten features versus actuals for seven delivered ones is not evidence; `--exclude-hours` with its reason, because time sheets are full of waiting that is not delivery effort; and `--confidence`, because a PM's recollection should not move a coefficient as hard as a time-tracking export. `assets/actuals.schema.json` is the contract — what each field means, and what each granularity level unlocks — and the script validates against it before writing.
 
-**Analyse.** `uv run scripts/analyze.py --ledger {memory}/ledger --cost-model {memory}/cost-model.json -o {workspace}/analysis.json`. With nothing comparable it returns readiness instead of failing — present that and stop. Otherwise read the accuracy figures before the proposals. **`references/reading-the-numbers.md` is required reading before you put any proposal to a human** — it works through what band hit rate, the debiased residual spread and the shrinkage weight mean, and which of them is telling you something.
+**Analyse.** `uv run scripts/analyze.py --ledger {memory}/ledger --cost-model {memory}/cost-model.json --project-root {project-root} -o {workspace}/analysis.json`. `--project-root` is what makes the operator's configured `est_min_calibration_samples` the threshold actually enforced; without it the script falls back to 3. With nothing comparable it returns readiness instead of failing — present that and stop. Otherwise read the accuracy figures before the proposals. **`references/reading-the-numbers.md` is required reading before you put any proposal to a human** — it works through what band hit rate, the debiased residual spread and the shrinkage weight mean, and which of them is telling you something.
 
 **Backtest before showing anyone a proposal.** `uv run scripts/backtest.py --analysis {workspace}/analysis.json --ledger {memory}/ledger --cost-model {memory}/cost-model.json -o {workspace}/backtest.json` re-prices delivered history through est-estimate's own engine rather than reimplementing pricing.
 
@@ -57,7 +58,49 @@ The second bar is restraint. **Most runs should propose nothing** — report the
 
 **Apply only what was accepted.** `uv run scripts/apply.py --analysis {workspace}/analysis.json --backtest {workspace}/backtest.json --cost-model {memory}/cost-model.json --calibration-log {memory}/calibration-log.md --accept P2 P4 --approved-by "<name and role>"`. It backs up the model, writes the provenance into each changed coefficient's own `why`, and appends a log entry naming every ledger entry the change came from.
 
-**Then report and record.** `uv run scripts/render-report.py {workspace}/analysis.json --backtest {workspace}/backtest.json --out-dir {workspace}`. It also writes `accuracy-brief.json`, the small stable distillate `est-agent-estimator` loads to answer "how accurate are our estimates?" without parsing a report written for a person. Append the delivered projects to `{memory}/comparables.md` as anchors for future estimates — project, scope shape, estimate, actual — and log an `assumption` entry in the memlog for anything you had to infer.
+**Then report and record.** `uv run scripts/render-report.py {workspace}/analysis.json --backtest {workspace}/backtest.json --out-dir {workspace}`. It also writes `accuracy-brief.json`, the small stable distillate `est-agent-estimator` loads to answer "how accurate are our estimates?" without parsing a report written for a person. Append the delivered projects to `{memory}/comparables.md` as anchors for future estimates — project, scope shape, estimate, actual — and log an `assumption` entry in the memlog for anything you had to infer. Finish with `uv run {skill-root}/../est-setup/scripts/check-outputs.py --skill est-calibrate --workspace {workspace}`.
+
+## Anchoring on a single delivered project
+
+The evidence path needs a ledger entry — an estimate priced under a recorded model, with
+actuals attached — and a project delivered before this module existed has none. That used to
+leave editing `cost-model.json` by hand, which writes no `calibration_history`, so the model
+goes on announcing itself uncalibrated in every rendered estimate while its coefficients say
+otherwise. The two disagreeing inside one document is worse than either being wrong.
+
+One project is statistically weak and this mode says so at every step. It is still far better
+than a seeded hypothesis, and it is what most companies have.
+
+**Recover the shape.** `uv run scripts/anchor-project.py <project-dir> --epics 1-9 -o {workspace}/skeleton.json`
+reads the project's own planning and implementation artefacts for its epics, its stories and
+their status. `--status any` includes work still in review; the default counts only `done`.
+Check the reported shape against what the team remembers shipping before going on — if the
+story count is wrong, everything downstream divides real hours by a wrong denominator.
+
+**Classify it yourself.** Every tag comes back `null`, and pricing refuses them. That is
+deliberate: a script that guessed size bands would be manufacturing the evidence this run
+exists to weigh. Read the story files — they are named in each feature's citation — and tag
+against `est-scope-extract`'s classification guide, with a `why` per tag that points at the
+story. Set `surfaces` from what each story actually touched.
+
+**Price and record.** Run `est-estimate` over the classified skeleton, then record the ledger
+entry. The entry snapshots the model that priced it, which is what makes the comparison
+attributable later.
+
+**Attach the real hours.** `uv run scripts/ingest-actuals.py --entry {memory}/ledger/<id>.json --total <hours> --scope as_estimated --source "<where the number came from>" --confidence <recalled|reconstructed|measured>`.
+A per-role split belongs here too when it exists; it is the only thing that can calibrate the
+role weights. Be honest in `--confidence`: a recollection must not move a coefficient as hard
+as a time-tracking export, and the analysis weights it accordingly.
+
+**Then run the normal path.** With one entry, `analyze.py` reports accuracy and proposes
+nothing — the sample-size floor is doing its job, and `est_min_calibration_samples` is now the
+number it enforces. Use `curate.py --preview` to see what a change would do to recorded
+estimates, and `curate.py --approved-by` to apply it. That stamps `kind: judgement` and writes
+the history entry, so the model's own account of itself stays true.
+
+**Say n=1 in the log and in the model.** Put the sample size in the `--why` of every change.
+The next person to read `calibration-log.md` needs to know the model is fitted to one project
+before they trust a coefficient to three significant figures.
 
 ## Readiness — the mode that runs until projects close
 

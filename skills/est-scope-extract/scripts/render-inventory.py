@@ -34,8 +34,31 @@ def render_markdown(inv):
         f"Generated {inv.get('generated', '')} · schema {inv.get('schema_version', '')} · "
         f"granularity: {inv.get('granularity', 'unspecified')}"
     )
-    out += ["", f"**{len(features)} features** · {len(inv.get('not_scope', []))} passages excluded from scope "
-                f"· {len(inv.get('conflicts', []))} conflicts", ""]
+    epics = inv.get("epics") or []
+    implicit = inv.get("implicit_scope") or []
+    tasks = sum(len(f.get("tasks") or []) for f in features)
+    # Story count, epic count and source-row count on one line, because the ratio between them
+    # is the fastest way to see whether the workbook was grouped or transliterated.
+    counts = [f"**{len(features)} stories**"]
+    if epics:
+        counts.append(f"{len(epics)} epics")
+    if tasks:
+        counts.append(f"{tasks} source rows")
+    if implicit:
+        counts.append(f"{len(implicit)} implicit")
+    counts += [f"{len(inv.get('not_scope', []))} passages excluded from scope",
+               f"{len(inv.get('conflicts', []))} conflicts"]
+    out += ["", " · ".join(counts), ""]
+
+    if epics:
+        out += ["## Epics", "", "| id | epic | stories | from |", "| --- | --- | ---: | --- |"]
+        for epic in epics:
+            n = sum(1 for f in features if f.get("epic_id") == epic.get("id"))
+            origin = epic.get("origin", "")
+            if origin == "synthesised" and epic.get("why"):
+                origin += f" — {epic['why']}"
+            out.append(f"| {epic.get('id')} | {epic.get('name')} | {n} | {origin} |")
+        out.append("")
 
     out += ["## Sources", "", "| id | document | type | language | converter | coverage note |",
             "| --- | --- | --- | --- | --- | --- |"]
@@ -46,8 +69,8 @@ def render_markdown(inv):
         )
     out.append("")
 
-    out += ["## Features", ""]
-    for f in features:
+    out += ["## Stories", ""]
+    for f in features + implicit:
         tier = tag(f, "review_tier")
         out.append(
             f"### {f.get('id')} — {f.get('name')}"
@@ -67,7 +90,18 @@ def render_markdown(inv):
             out.append("**Review-tier triggers:** " + ", ".join(f"“{t}”" for t in triggers))
             out.append("")
 
+        surfaces = f.get("surfaces")
+        if surfaces:
+            out.append(f"**Surfaces:** {', '.join(surfaces)} — only these roles are billed to it.")
         out.append(f"**Commitment:** {f.get('commitment')}")
+        if f.get("rationale"):
+            out.append(f"**Why it is here, with no quote behind it:** {f['rationale']}")
+        rows = f.get("tasks") or []
+        if rows:
+            out += ["", f"**Assembled from {len(rows)} source rows:**", ""]
+            for task in rows:
+                where = "; ".join(c.get("location", "") for c in task.get("citations") or [])
+                out.append(f"- `{task.get('id')}` {task.get('name')} — {where}")
         if f.get("scope_status") == "outside_agreed_scope":
             out.append("**Outside the agreed scope** — estimated separately, not folded into the agreed number.")
         deps = f.get("depends_on") or []
@@ -119,7 +153,8 @@ def render_markdown(inv):
 def render_csv(inv, target):
     src_by_id = {s["id"]: s for s in inv.get("sources", [])}
     columns = [
-        "id", "name", "description", "commitment", "scope_status",
+        "id", "name", "description", "epic_id", "surfaces", "tasks", "origin",
+        "commitment", "scope_status",
         "size_band", "compressibility", "compressibility_why",
         "review_tier", "review_tier_why", "clarity", "novelty",
         "depends_on", "tag_status", "sources", "locations",
@@ -128,13 +163,17 @@ def render_csv(inv, target):
     with open(target, "w", newline="", encoding="utf-8-sig") as fh:
         writer = csv.DictWriter(fh, fieldnames=columns)
         writer.writeheader()
-        for f in inv.get("features", []):
+        for f in list(inv.get("features", [])) + list(inv.get("implicit_scope") or []):
             citations = f.get("citations", [])
             statuses = {tag(f, a, "status") for a in AXES}
             writer.writerow({
                 "id": f.get("id"),
                 "name": f.get("name"),
                 "description": f.get("description"),
+                "epic_id": f.get("epic_id") or "",
+                "surfaces": "; ".join(f.get("surfaces") or []),
+                "tasks": "; ".join(t.get("id", "") for t in f.get("tasks") or []),
+                "origin": f.get("origin") or ("implicit" if f.get("rationale") else "extracted"),
                 "commitment": f.get("commitment"),
                 "scope_status": f.get("scope_status") or "in_agreed_scope",
                 "size_band": tag(f, "size_band"),

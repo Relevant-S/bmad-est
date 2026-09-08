@@ -220,12 +220,20 @@ def case_band_width_is_calibrated_from_totals_alone():
 def case_a_noisy_spread_estimate_does_not_move_the_band():
     """The complement of the case above, and the one that matters more.
 
-    Measured over few projects the residual spread is itself noisy: an observed 1.13 on
+    Measured over few projects the residual spread is itself noisy: an observed 1.14 on
     eight samples is indistinguishable from 1.0. The calibrator must not propose a band
     change on that, or it spends the company's trust chasing its own sampling error.
+
+    The noise level is expressed as a share of the project total, so it has to track the
+    model's own band to keep testing the same thing. It was 0.35 while overhead was priced
+    as a three-point share of an already-three-point subtotal — a compounding that inflated
+    feature variance to roughly 0.28 of the mean. Overhead is now priced against the
+    schedule, feature variance sits near 0.086, and 0.18 is the level that again lands a
+    mild spread just above 1.0. Raising it further would test that the calibrator reacts to
+    a real signal, which is the case above, not this one.
     """
     rng = random.Random(41)
-    entries = make_ledger(rng, 8, SEED_MODEL, noise=0.35)
+    entries = make_ledger(rng, 8, SEED_MODEL, noise=0.18)
     for e in entries:
         e["ledger"]["actuals"].pop("by_phase", None)
     a = run(entries)

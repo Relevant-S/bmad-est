@@ -253,11 +253,93 @@ class TestSplits(unittest.TestCase):
         total = sum(p["hours"] for p in e["by_phase"].values())
         self.assertAlmostEqual(total, e["total_hours"]["likely"], delta=0.5)
 
-    def test_sensitive_review_shifts_hours_toward_the_architect(self):
-        routine = hours(inventory([feature("F1", review_tier="routine")]))["by_role"]
-        sensitive = hours(inventory([feature("F1", review_tier="sensitive")]))["by_role"]
-        self.assertGreater(sensitive["architect"] / sum(sensitive.values()),
-                           routine["architect"] / sum(routine.values()))
+    def test_the_architect_carries_no_story_work_at_any_review_tier(self):
+        """The tech lead does not review stories; the developer does. An architect share
+        spread over every story invented a quarter of the Kampies project out of a weight
+        table, so this is asserted at the tier where the old model leaned hardest."""
+        m = model()
+        for tier in ("routine", "sensitive", "critical"):
+            priced = est.price_feature(feature("F1", review_tier=tier), m,
+                                       m["team_profiles"]["balanced"])
+            roles = est.feature_roles(priced, m)
+            self.assertNotIn("architect", roles, f"architect billed on a {tier} story")
+
+    def test_a_backend_story_bills_no_ux_and_no_devops(self):
+        m = model()
+        priced = est.price_feature(feature("F1", surfaces=["backend"]), m,
+                                   m["team_profiles"]["balanced"])
+        roles = est.feature_roles(priced, m)
+        self.assertEqual(sorted(roles), ["ba", "dev"])
+
+    def test_a_design_story_bills_ux_and_still_no_devops(self):
+        m = model()
+        priced = est.price_feature(feature("F1", surfaces=["frontend", "design"]), m,
+                                   m["team_profiles"]["balanced"])
+        roles = est.feature_roles(priced, m)
+        self.assertIn("ux", roles)
+        self.assertNotIn("devops", roles)
+
+    def test_dropping_a_role_reallocates_rather_than_discounts(self):
+        """Renormalising is what keeps the split an allocation of the total. If a narrow
+        surface set made hours vanish instead of moving, every backend-heavy estimate would
+        quietly come in under its own headline."""
+        m = model()
+        wide = est.price_feature(feature("F1"), m, m["team_profiles"]["balanced"])
+        narrow = est.price_feature(feature("F1", surfaces=["backend"]), m,
+                                   m["team_profiles"]["balanced"])
+        self.assertAlmostEqual(sum(est.feature_roles(wide, m).values()),
+                               sum(est.feature_roles(narrow, m).values()), delta=0.01)
+
+    def test_surfaces_are_read_from_either_the_feature_or_its_tags(self):
+        """Both placements exist in the wild — the schema puts surfaces on the story, and a
+        classifier writing all five axes at once naturally puts it with the tags. Reading only
+        one would silently drop every role restriction the other way round."""
+        m = model()
+        on_feature = feature("F1", surfaces=["backend"])
+        in_tags = feature("F2", surfaces=None)
+        in_tags["tags"]["surfaces"] = {"value": ["backend"], "why": "x", "status": "inferred"}
+        for raw in (on_feature, in_tags):
+            priced = est.price_feature(raw, m, m["team_profiles"]["balanced"])
+            self.assertEqual(sorted(est.feature_roles(priced, m)), ["ba", "dev"], raw["id"])
+
+    def test_implicit_scope_is_priced_and_needs_a_reason_not_a_quote(self):
+        """Work the source implies but never states is real, and pretending it has a quote
+        would be worse than admitting it does not."""
+        item = feature("I1", "Migrate ten years of bookings", size="L")
+        del item["citations"]
+        item["rationale"] = "The workbook says bookings already exist; they have to be moved."
+        e = hours(inventory([feature("F1")], implicit_scope=[item]))
+        self.assertEqual(e["traceability"]["implicit_scope_priced"], 1)
+        self.assertEqual(e["traceability"]["findings"], [])
+        self.assertIn("I1", [f["id"] for f in e["features"]])
+
+    def test_implicit_scope_without_a_reason_is_reported(self):
+        item = feature("I1", "Something nobody asked for")
+        del item["citations"]
+        e = hours(inventory([feature("F1")], implicit_scope=[item]))
+        self.assertTrue(any("I1" in f for f in e["traceability"]["findings"]))
+
+    def test_an_untagged_story_keeps_every_role_rather_than_discounting(self):
+        """Silence is not evidence that a role is absent."""
+        m = model()
+        priced = est.price_feature(feature("F1", surfaces=None), m,
+                                   m["team_profiles"]["balanced"])
+        self.assertIn("ux", est.feature_roles(priced, m))
+
+    def test_per_story_role_hours_sum_to_the_project_role_totals(self):
+        e = hours(inventory([feature(f"F{i}", surfaces=s) for i, s in enumerate(
+            [["backend"], ["frontend", "design"], ["infra"], ["backend", "data"]], 1)]))
+        per_story = {}
+        for f in e["features"]:
+            for role, h in f["by_role"].items():
+                per_story[role] = per_story.get(role, 0.0) + h
+        project = {name: sum(
+            v["hours"] * share for name2, v in e["project_components"].items()
+            for r, share in est.component_roles(model(), name2, None).items() if r == name)
+            for name in set(e["by_role"])}
+        for role, total in e["by_role"].items():
+            self.assertAlmostEqual(per_story.get(role, 0.0) + project.get(role, 0.0),
+                                   total, delta=0.5, msg=role)
 
 
 class TestDependenciesAndDuration(unittest.TestCase):
@@ -335,10 +417,11 @@ class TestTraceabilityAndQuestions(unittest.TestCase):
                          for i in range(1, 5)])
         e = hours(inv, completeness=0.4)
         opts = options(completeness=0.4, granularity="project")
-        priced = [est.price_feature(f, model(), opts["team"]) for f in inv["features"]]
-        for p, raw in zip(priced, inv["features"]):
+        raws = inv["features"] + est.standing_features(model(), opts)
+        priced = [est.price_feature(f, model(), opts["team"]) for f in raws]
+        for p, raw in zip(priced, raws):
             p["_raw"] = raw
-        project, _, _ = est.project_components(priced, model(), "project", opts)
+        project, *_ = est.project_components(priced, model(), "project", opts)
         opts["completeness_multiplier"] = e["confidence"]["band_multiplier"]
         baseline = e["total_hours"]["high"] - e["total_hours"]["low"]
         # Re-price with no mutation at all; the band must come back identical.
@@ -382,22 +465,53 @@ class TestModeAndSnapshot(unittest.TestCase):
         self.assertEqual(e["cost_model_snapshot"]["review_rate"]["sensitive"]["likely"], 0.35)
 
     def test_build_compression_compares_like_with_like(self):
+        # Standing work is deliberately excluded here: setup and pipeline work barely
+        # compresses, and mixing it in makes this assertion about the delivery mix rather
+        # than about the comparison the assertion names.
         e = hours(inventory([feature(f"F{i}", compressibility="high", review_tier="routine")
-                             for i in range(1, 6)]))
+                             for i in range(1, 6)]), no_standing_work=True)
         me = e["manual_equivalent"]
         self.assertGreater(me["build_hours"], me["bmad_build_hours"])
         self.assertGreater(me["build_compression"], 4.0)
+
+    def test_standing_work_drags_the_compression_down_rather_than_being_hidden(self):
+        """Setup, pipelines and environments do not compress, and an estimate that leaves
+        them out reports a project compression it cannot deliver."""
+        args = dict(inventory([feature(f"F{i}", compressibility="high", review_tier="routine")
+                               for i in range(1, 6)]))
+        with_standing = hours(dict(args))["manual_equivalent"]["build_compression"]
+        without = hours(dict(args), no_standing_work=True)["manual_equivalent"]["build_compression"]
+        self.assertLess(with_standing, without)
+
+    def test_standing_work_is_declared_rather_than_folded_into_the_total(self):
+        e = hours(inventory([feature("F1")]))
+        names = [i["id"] for i in e["standing_work"]["items"]]
+        self.assertIn("SW-ci_pipeline", names)
+        self.assertGreater(e["standing_work"]["hours"], 0)
+        self.assertTrue(all(i["why"] for i in e["standing_work"]["items"]))
+        self.assertEqual(e["traceability"]["findings"], [])
+
+    def test_standing_work_gets_no_epic_and_no_story(self):
+        """It never reaches a PRD, so billing planning artefacts for it invents documents."""
+        inv = inventory([feature(f"F{i}") for i in range(1, 11)])
+        self.assertEqual(hours(inv)["planning_volume"],
+                         hours(inv, no_standing_work=True)["planning_volume"])
 
     def test_build_compression_is_not_presented_as_project_compression(self):
         """Quoting an 8x build compression as though the project were 8x cheaper is the
         overclaim this module exists to avoid: planning, QA, infra and overhead do not compress."""
         e = hours(inventory([feature(f"F{i}", compressibility="high", review_tier="routine")
                              for i in range(1, 6)]))
-        self.assertIsNone(e["manual_equivalent"]["whole_project_compression"])
-        self.assertIn("manual project pays too", e["manual_equivalent"]["why"])
-        # The project total exceeds the features' manual baseline, because the manual baseline
-        # never included planning, environments, QA or client overhead in the first place.
-        self.assertGreater(e["total_hours"]["likely"], e["manual_equivalent"]["build_hours"])
+        me = e["manual_equivalent"]
+        self.assertIsNone(me["whole_project_compression"])
+        self.assertIn("manual project pays too", me["why"])
+        # The invariant is that the PROJECT compresses far less than the BUILD does: once
+        # generation collapses the build, planning, review, QA and client overhead are what
+        # is left, and they dominate. Asserting the total also beats the manual baseline
+        # would be a different and weaker claim — on an all-CRUD scope it is simply false,
+        # and a test that demanded it would be pushing the module toward the overclaim.
+        self.assertGreater(me["build_compression"], 3.0)
+        self.assertGreater(e["total_hours"]["likely"], 3 * me["bmad_build_hours"])
 
     def test_an_unknown_tag_value_fails_loudly(self):
         f = feature("F1")

@@ -70,8 +70,8 @@ est_report_calendar_duration:
 
 est_roles:
   prompt: "Roles to split hours across"
-  default: "architect,dev,qa,ba,ux"
-  example: "no PM — the Architect absorbs PM responsibilities during planning"
+  default: "architect,dev,devops,qa,ba,ux"
+  example: "no PM — the Architect absorbs PM responsibilities during planning, and appears only in project-level components rather than on individual stories"
 
 est_min_calibration_samples:
   prompt: "Minimum delivered projects before a coefficient change counts as more than a weak signal"

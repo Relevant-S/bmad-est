@@ -10,6 +10,8 @@ cover the pieces that decide what counts as evidence in the first place.
 
 import importlib.util
 import sys
+import tempfile
+import json
 import unittest
 from pathlib import Path
 
@@ -294,6 +296,40 @@ class TestReadiness(unittest.TestCase):
 
     def test_an_empty_ledger_still_advises(self):
         self.assertIn("delivery_hours", an.readiness([])["advice"])
+
+
+class ConfiguredThreshold(unittest.TestCase):
+    """est_min_calibration_samples was collected by est-setup and read by nothing."""
+
+    def project(self, tmp, value):
+        root = Path(tmp)
+        scripts = root / "_bmad" / "scripts"
+        scripts.mkdir(parents=True)
+        payload = "{}" if value is None else json.dumps(
+            {"modules.est.est_min_calibration_samples": value})
+        (scripts / "resolve_config.py").write_text(
+            f"import sys\nprint({payload!r})\n", encoding="utf-8")
+        return root
+
+    def test_the_configured_value_is_the_one_enforced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(an.configured_min_samples(self.project(tmp, 5)), 5)
+
+    def test_a_project_without_the_setting_falls_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(an.configured_min_samples(self.project(tmp, None)), 3)
+
+    def test_a_nonsense_value_falls_back_rather_than_disabling_the_guard(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(an.configured_min_samples(self.project(tmp, "lots")), 3)
+
+    def test_zero_cannot_switch_the_evidence_bar_off(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(an.configured_min_samples(self.project(tmp, 0)), 1)
+
+    def test_no_resolver_at_all_falls_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(an.configured_min_samples(tmp), 3)
 
 
 if __name__ == "__main__":

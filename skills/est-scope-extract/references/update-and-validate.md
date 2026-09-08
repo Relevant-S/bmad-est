@@ -16,7 +16,7 @@ The scope-creep case: the client sent a revised document, or a new one arrived a
 
 **Read `.memlog.md` first.** It carries the classification decisions a human made on the previous pass, and this intent exists partly to avoid undoing them.
 
-Convert the new sources into the same `normalized/` folder — `uv run scripts/convert-input.py <paths> --out-dir <workspace>/normalized -o <workspace>/normalized/manifest-v2.json` — then extract them into a fresh inventory at `<workspace>/feature-inventory.next.json`, exactly as a create run does: citations against the anchors, coverage accounting, five-axis classification with a `why` on every tag, and `completeness_signals` each carrying their reason.
+Convert the new sources into the same `normalized/` folder — `uv run scripts/convert-input.py <paths> --out-dir <workspace>/normalized -o <workspace>/normalized/manifest-v2.json` (always `-v2`, never `-v3`: it exists only for the length of this run, and a growing series of manifests is a workspace nobody can read) — then extract them into a fresh inventory at `<workspace>/feature-inventory.next.json`, exactly as a create run does: citations against the anchors, coverage accounting, five-axis classification with a `why` on every tag, and `completeness_signals` each carrying their reason.
 
 **Then diff and merge in one step:**
 
@@ -40,7 +40,7 @@ Work through that list before going further. Where the answer is a commercial on
 1. `uv run scripts/inventory-check.py <workspace>/feature-inventory.merged.json --normalized <workspace>/normalized --manifest <workspace>/normalized/manifest-v2.json` — clean, or fix and repeat.
 2. `uv run scripts/inventory-diff.py <workspace>/feature-inventory.json <workspace>/feature-inventory.merged.json` — the `protected` array must come back **empty**. Anything still listed is a human decision the merge lost; restore it and re-check.
 
-Only once both pass, move the original to `feature-inventory.prev.json`, promote the merged file to `feature-inventory.json`, delete `.next.json`, and re-render. Keep `.prev.json` until the run reports success.
+Only once both pass, move the original to `feature-inventory.prev.json`, promote the merged file to `feature-inventory.json`, delete `.next.json`, and re-render. Then **delete `.prev.json` and `manifest-v2.json` before you finish**: the promotion is the point at which the update either worked or did not, and a workspace that keeps every previous generation stops being readable as a set of current artefacts. The inventory that was replaced is in git and in the memlog; a stale `.prev.json` is only ever mistaken for the live one. `check-outputs.py` names them if they survive.
 
 **Then update `extraction-report.md`** with a scope-change section: features added, removed and retiered, the shift in review-tier mix, the movement in the completeness score, and every protected tag the merge carried forward. Append a memlog `decision` entry for each `needs_decision` the operator resolved. A feature that moved from `routine` to `sensitive` deserves its own line — it can cost more than several new small ones.
 

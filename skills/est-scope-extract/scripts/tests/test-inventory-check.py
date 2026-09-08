@@ -445,5 +445,91 @@ class TestCoverage(unittest.TestCase):
         self.assertEqual(check.coverage(inventory(features=[a, b]))["inferred_dependencies"], 1)
 
 
+class Grouping(unittest.TestCase):
+    """Epics, tasks and surfaces decide how much the estimate invents on its own."""
+
+    def grouped(self, **over):
+        f = feature("F1", "Login", epic_id="E1", surfaces=["backend", "frontend"],
+                    tasks=[{"id": "T1", "name": "Sign in",
+                            "citations": [{"source_id": "S1", "location": "§2.1", "quote": "q"}]}])
+        inv = inventory(features=[f], epics=[{"id": "E1", "name": "Access", "origin": "source"}])
+        inv.update(over)
+        return inv
+
+    def test_a_clean_grouping_passes(self):
+        self.assertEqual(check.check_grouping(self.grouped()), [])
+
+    def test_a_half_grouped_inventory_is_refused(self):
+        inv = self.grouped()
+        inv["features"].append(feature("F2", "Profile"))
+        findings = check.check_grouping(inv)
+        self.assertTrue(any("carry no epic_id" in f for f in findings), findings)
+
+    def test_a_synthesised_epic_must_say_on_what_basis(self):
+        inv = self.grouped(epics=[{"id": "E1", "name": "Access", "origin": "synthesised"}])
+        self.assertTrue(any("no 'why'" in f for f in check.check_grouping(inv)))
+
+    def test_a_source_row_cannot_belong_to_two_stories(self):
+        """A row in two stories is the same work counted twice, which is the failure the
+        whole grouping step exists to prevent."""
+        inv = self.grouped()
+        second = feature("F2", "Profile", epic_id="E1",
+                         tasks=[{"id": "T1", "name": "Sign in",
+                                 "citations": [{"source_id": "S1", "location": "§2.1", "quote": "q"}]}])
+        inv["features"].append(second)
+        self.assertTrue(any("already used by" in f for f in check.check_grouping(inv)))
+
+    def test_a_task_without_a_citation_defeats_the_point_of_keeping_it(self):
+        inv = self.grouped()
+        inv["features"][0]["tasks"][0]["citations"] = []
+        self.assertTrue(any("no citation" in f for f in check.check_grouping(inv)))
+
+    def test_an_empty_surfaces_list_is_refused_but_an_absent_one_is_not(self):
+        inv = self.grouped()
+        inv["features"][0]["surfaces"] = []
+        self.assertTrue(any("surfaces" in f for f in check.check_grouping(inv)))
+        del inv["features"][0]["surfaces"]
+        self.assertEqual(check.check_grouping(inv), [])
+
+    def test_an_unknown_surface_is_refused(self):
+        inv = self.grouped()
+        inv["features"][0]["surfaces"] = ["backend", "telepathy"]
+        self.assertTrue(any("telepathy" in f for f in check.check_grouping(inv)))
+
+
+class BoilerplateTags(unittest.TestCase):
+    """A justification repeated across the inventory is a default wearing a reason."""
+
+    def features(self, count, why):
+        return [feature(f"F{i}", f"Thing {i}",
+                        tags={**feature()["tags"], "size_band": tag("M", why=why)})
+                for i in range(count)]
+
+    def test_one_sentence_over_most_of_the_inventory_is_reported(self):
+        warnings = check.check_boilerplate_tags(self.features(50, "the row's verb is not a read"))
+        self.assertTrue(any("size_band" in w and "50 of 50" in w for w in warnings))
+
+    def test_genuinely_distinct_reasons_are_not_reported(self):
+        features = [feature(f"F{i}", f"Thing {i}", tags={
+            "size_band": tag("M", why=f"size reason {i}"),
+            "compressibility": tag("high", why=f"compression reason {i}"),
+            "review_tier": tag("routine", why=f"tier reason {i}"),
+            "clarity": tag("medium", why=f"clarity reason {i}"),
+            "novelty": tag("standard", why=f"novelty reason {i}"),
+        }) for i in range(50)]
+        self.assertEqual(check.check_boilerplate_tags(features), [])
+
+    def test_a_small_inventory_is_left_alone(self):
+        """Ten features sharing a reason is a small consistent scope, not a defaulted one."""
+        self.assertEqual(check.check_boilerplate_tags(self.features(10, "same reason")), [])
+
+    def test_it_does_not_block_the_estimate(self):
+        """A backlog of near-identical CRUD screens legitimately shares a justification, and
+        refusing to price it would be wrong; pricing it as though every band had been judged
+        would also be wrong. So it warns, and the estimate carries the warning."""
+        inv = inventory(features=self.features(50, "one rule for all of them"))
+        self.assertEqual([f for f in check.check_integrity(inv) if "justification" in f], [])
+
+
 if __name__ == "__main__":
     unittest.main()

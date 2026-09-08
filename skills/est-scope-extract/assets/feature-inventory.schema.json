@@ -3,184 +3,718 @@
   "title": "Feature Inventory",
   "description": "Traceable scope extracted from project source documents. Consumed by est-estimate. Every feature cites the source text that produced it; every part of the source not treated as scope is accounted for in not_scope.",
   "type": "object",
-  "required": ["schema_version", "generated", "project", "sources", "features", "not_scope", "completeness_signals"],
+  "required": [
+    "schema_version",
+    "generated",
+    "project",
+    "sources",
+    "features",
+    "not_scope",
+    "completeness_signals"
+  ],
   "properties": {
-    "schema_version": { "type": "string", "enum": ["1.0"] },
-    "generated": { "type": "string", "description": "ISO-8601 timestamp" },
-    "project": { "type": "string", "description": "Project or deal name" },
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1.0"
+      ]
+    },
+    "generated": {
+      "type": "string",
+      "description": "ISO-8601 timestamp"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project or deal name"
+    },
     "granularity": {
       "type": "string",
-      "enum": ["project", "epic", "sprint", "feature"],
+      "enum": [
+        "project",
+        "epic",
+        "sprint",
+        "feature"
+      ],
       "description": "What this inventory covers. Drives which fidelity mode est-estimate defaults to."
     },
-
     "sources": {
       "type": "array",
       "description": "One entry per source document ingested. Populated from the convert-input manifest.",
       "items": {
         "type": "object",
-        "required": ["id", "path", "doc_type", "language"],
+        "required": [
+          "id",
+          "path",
+          "doc_type",
+          "language"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^S[0-9]+$" },
-          "path": { "type": "string" },
-          "doc_type": { "type": "string", "enum": ["transcript", "prd", "sow", "rfp", "backlog", "brief", "email", "mixed", "other"] },
-          "language": { "type": "string", "description": "BCP-47 code of the source's own language, e.g. en, uk, de" },
-          "converter": { "type": "string", "description": "Which converter produced the normalized text" },
-          "coverage_note": { "type": "string", "description": "Anything the converter could not read: scanned pages, images, password-protected sections" }
+          "id": {
+            "type": "string",
+            "pattern": "^S[0-9]+$"
+          },
+          "path": {
+            "type": "string"
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "transcript",
+              "prd",
+              "sow",
+              "rfp",
+              "backlog",
+              "brief",
+              "email",
+              "mixed",
+              "other"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "description": "BCP-47 code of the source's own language, e.g. en, uk, de"
+          },
+          "converter": {
+            "type": "string",
+            "description": "Which converter produced the normalized text"
+          },
+          "coverage_note": {
+            "type": "string",
+            "description": "Anything the converter could not read: scanned pages, images, password-protected sections"
+          }
         }
       }
     },
-
     "features": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "name", "description", "citations", "commitment", "tags"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "citations",
+          "commitment",
+          "tags"
+        ],
         "properties": {
-          "id": { "type": "string", "pattern": "^F[0-9]+$" },
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-
+          "id": {
+            "type": "string",
+            "pattern": "^F[0-9]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
           "citations": {
             "type": "array",
             "minItems": 1,
             "description": "At least one. A feature with no citation is invented scope.",
             "items": {
               "type": "object",
-              "required": ["source_id", "location", "quote"],
+              "required": [
+                "source_id",
+                "location",
+                "quote"
+              ],
               "properties": {
-                "source_id": { "type": "string", "pattern": "^S[0-9]+$" },
-                "location": { "type": "string", "description": "Section heading, page, sheet+row, or transcript timestamp" },
-                "quote": { "type": "string", "description": "Verbatim source text, translated into the working language when the source is not in it" },
-                "quote_original": { "type": "string", "description": "Required when the source language differs from the working language. The untranslated text, so a reader who speaks the source language can verify the extraction." },
-                "quote_language": { "type": "string" }
+                "source_id": {
+                  "type": "string",
+                  "pattern": "^S[0-9]+$"
+                },
+                "location": {
+                  "type": "string",
+                  "description": "Section heading, page, sheet+row, or transcript timestamp"
+                },
+                "quote": {
+                  "type": "string",
+                  "description": "Verbatim source text, translated into the working language when the source is not in it"
+                },
+                "quote_original": {
+                  "type": "string",
+                  "description": "Required when the source language differs from the working language. The untranslated text, so a reader who speaks the source language can verify the extraction."
+                },
+                "quote_language": {
+                  "type": "string"
+                }
               }
             }
           },
-
           "scope_status": {
             "type": "string",
-            "enum": ["in_agreed_scope", "outside_agreed_scope", "no_agreed_scope_defined"],
+            "enum": [
+              "in_agreed_scope",
+              "outside_agreed_scope",
+              "no_agreed_scope_defined"
+            ],
             "description": "Whether the feature falls inside the contractually agreed scope. Absent means in_agreed_scope. Set outside_agreed_scope for a feature a source raises but the SOW or RFP does not cover — it is still estimated, and est-estimate reports it as a separate line rather than folding it into the agreed number."
           },
-
           "commitment": {
             "type": "string",
-            "enum": ["committed", "implied", "speculative"],
+            "enum": [
+              "committed",
+              "implied",
+              "speculative"
+            ],
             "description": "committed: the source states it as in scope. implied: follows necessarily from something committed. speculative: raised as a possibility, a future phase, or a client aspiration."
           },
-
           "tags": {
             "type": "object",
-            "required": ["size_band", "compressibility", "review_tier", "clarity", "novelty"],
+            "required": [
+              "size_band",
+              "compressibility",
+              "review_tier",
+              "clarity",
+              "novelty"
+            ],
             "description": "The four-axis classification est-estimate's cost model consumes, plus novelty. Every tag carries its justification and its status.",
             "properties": {
-              "size_band":       { "$ref": "#/$defs/tag", "description": "XS/S/M/L/XL band of manual-equivalent effort" },
-              "compressibility": { "$ref": "#/$defs/tag", "description": "How much BMad compresses building this" },
-              "review_tier":     { "$ref": "#/$defs/tag", "description": "routine / sensitive / critical human review burden" },
-              "clarity":         { "$ref": "#/$defs/tag", "description": "How precisely the source specifies it" },
-              "novelty":         { "$ref": "#/$defs/tag", "description": "standard or novel relative to work the team has done before" }
+              "size_band": {
+                "$ref": "#/$defs/tag",
+                "description": "XS/S/M/L/XL band of manual-equivalent effort"
+              },
+              "compressibility": {
+                "$ref": "#/$defs/tag",
+                "description": "How much BMad compresses building this"
+              },
+              "review_tier": {
+                "$ref": "#/$defs/tag",
+                "description": "routine / sensitive / critical human review burden"
+              },
+              "clarity": {
+                "$ref": "#/$defs/tag",
+                "description": "How precisely the source specifies it"
+              },
+              "novelty": {
+                "$ref": "#/$defs/tag",
+                "description": "standard or novel relative to work the team has done before"
+              }
             }
           },
-
           "depends_on": {
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["feature_id", "inferred"],
+              "required": [
+                "feature_id",
+                "inferred"
+              ],
               "properties": {
-                "feature_id": { "type": "string", "pattern": "^F[0-9]+$" },
-                "evidence": { "type": "string", "description": "The source text stating the dependency. Omit when inferred is true." },
-                "inferred": { "type": "boolean", "description": "true when the dependency is deduced rather than stated. Inferred dependencies need human confirmation." }
+                "feature_id": {
+                  "type": "string",
+                  "pattern": "^F[0-9]+$"
+                },
+                "evidence": {
+                  "type": "string",
+                  "description": "The source text stating the dependency. Omit when inferred is true."
+                },
+                "inferred": {
+                  "type": "boolean",
+                  "description": "true when the dependency is deduced rather than stated. Inferred dependencies need human confirmation."
+                }
               }
             }
           },
-
           "open_questions": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "What the source failed to say about this feature. Feeds est-estimate's range-narrowing question list."
+          },
+          "epic_id": {
+            "type": "string",
+            "description": "The epic this story belongs to. Planning is priced per epic, so this is what stops the estimate inventing an epic count from a ratio when the source already grouped the work."
+          },
+          "surfaces": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "backend",
+                "frontend",
+                "design",
+                "infra",
+                "data"
+              ]
+            },
+            "description": "Which kinds of work this story touches. It decides which roles are billed to it: a role whose surface is absent is dropped from the split entirely, which is what keeps BA and UX hours off a pure backend task. Omitting it is not a way to say 'none' — an untagged story keeps every role, because silence must not quietly discount."
+          },
+          "tasks": {
+            "type": "array",
+            "description": "The source rows this story was assembled from. A spreadsheet line is an acceptance criterion, not an estimable unit; pricing one per row multiplied a backlog into a project. The rows still have to be here, because a reviewer verifies the inventory against the client's own document line by line, and that is only possible if every line still appears.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "citations"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "citations": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "At least one. A feature with no citation is invented scope.",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "source_id",
+                      "location",
+                      "quote"
+                    ],
+                    "properties": {
+                      "source_id": {
+                        "type": "string",
+                        "pattern": "^S[0-9]+$"
+                      },
+                      "location": {
+                        "type": "string",
+                        "description": "Section heading, page, sheet+row, or transcript timestamp"
+                      },
+                      "quote": {
+                        "type": "string",
+                        "description": "Verbatim source text, translated into the working language when the source is not in it"
+                      },
+                      "quote_original": {
+                        "type": "string",
+                        "description": "Required when the source language differs from the working language. The untranslated text, so a reader who speaks the source language can verify the extraction."
+                      },
+                      "quote_language": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
-      }
+      },
+      "description": "The estimable units — stories, not source rows. Each carries the source rows it was assembled from as `tasks`."
     },
-
     "not_scope": {
       "type": "array",
       "description": "Source content that did NOT become a feature, with the reason. Empty only when every substantive passage produced a feature.",
       "items": {
         "type": "object",
-        "required": ["source_id", "location", "quote", "reason"],
+        "required": [
+          "source_id",
+          "location",
+          "quote",
+          "reason"
+        ],
         "properties": {
-          "source_id": { "type": "string", "pattern": "^S[0-9]+$" },
-          "location": { "type": "string" },
-          "quote": { "type": "string" },
-          "reason": { "type": "string", "description": "Why it is not scope: commercial terms, background, out-of-scope statement, duplicate of Fnn, already built, unintelligible" }
+          "source_id": {
+            "type": "string",
+            "pattern": "^S[0-9]+$"
+          },
+          "location": {
+            "type": "string"
+          },
+          "quote": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why it is not scope: commercial terms, background, out-of-scope statement, duplicate of Fnn, already built, unintelligible"
+          }
         }
       }
     },
-
     "conflicts": {
       "type": "array",
       "description": "Sources that disagree. Surfaced, never silently resolved.",
       "items": {
         "type": "object",
-        "required": ["topic", "detail", "source_ids"],
+        "required": [
+          "topic",
+          "detail",
+          "source_ids"
+        ],
         "properties": {
-          "topic": { "type": "string" },
-          "detail": { "type": "string" },
-          "source_ids": { "type": "array", "items": { "type": "string", "pattern": "^S[0-9]+$" } },
-          "feature_ids": { "type": "array", "items": { "type": "string", "pattern": "^F[0-9]+$" } }
+          "topic": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^S[0-9]+$"
+            }
+          },
+          "feature_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^F[0-9]+$"
+            }
+          }
         }
       }
     },
-
     "assumptions": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "What had to be assumed to produce this inventory. Carried into the estimate's assumptions block."
     },
-
     "completeness_signals": {
       "type": "object",
-      "required": ["acceptance_criteria", "stack_specified", "integrations_named", "nfrs_stated", "data_model_described", "ui_defined"],
+      "required": [
+        "acceptance_criteria",
+        "stack_specified",
+        "integrations_named",
+        "nfrs_stated",
+        "data_model_described",
+        "ui_defined"
+      ],
       "description": "Model-set signals about what the sources do and do not say. inventory-check.py turns these into the input completeness score under fixed published weights, and that score determines estimate band width in est-estimate. The weights are not negotiable per run; the signals are judgement, so each carries a 'why' held to the same standard as a feature tag's.",
       "properties": {
-        "acceptance_criteria":  { "$ref": "#/$defs/signal", "description": "none | some | most" },
-        "stack_specified":      { "$ref": "#/$defs/signal", "description": "none | partial | full" },
-        "integrations_named":   { "$ref": "#/$defs/signal", "description": "none | partial | all" },
-        "nfrs_stated":          { "$ref": "#/$defs/signal", "description": "none | some | most" },
-        "data_model_described": { "$ref": "#/$defs/signal", "description": "none | partial | detailed" },
-        "ui_defined":           { "$ref": "#/$defs/signal", "description": "none | described | designed" }
+        "acceptance_criteria": {
+          "$ref": "#/$defs/signal",
+          "description": "none | some | most"
+        },
+        "stack_specified": {
+          "$ref": "#/$defs/signal",
+          "description": "none | partial | full"
+        },
+        "integrations_named": {
+          "$ref": "#/$defs/signal",
+          "description": "none | partial | all"
+        },
+        "nfrs_stated": {
+          "$ref": "#/$defs/signal",
+          "description": "none | some | most"
+        },
+        "data_model_described": {
+          "$ref": "#/$defs/signal",
+          "description": "none | partial | detailed"
+        },
+        "ui_defined": {
+          "$ref": "#/$defs/signal",
+          "description": "none | described | designed"
+        }
+      }
+    },
+    "epics": {
+      "type": "array",
+      "description": "Groups of stories, taken from the source wherever the source has them — a spreadsheet's epic column, a PRD's sections, an existing backlog's structure. Synthesised only where it does not, and then marked as such.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "origin"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "source",
+              "synthesised"
+            ],
+            "description": "source: the document grouped it. synthesised: extraction grouped it, and the why says on what basis."
+          },
+          "why": {
+            "type": "string"
+          },
+          "citations": {
+            "type": "array",
+            "minItems": 0,
+            "description": "At least one. A feature with no citation is invented scope.",
+            "items": {
+              "type": "object",
+              "required": [
+                "source_id",
+                "location",
+                "quote"
+              ],
+              "properties": {
+                "source_id": {
+                  "type": "string",
+                  "pattern": "^S[0-9]+$"
+                },
+                "location": {
+                  "type": "string",
+                  "description": "Section heading, page, sheet+row, or transcript timestamp"
+                },
+                "quote": {
+                  "type": "string",
+                  "description": "Verbatim source text, translated into the working language when the source is not in it"
+                },
+                "quote_original": {
+                  "type": "string",
+                  "description": "Required when the source language differs from the working language. The untranslated text, so a reader who speaks the source language can verify the extraction."
+                },
+                "quote_language": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "implicit_scope": {
+      "type": "array",
+      "description": "Work this project will certainly do that the client's document never describes — a data migration implied by 'we have ten years of bookings', a reporting backfill, an integration environment. Priced exactly like a feature and shown in the same table, but held apart in the schema so that the two-way traceability guarantee over `features` stays absolute rather than being loosened for everything to accommodate a few entries. Work that EVERY project does — repo scaffold, pipeline, environments, release process — is not here: it comes from the cost model's `standing_work` catalogue, so it is the same on every estimate.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "rationale",
+          "tags"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^I[0-9]+$",
+            "description": "Its own prefix, so implicit scope can never be mistaken for an extracted feature in a diff, a ledger entry or a client-facing table."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "scope_status": {
+            "type": "string",
+            "enum": [
+              "in_agreed_scope",
+              "outside_agreed_scope",
+              "no_agreed_scope_defined"
+            ],
+            "description": "Whether the feature falls inside the contractually agreed scope. Absent means in_agreed_scope. Set outside_agreed_scope for a feature a source raises but the SOW or RFP does not cover — it is still estimated, and est-estimate reports it as a separate line rather than folding it into the agreed number."
+          },
+          "commitment": {
+            "type": "string",
+            "enum": [
+              "committed",
+              "implied",
+              "speculative"
+            ],
+            "description": "committed: the source states it as in scope. implied: follows necessarily from something committed. speculative: raised as a possibility, a future phase, or a client aspiration."
+          },
+          "tags": {
+            "type": "object",
+            "required": [
+              "size_band",
+              "compressibility",
+              "review_tier",
+              "clarity",
+              "novelty"
+            ],
+            "description": "The four-axis classification est-estimate's cost model consumes, plus novelty. Every tag carries its justification and its status.",
+            "properties": {
+              "size_band": {
+                "$ref": "#/$defs/tag",
+                "description": "XS/S/M/L/XL band of manual-equivalent effort"
+              },
+              "compressibility": {
+                "$ref": "#/$defs/tag",
+                "description": "How much BMad compresses building this"
+              },
+              "review_tier": {
+                "$ref": "#/$defs/tag",
+                "description": "routine / sensitive / critical human review burden"
+              },
+              "clarity": {
+                "$ref": "#/$defs/tag",
+                "description": "How precisely the source specifies it"
+              },
+              "novelty": {
+                "$ref": "#/$defs/tag",
+                "description": "standard or novel relative to work the team has done before"
+              }
+            }
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "feature_id",
+                "inferred"
+              ],
+              "properties": {
+                "feature_id": {
+                  "type": "string",
+                  "pattern": "^F[0-9]+$"
+                },
+                "evidence": {
+                  "type": "string",
+                  "description": "The source text stating the dependency. Omit when inferred is true."
+                },
+                "inferred": {
+                  "type": "boolean",
+                  "description": "true when the dependency is deduced rather than stated. Inferred dependencies need human confirmation."
+                }
+              }
+            }
+          },
+          "open_questions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What the source failed to say about this feature. Feeds est-estimate's range-narrowing question list."
+          },
+          "epic_id": {
+            "type": "string",
+            "description": "The epic this story belongs to. Planning is priced per epic, so this is what stops the estimate inventing an epic count from a ratio when the source already grouped the work."
+          },
+          "surfaces": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "enum": [
+                "backend",
+                "frontend",
+                "design",
+                "infra",
+                "data"
+              ]
+            },
+            "description": "Which kinds of work this story touches. It decides which roles are billed to it: a role whose surface is absent is dropped from the split entirely, which is what keeps BA and UX hours off a pure backend task. Omitting it is not a way to say 'none' — an untagged story keeps every role, because silence must not quietly discount."
+          },
+          "tasks": {
+            "type": "array",
+            "description": "The source rows this story was assembled from. A spreadsheet line is an acceptance criterion, not an estimable unit; pricing one per row multiplied a backlog into a project. The rows still have to be here, because a reviewer verifies the inventory against the client's own document line by line, and that is only possible if every line still appears.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "citations"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "citations": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "At least one. A feature with no citation is invented scope.",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "source_id",
+                      "location",
+                      "quote"
+                    ],
+                    "properties": {
+                      "source_id": {
+                        "type": "string",
+                        "pattern": "^S[0-9]+$"
+                      },
+                      "location": {
+                        "type": "string",
+                        "description": "Section heading, page, sheet+row, or transcript timestamp"
+                      },
+                      "quote": {
+                        "type": "string",
+                        "description": "Verbatim source text, translated into the working language when the source is not in it"
+                      },
+                      "quote_original": {
+                        "type": "string",
+                        "description": "Required when the source language differs from the working language. The untranslated text, so a reader who speaks the source language can verify the extraction."
+                      },
+                      "quote_language": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this work is certain to happen although no passage asks for it — the sentence in the source that implies it, or the delivery fact that makes it unavoidable. This replaces the citation, and it is required for exactly that reason: work with neither a quote nor a reason is invented scope."
+          }
+        }
       }
     }
   },
-
   "$defs": {
     "signal": {
       "type": "object",
-      "required": ["value", "why"],
+      "required": [
+        "value",
+        "why"
+      ],
       "properties": {
-        "value": { "type": "string" },
-        "why": { "type": "string", "description": "One line, citing what in the sources decided it. A signal without a reason is the same black box as a tag without one — and it carries more weight, since it sets the width of the whole estimate." },
-        "status": { "type": "string", "enum": ["inferred", "confirmed", "overridden"] }
-      }
-    },
-
-    "tag": {
-      "type": "object",
-      "required": ["value", "why", "status"],
-      "properties": {
-        "value": { "type": "string" },
-        "why": { "type": "string", "description": "One line. A tag without a reason is a black box coefficient, which this module does not ship." },
+        "value": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string",
+          "description": "One line, citing what in the sources decided it. A signal without a reason is the same black box as a tag without one — and it carries more weight, since it sets the width of the whole estimate."
+        },
         "status": {
           "type": "string",
-          "enum": ["inferred", "confirmed", "overridden"],
+          "enum": [
+            "inferred",
+            "confirmed",
+            "overridden"
+          ]
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "required": [
+        "value",
+        "why",
+        "status"
+      ],
+      "properties": {
+        "value": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string",
+          "description": "One line. A tag without a reason is a black box coefficient, which this module does not ship."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "inferred",
+            "confirmed",
+            "overridden"
+          ],
           "description": "inferred: set by extraction. confirmed: a human agreed. overridden: a human changed it. Re-extraction must never downgrade confirmed or overridden back to inferred."
         },
         "triggers": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "For review_tier: the source phrases that raised the tier, quoted."
         }
       }

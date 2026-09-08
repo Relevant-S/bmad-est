@@ -215,5 +215,41 @@ class TestResolve(unittest.TestCase):
         self.assertEqual(key, "model_risk")
 
 
+class Backups(unittest.TestCase):
+    """A reversal must always be possible, and the directory must stay readable."""
+
+    def model(self, tmp):
+        path = Path(tmp) / "cost-model.json"
+        path.write_text('{"schema_version": "2.0"}', encoding="utf-8")
+        return path
+
+    def test_a_second_run_on_the_same_day_does_not_overwrite_the_first_backup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.model(tmp)
+            first, _ = ap.take_backup(path, "2026-09-08")
+            path.write_text('{"schema_version": "2.0", "changed": 1}', encoding="utf-8")
+            second, _ = ap.take_backup(path, "2026-09-08")
+            self.assertNotEqual(first, second)
+            self.assertNotIn("changed", first.read_text())
+
+    def test_backups_are_pruned_rather_than_accumulating_forever(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.model(tmp)
+            for _ in range(15):
+                ap.take_backup(path, "2026-09-08", keep=5)
+            self.assertEqual(len(list(Path(tmp).glob("cost-model.*.bak.json"))), 5)
+
+    def test_pruning_keeps_the_most_recent_and_says_what_it_removed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.model(tmp)
+            for _ in range(4):
+                ap.take_backup(path, "2026-09-08", keep=2)
+            _, pruned = ap.take_backup(path, "2026-09-08", keep=2)
+            self.assertTrue(pruned)
+            kept = sorted(p.name for p in Path(tmp).glob("cost-model.*.bak.json"))
+            self.assertEqual(len(kept), 2)
+            self.assertNotIn(pruned[-1], kept)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -68,6 +68,15 @@ def run(inv, completeness=0.6, **over):
     return est.build_estimate(inv, MODEL, opts)
 
 
+def extracted(estimate):
+    """The features that came from the source, without the standing setup work.
+
+    Cases about how the cost model treats extracted scope have to exclude it: standing work
+    is a constant added to both sides of every comparison, so leaving it in turns a claim
+    about review tiers into a statement about the size of the setup catalogue."""
+    return [f for f in estimate["features"] if f.get("origin") != "standing"]
+
+
 def rel_band(e):
     t = e["total_hours"]
     return (t["high"] - t["low"]) / 2 / t["likely"]
@@ -97,18 +106,21 @@ def case_compression_does_not_rescue_sensitive_work():
     """The module's central claim, at inventory scale rather than per feature."""
     routine = run(inventory("Routine", [feature(f"F{i}", f"CRUD {i}", tier="routine") for i in range(1, 9)]))
     sensitive = run(inventory("Sensitive", [feature(f"F{i}", f"Payments {i}", tier="sensitive") for i in range(1, 9)]))
-    r_review = routine["by_phase"]["review"]["hours"]
-    s_review = sensitive["by_phase"]["review"]["hours"]
-    r_features = sum(f["hours"] for f in routine["features"])
-    s_features = sum(f["hours"] for f in sensitive["features"])
+    # Phase totals include standing work's own review, which is the same on both sides and
+    # would flatten the ratio the claim is about. Compare the extracted scope's review.
+    r_review = sum(f["component_hours"]["review"] for f in extracted(routine))
+    s_review = sum(f["component_hours"]["review"] for f in extracted(sensitive))
+    r_features = sum(f["hours"] for f in extracted(routine))
+    s_features = sum(f["hours"] for f in extracted(sensitive))
     ratio_features = s_features / r_features
     ratio_total = sensitive["total_hours"]["likely"] / routine["total_hours"]["likely"]
     return sensitive, [
         ("identical build hours despite very different totals",
-         abs(routine["by_phase"]["build"]["hours"] - sensitive["by_phase"]["build"]["hours"]) < 0.5),
+         abs(sum(f["component_hours"]["build"] for f in extracted(routine))
+             - sum(f["component_hours"]["build"] for f in extracted(sensitive))) < 0.5),
         ("review is over four times higher for the sensitive scope", s_review > 4 * r_review),
         ("review outweighs build once the work is sensitive",
-         s_review > sensitive["by_phase"]["build"]["hours"]),
+         s_review > sum(f["component_hours"]["build"] for f in extracted(sensitive))),
         ("feature work costs far more when the scope is sensitive", ratio_features > 1.7),
         # Project-level costs do not care about review tier, so a per-feature effect always
         # arrives diluted at the total. Anyone quoting the feature-level multiple as a project
@@ -148,9 +160,12 @@ def case_mostly_additional_scope():
     return e, [
         ("both scopes are reported, never merged", agreed and extra),
         ("additional scope dominates", extra["apportioned_hours"] > agreed["apportioned_hours"]),
+        # Every scope group, not just the two commercial ones: standing work is its own
+        # group now, and an assertion that quietly ignored it would stop noticing the day
+        # apportionment lost a group.
         ("apportioned shares sum to the total",
-         abs(agreed["apportioned_hours"] + extra["apportioned_hours"]
-             - e["total_hours"]["likely"]) < 1.0),
+         abs(sum(g["apportioned_hours"] for k, g in e["scope_split"].items()
+                 if not k.startswith("_")) - e["total_hours"]["likely"]) < 1.0),
         ("dropping the additions saves less than their apportioned share",
          agreed["standalone_hours"] > agreed["apportioned_hours"]),
     ]
@@ -191,7 +206,7 @@ def case_missing_citations():
         ("the uncited feature is named in the findings",
          any("F2" in f and "no citation" in f for f in e["traceability"]["findings"])),
         ("it is still priced, so the problem is visible rather than hidden",
-         len(e["features"]) == 2),
+         len(extracted(e)) == 2),
     ]
 
 

@@ -219,6 +219,12 @@ def cutline(baseline, scope, model, options, est, target):
 
     candidates = []
     for feature in features:
+        if feature.get("origin") == "standing":
+            # Setup, pipeline and environment work is not scope a client declines line by
+            # line — offering it as a saving would put "skip the deployment pipeline" in a
+            # negotiation next to "drop the reporting screen". It goes or stays as a whole,
+            # through est-estimate's --no-standing-work.
+            continue
         group = sorted(closure([feature["id"]], features))
         if len(group) == len(features):
             # Dropping this takes the whole project with it; there is nothing left to price.
@@ -327,7 +333,7 @@ def cutline(baseline, scope, model, options, est, target):
     if achieved > target:
         unreachable = (
             f"{target}h is below what this scope can reach. Cutting everything droppable leaves "
-            f"{round(achieved, 1)}h, because planning, environments, QA and client overhead are "
+            f"{round(achieved, 1)}h, because planning, standing setup work, QA and client overhead are "
             f"paid on whatever ships. The conversation is about a different scope, not a smaller "
             f"version of this one."
         )

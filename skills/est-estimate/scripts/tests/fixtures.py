@@ -16,7 +16,8 @@ def tag(value, why="because", status="inferred"):
 
 
 def feature(fid="F1", name="A feature", size="M", compressibility="high",
-            review_tier="routine", clarity="medium", novelty="standard", **overrides):
+            review_tier="routine", clarity="medium", novelty="standard",
+            surfaces=("backend", "frontend", "design", "infra", "data"), **overrides):
     base = {
         "id": fid,
         "name": name,
@@ -30,9 +31,12 @@ def feature(fid="F1", name="A feature", size="M", compressibility="high",
             "clarity": tag(clarity),
             "novelty": tag(novelty),
         },
+        "surfaces": list(surfaces) if surfaces is not None else None,
         "depends_on": [],
         "open_questions": [],
     }
+    if base["surfaces"] is None:
+        del base["surfaces"]
     base.update(copy.deepcopy(overrides))
     return base
 

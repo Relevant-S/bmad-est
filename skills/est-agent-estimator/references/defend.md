@@ -32,6 +32,10 @@ total_hours → by_phase / features[].hours → features[].dominant_component
 
 The coefficient step lives in `estimate.json`, not the brief: `features[].component_hours` splits a feature into build, spec, review and rework, and `cost_model_snapshot` holds the rate each tag selected, with its own `why`. Reach for them when someone asks why a tag costs what it costs — that is the link the chain would otherwise skip.
 
+**"Who actually does this work?" is answered per story, not per project.** `features[].by_role` in the brief carries the split for each line, and a role missing from it is not a rounding artefact — it is a role the story's `surfaces` say is not on this work. A backend job bills no designer, and saying so is more convincing than a project-level pie chart. The architect never appears against a story: story review is developer work, and the architect's hours sit in `project_components` where the planning and coordination are.
+
+**Two kinds of line are not the client's scope, and both say so on their own row.** `origin: standing` is setup, pipeline, environment and release work that every project pays and no document describes — it is in `standing_work` with its own total, and `--no-standing-work` removes the whole block if the client is bringing a platform. `origin: implicit` is work this project's own source implies without stating; its `rationale` is what stands where a quote normally would. Neither is folded into the total silently, and neither should be offered as a scope cut.
+
 `why.<axis>.status` tells you how much weight the tag deserves: `confirmed` and `overridden` were decided by a human, `inferred` was not. An inferred `sensitive` tag on a feature carrying 40% of the review hours is the first thing to check when a number looks wrong.
 
 Two questions come up constantly and both have real answers rather than apologies:
@@ -143,7 +147,7 @@ uv run scripts/scenario.py {memory}/ledger/<id>.json --add-file change-request.j
 
 `--to-budget` proposes cuts, each figure a genuine re-price, in an order that puts the easiest conversation first: outside the agreed scope, then speculative, then implied, then committed. Read three fields before you present anything.
 
-`restored_as_unnecessary` lists cuts the greedy walk took and then put back because the budget did not need them. `candidates` is the full table with each feature's dependency closure and true saving — that is where you find the alternative the ordering did not pick, and the person you are talking to knows what is worth keeping far better than the priority rules do. `unreachable_reason` appears when no cut reaches the target, because planning, environments, QA and overhead are paid on whatever ships; when it appears, say so directly. A budget below the floor is a different project, and pretending otherwise sells work nobody can deliver.
+`restored_as_unnecessary` lists cuts the greedy walk took and then put back because the budget did not need them. `candidates` is the full table with each feature's dependency closure and true saving — that is where you find the alternative the ordering did not pick, and the person you are talking to knows what is worth keeping far better than the priority rules do. `unreachable_reason` appears when no cut reaches the target, because planning, standing setup work, QA and overhead are paid on whatever ships; when it appears, say so directly. A budget below the floor is a different project, and pretending otherwise sells work nobody can deliver.
 
 ## Sanity-check a human's number
 

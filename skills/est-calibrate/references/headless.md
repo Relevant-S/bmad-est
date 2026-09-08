@@ -4,7 +4,7 @@ An unattended run of `est-calibrate` — a scheduled accuracy check, or a call f
 
 Headless holds for the whole run once recognised: no TTY, a programmatic caller, `-H`, or every input supplied up front.
 
-`{workspace}` below is `{output_folder}/estimates/calibration/{date}/` — one folder per run, holding the analysis, the backtests, the reports and the memlog.
+`{workspace}` below is `{output_folder}/calibration/{date}/` — one folder per run, holding the analysis, the backtests, the reports and the memlog.
 
 ## The one rule
 
@@ -34,7 +34,7 @@ Log every inference as a memlog `assumption`, especially any actuals attribution
   "band_hit_rate": 0.71,
   "median_error_pct": 22.9,
   "direction": "under-estimating",
-  "report": "{output_folder}/estimates/calibration/accuracy-report.md",
+  "report": "{workspace}/accuracy-report.md",
   "analysis": "{workspace}/analysis.json",
   "backtest": "{workspace}/backtest.json",
   "memlog": "{workspace}/.memlog.md",

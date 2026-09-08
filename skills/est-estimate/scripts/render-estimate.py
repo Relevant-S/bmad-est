@@ -109,15 +109,23 @@ def markdown(est, show_manual_baseline=False):
         out += ["", "## Calendar duration — derived, not a commitment", "",
                 f"**{d['weeks']} weeks.** {d['basis']}", ""]
 
+    # Role columns are the point of the table, not a decoration: "9h" invites a haggle,
+    # "9h = dev 6.1, ba 1.5, ux 1.4" invites a conversation about who is doing what.
+    roles = sorted({r for f in est["features"] for r in (f.get("by_role") or {})})
     out += ["", "## Features", "",
-            "| ID | Feature | Size | Compress | Review | Clarity | Hours | Source |",
-            "| --- | --- | --- | --- | --- | --- | ---: | --- |"]
+            "| ID | Feature | Size | Compress | Review | Clarity | Hours | "
+            + "".join(f"{r} | " for r in roles) + "Source |",
+            "| --- | --- | --- | --- | --- | --- | ---: | " + "---: | " * len(roles) + "--- |"]
     for f in est["features"]:
         cites = "; ".join(f"{c['source_id']} {c['location']}" for c in f["citations"]) or "—"
-        scope = " *(outside agreed scope)*" if f.get("scope_status") not in (None, "in_agreed_scope") else ""
+        scope = {"outside_agreed_scope": " *(outside agreed scope)*",
+                 "standing_work": " *(standing work — every project pays it)*",
+                 }.get(f.get("scope_status"), "")
+        split = f.get("by_role") or {}
+        cells = "".join(f"{split[r]:,.1f} | " if split.get(r) else "— | " for r in roles)
         out.append(f"| {f['id']} | {f['name']}{scope} | {f['tags']['size_band']} | "
                    f"{f['tags']['compressibility']} | {f['tags']['review_tier']} | "
-                   f"{f['tags']['clarity']} | {f['hours']:,.0f} | {cites} |")
+                   f"{f['tags']['clarity']} | {f['hours']:,.0f} | {cells}{cites} |")
 
     out += ["", "## Assumptions", ""] + [f"- {a}" for a in est["assumptions"]]
 
@@ -168,7 +176,9 @@ def brief(est):
             "id": f["id"],
             "name": f["name"],
             "hours": f["hours"],
+            "by_role": f.get("by_role") or {},
             "scope_status": f.get("scope_status") or "in_agreed_scope",
+            "origin": f.get("origin") or "extracted",
             "dominant_component": dominant(f),
             "why": {axis: {"value": f["tags"][axis], "why": (f.get("tag_why") or {}).get(axis),
                            "status": (f.get("tag_status") or {}).get(axis)}
@@ -180,9 +190,10 @@ def brief(est):
 
 
 def write_csv(est, target):
+    role_columns = sorted({r for f in est["features"] for r in (f.get("by_role") or {})})
     columns = ["id", "name", "scope_status", "commitment", "size_band", "compressibility",
                "review_tier", "clarity", "novelty", "hours", "sd", "build", "spec", "review",
-               "rework", "depends_on", "sources"]
+               "rework", "epic_id", "origin", *role_columns, "depends_on", "sources"]
     with open(target, "w", newline="", encoding="utf-8-sig") as fh:
         writer = csv.DictWriter(fh, fieldnames=columns)
         writer.writeheader()
@@ -195,13 +206,17 @@ def write_csv(est, target):
                    ("size_band", "compressibility", "review_tier", "clarity", "novelty")},
                 "hours": f["hours"], "sd": f["sd"],
                 **{k: v for k, v in f["component_hours"].items()},
+                "epic_id": f.get("epic_id") or "",
+                "origin": f.get("origin") or "extracted",
+                **{r: (f.get("by_role") or {}).get(r, 0) for r in role_columns},
                 "depends_on": "; ".join(f.get("depends_on") or []),
                 "sources": "; ".join(f"{c['source_id']} {c['location']}" for c in f["citations"]),
             })
         # Project-level lines belong in the sales sheet too: they are real hours someone pays for.
         for name, row in est["project_components"].items():
             writer.writerow({"id": "—", "name": f"[project] {name.replace('_', ' ')}",
-                             "scope_status": "project-wide", "hours": row["hours"], "sd": row["sd"]})
+                             "scope_status": "project-wide", "hours": row["hours"], "sd": row["sd"],
+                             "origin": "project"})
         writer.writerow({"id": "—", "name": "[total] likely", "hours": est["total_hours"]["likely"]})
         writer.writerow({"id": "—", "name": "[total] low", "hours": est["total_hours"]["low"]})
         writer.writerow({"id": "—", "name": "[total] high", "hours": est["total_hours"]["high"]})
@@ -269,6 +284,9 @@ def main():
             "stack": args.stack or recorded.get("stack", "standard_saas"),
             "qa_platform": args.qa_platform or recorded.get("qa_platform", "web"),
             "engagement": args.engagement or recorded.get("engagement", "standard"),
+            # Overhead is priced per person per week, so the page cannot recompute it
+            # without the team size the document assumed.
+            "team_size": recorded.get("team_size"),
         })
         written.append(str(target))
 

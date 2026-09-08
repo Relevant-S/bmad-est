@@ -17,6 +17,11 @@ sc = fx.scenario_module()
 
 
 def priced(features=None, **kw):
+    # Standing work off by default here. It is an uncuttable floor of setup, pipeline and
+    # environment hours, which is correct in an estimate and noise in a test about the cut-line
+    # walk — it would make every budget assertion a statement about the catalogue's size. The
+    # tests that care about the floor turn it back on.
+    kw.setdefault("no_standing_work", True)
     return fx.estimate(features=features, **kw)
 
 
@@ -54,6 +59,20 @@ def chain_features():
     feats = [fx.feature(fid, **kw) for fid, kw in CHAIN]
     feats.append(fx.depends("F3", "F1", size="S"))
     return feats
+
+
+class StandingWorkFloor(unittest.TestCase):
+    """Setup, pipeline and environment work is not scope a client declines line by line."""
+
+    def test_standing_work_is_never_offered_as_a_cut(self):
+        cut = run(fx.estimate(features=chain_features()), to_budget=50.0)["cutline"]
+        offered = {c["id"] for c in cut["candidates"]}
+        self.assertFalse({i for i in offered if i.startswith("SW-")}, offered)
+
+    def test_a_budget_under_the_standing_floor_says_so_rather_than_cutting_the_pipeline(self):
+        cut = run(fx.estimate(features=chain_features()), to_budget=1.0)["cutline"]
+        self.assertFalse(cut["under_target"])
+        self.assertIn("standing setup work", cut["unreachable_reason"])
 
 
 class Parity(unittest.TestCase):
@@ -194,6 +213,7 @@ class Decomposable(unittest.TestCase):
         result = run(priced(chain_features()), retag=["F1:review_tier=routine"])
         features = result["scenario_estimate"]["features"]
         self.assertEqual({f["id"] for f in features}, {"F1", "F2", "F3", "F4"})
+        self.assertTrue(all(f.get("hours") is not None for f in features))
         moved = next(f for f in features if f["id"] == "F1")
         self.assertLess(moved["change"], 0)
         self.assertEqual(moved["hours"], round(moved["was"] + moved["change"], 1))

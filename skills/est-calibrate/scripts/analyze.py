@@ -24,6 +24,7 @@ import argparse
 import json
 import math
 import statistics
+import subprocess
 import sys
 from pathlib import Path
 
@@ -113,6 +114,33 @@ def outliers(values, threshold=3.0):
 
 
 # --- loading -----------------------------------------------------------------
+
+def configured_min_samples(project_root, fallback=3):
+    """The threshold the operator actually set.
+
+    est-setup collects `est_min_calibration_samples` and describes it as how many delivered
+    projects it takes before a pattern counts as more than a weak signal. Nothing read it, so
+    the number in the config file was decoration and the real threshold was a default in this
+    argparse line — a setting that does nothing is worse than one that is absent, because it
+    tells the operator they have made a choice.
+    """
+    resolver = Path(project_root) / "_bmad" / "scripts" / "resolve_config.py"
+    if not resolver.exists():
+        return fallback
+    try:
+        proc = subprocess.run([sys.executable, str(resolver), "-p", str(project_root)],
+                              capture_output=True, text=True, timeout=30)
+        if proc.returncode != 0:
+            return fallback
+        config = json.loads(proc.stdout)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return fallback
+    value = config.get("modules.est.est_min_calibration_samples")
+    try:
+        return max(1, int(value))
+    except (TypeError, ValueError):
+        return fallback
+
 
 def load_ledger(ledger_dir):
     entries = []
@@ -516,7 +544,7 @@ def readiness(entries):
              "have": sum(1 for e in with_actuals),
              "need": 4},
             {"capture": "Hours split by BMad phase",
-             "unlocks": "planning review, planning, environments, QA and overhead coefficients directly",
+             "unlocks": "planning review, planning, standing work, QA and overhead coefficients directly",
              "why": "Each of those phases maps to one coefficient family, so a consistent ratio "
                     "is a proposal rather than an inference.",
              "have": sum(1 for e in with_actuals if e["ledger"]["actuals"].get("by_phase")),
@@ -605,8 +633,11 @@ def main():
     ap.add_argument("--ledger", required=True, help="ledger directory written by est-estimate")
     ap.add_argument("--cost-model", required=True, help="current cost-model.json")
     ap.add_argument("-o", "--output", help="write the analysis JSON here instead of stdout")
-    ap.add_argument("--min-samples", type=int, default=3,
-                    help="delivered projects required before a coefficient change is proposed (default 3)")
+    ap.add_argument("--min-samples", type=int, default=None,
+                    help="delivered projects required before a coefficient change is proposed. "
+                         "Defaults to est_min_calibration_samples from the project config, or 3.")
+    ap.add_argument("--project-root", default=".",
+                    help="project root, used to resolve est_min_calibration_samples (default: .)")
     ap.add_argument("--min-projects-for-regression", type=int, default=8,
                     help="projects required before per-tier coefficients can be fitted from totals (default 8)")
     ap.add_argument("--mix-margin", type=float, default=DEFAULT_MIX_MARGIN,
@@ -620,6 +651,8 @@ def main():
                     help="how far a phase's actual-to-estimated ratio must sit from 1.0 before it "
                          "is worth proposing (default 0.12)")
     args = ap.parse_args()
+    if args.min_samples is None:
+        args.min_samples = configured_min_samples(args.project_root)
 
     model_path = Path(args.cost_model)
     if not model_path.exists():

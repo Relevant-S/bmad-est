@@ -97,6 +97,59 @@ def combine(components):
 
 # --- per-feature costing ----------------------------------------------------
 
+def surfaces_of(feature):
+    """Which kinds of work a story touches, or None when the inventory never said.
+
+    None means "unknown", and unknown keeps every conditional role in — so an inventory
+    written before surfaces existed prices exactly as it used to instead of silently
+    shedding the roles it never got the chance to declare.
+    """
+    node = (feature.get("tags") or {}).get("surfaces")
+    if isinstance(node, dict):
+        node = node.get("value")
+    if node is None:
+        node = feature.get("surfaces")
+    if node is None:
+        return None
+    return sorted({node} if isinstance(node, str) else {str(x) for x in node})
+
+
+def standing_features(model, options):
+    """The work every project pays that no client document describes.
+
+    Returned in the same shape as an extracted feature so it is priced by the same engine,
+    carries the same band and role split, and lands in the same table — where a client can
+    argue with it item by item. It has no citation, and that is the point: inventing a
+    citation for it would be worse than admitting it has none, so it carries `origin` and
+    the coefficient's own `why` instead, and `traceability()` checks for those.
+    """
+    if options.get("no_standing_work"):
+        return []
+    stack, out = options["stack"], []
+    for key, spec in (model["standing_work"]["items"]).items():
+        stacks = spec["stacks"]
+        if stacks != "all" and stack not in stacks:
+            continue
+        out.append({
+            "id": f"SW-{key}",
+            "name": spec["name"],
+            "description": spec["why"],
+            "origin": "standing",
+            "rationale": spec["why"],
+            "citations": [],
+            "commitment": "committed",
+            # Its own scope group. Labelling it "outside agreed scope" would put setup and
+            # pipeline work in the column a client reads as "things we tried to add".
+            "scope_status": "standing_work",
+            "tags": {axis: {"value": spec[axis], "why": spec["reasons"][axis],
+                            "status": "standing"} for axis in AXES},
+            "surfaces": spec["surfaces"],
+            "depends_on": [],
+            "open_questions": [],
+        })
+    return out
+
+
 def price_feature(feature, model, team):
     """Cost one feature. Returns its components and the inputs that produced them."""
     tags = feature.get("tags", {})
@@ -122,6 +175,9 @@ def price_feature(feature, model, team):
     return {
         "id": feature.get("id"),
         "name": feature.get("name"),
+        "epic_id": feature.get("epic_id"),
+        "origin": feature.get("origin") or "extracted",
+        "surfaces": surfaces_of(feature),
         "scope_status": feature.get("scope_status") or "in_agreed_scope",
         "commitment": feature.get("commitment"),
         "tags": {a: value(a) for a in AXES},
@@ -130,6 +186,10 @@ def price_feature(feature, model, team):
         "citations": [{"source_id": c.get("source_id"), "location": c.get("location"),
                        "quote": c.get("quote")} for c in feature.get("citations", [])],
         "open_questions": feature.get("open_questions", []),
+        "tasks": [{"id": t.get("id"), "name": t.get("name"),
+                   "citations": [{"source_id": c.get("source_id"), "location": c.get("location"),
+                                  "quote": c.get("quote")} for c in t.get("citations", [])]}
+                  for t in feature.get("tasks", [])],
         "depends_on": [d.get("feature_id") for d in feature.get("depends_on", [])],
         "manual_baseline": manual,
         "components": {"build": build, "spec": spec, "review": review, "rework": rework},
@@ -146,11 +206,25 @@ def plan_volume(priced, model, granularity):
     so planning_review_h — the estimate's high-confidence anchor — never depends on
     anyone's recollection of how many stories a project like this usually has.
     """
+    # Standing work is excluded: setting up a pipeline does not get a PRD section, an epic or
+    # a story, so counting it here would bill planning artefacts that will never be written.
+    priced = [f for f in priced if f.get("origin") != "standing"]
     per_size = model["planning"]["stories_per_feature"]
     stories = sum(per_size.get(f["tags"]["size_band"], 1) for f in priced)
-    epics = math.ceil(len(priced) / model["planning"]["features_per_epic"]) if priced else 0
+    grouped = {f["epic_id"] for f in priced if f.get("epic_id")}
+    if grouped:
+        # The source grouped the work itself. Dividing the story count by a rule of thumb
+        # instead invents a different number for a fact already on the page — and planning is
+        # priced per epic, so the invented number goes straight into the bill. Kampies' BA
+        # had written 56 epics; the ratio produced 99, and every per-epic hour was billed
+        # against the difference. Counting the epics actually represented also keeps the
+        # interactive report honest: drop every story in an epic and the epic stops costing.
+        epics, epics_from = len(grouped), "counted from the stories' own epics"
+    else:
+        epics = math.ceil(len(priced) / model["planning"]["features_per_epic"]) if priced else 0
+        epics_from = f"derived: {len(priced)} stories / {model['planning']['features_per_epic']} per epic"
     documents = model["planning"]["documents_by_granularity"].get(granularity, [])
-    return {"epics": epics, "stories": stories, "documents": documents}
+    return {"epics": epics, "epics_from": epics_from, "stories": stories, "documents": documents}
 
 
 def planning_cost(volume, model, key):
@@ -161,42 +235,112 @@ def planning_cost(volume, model, key):
     return add(*parts)
 
 
+def overhead_cost(model, options, span):
+    """Ceremony, demos and client comms — priced per person per week, not per hour of scope.
+
+    A status call recurs on the calendar, not on the backlog. Charged as a share of the
+    subtotal it inherited every scope error the estimate made: a scope counted ten times
+    over billed ten times the meetings, which is how a granularity mistake turned into a
+    commercial one. The implied percentage is still reported, as a cross-check rather than
+    as the basis.
+    """
+    rates = model["overhead_rate"]
+    if rates.get("basis") != "hours_per_person_week":
+        raise ValueError(
+            "this cost model prices overhead as a share of the subtotal, which this engine no "
+            "longer does — overhead is now weeks x people x hours/week. Run "
+            "scripts/migrate-cost-model.py against the model to convert it."
+        )
+    return mul(tp(rates, options["engagement"]),
+               scale(span["weeks_three_point"], span["assumed_team_size"]))
+
+
+def overhead_check(priced, project, span):
+    """What the duration-based overhead works out to as a share of everything else.
+
+    Reported so the change of basis stays auditable against the percentages people carry in
+    their heads. It is a division of two numbers already computed, not a second way of
+    arriving at the overhead.
+    """
+    others = sum(pert(v)[0] for name, v in project.items() if name != "overhead")
+    subtotal = sum(pert(f["total"])[0] for f in priced) + others
+    overhead = pert(project["overhead"])[0]
+    return {
+        "hours": round(overhead, 1),
+        "implied_pct_of_subtotal": round(100 * overhead / subtotal, 1) if subtotal else None,
+        "basis": (f"{span['weeks']} weeks ({span['weeks_range'][0]}–{span['weeks_range'][1]}) "
+                  f"x {span['assumed_team_size']} people"),
+    }
+
+
 def project_components(priced, model, granularity, options):
+    """The costs no feature list contains, plus the single duration everything else reads.
+
+    Duration is computed here rather than by the caller because overhead now depends on it,
+    and a second derivation of the same weeks would be a second answer to the same question.
+    """
     volume = plan_volume(priced, model, granularity)
     manual_total = add(*[f["manual_baseline"] for f in priced]) if priced else (0.0, 0.0, 0.0)
 
     components = {
         "planning_agent": planning_cost(volume, model, "agent_hours"),
         "planning_review": planning_cost(volume, model, "review_hours"),
-        "env_infra": tp(model, "env_infra", options["stack"]),
         "qa": mul(manual_total, tp(model, "qa", options["qa_platform"])),
     }
-    feature_total = add(*[f["total"] for f in priced]) if priced else (0.0, 0.0, 0.0)
-    subtotal = add(feature_total, *components.values())
-    components["overhead"] = mul(subtotal, tp(model, "overhead_rate", options["engagement"]))
-    return components, volume, manual_total
+    path = critical_path(priced)
+    span = duration(priced, components, model, path, options["team_size"])
+    components["overhead"] = overhead_cost(model, options, span)
+    return components, volume, manual_total, path, span
 
 
 # --- splits ------------------------------------------------------------------
 
-def by_role(priced, project, model):
-    """Allocate every component's hours across roles, then report role means."""
-    weights = model["role_weights"]
+def component_roles(model, component, surfaces):
+    """Which roles are on this component, and in what share.
+
+    A weight entry may name a `requires` surface. When the story does not have that surface
+    the role is dropped and the survivors renormalise, so a pure backend story bills no UX
+    and no design story bills devops — while the shares still sum to 1, which is what keeps
+    the role split an allocation of the total rather than an adjustment to it.
+    """
+    entries = {}
+    for role, node in model["role_weights"][component].items():
+        if role.startswith("_"):
+            continue
+        weight = node["w"] if isinstance(node, dict) else node
+        requires = node.get("requires") if isinstance(node, dict) else None
+        if requires and surfaces is not None and requires not in surfaces:
+            continue
+        entries[role] = float(weight)
+    total = sum(entries.values())
+    if not total:
+        raise ValueError(
+            f"role_weights.{component} leaves nobody on the work for surfaces "
+            f"{sorted(surfaces or [])} — every component needs at least one unconditional role"
+        )
+    return {role: weight / total for role, weight in entries.items()}
+
+
+def feature_roles(feature, model):
+    """Role hours for one story, so a line item can be defended role by role."""
+    surfaces = feature.get("surfaces")
+    surfaces = set(surfaces) if surfaces else None
     totals = {}
-
-    def apply(value, key):
-        for role, share in weights[key].items():
+    for component, value in feature["components"].items():
+        for role, share in component_roles(model, component, surfaces).items():
             totals[role] = totals.get(role, 0.0) + pert(value)[0] * share
+    return totals
 
+
+def by_role(priced, project, model):
+    """Project role totals — the sum of the per-story splits plus the project components."""
+    totals = {}
     for feature in priced:
-        apply(feature["components"]["build"], "build")
-        apply(feature["components"]["spec"], "spec")
-        tier = feature["tags"]["review_tier"]
-        apply(feature["components"]["review"],
-              "review_routine" if tier == "routine" else "review_sensitive")
-        apply(feature["components"]["rework"], "rework")
+        for role, hours in feature_roles(feature, model).items():
+            totals[role] = totals.get(role, 0.0) + hours
     for name, value in project.items():
-        apply(value, name)
+        for role, share in component_roles(model, name, None).items():
+            totals[role] = totals.get(role, 0.0) + pert(value)[0] * share
     return {role: round(hours, 1) for role, hours in sorted(totals.items())}
 
 
@@ -250,7 +394,7 @@ def agreed_split(priced, project, model, options):
         share = manual_by_group[name] / manual_all
 
         # Standalone: recompute the project components for this group alone.
-        own_project, _, _ = project_components(features, model, options["granularity"], options)
+        own_project, *_ = project_components(features, model, options["granularity"], options)
         standalone_mean, _ = combine([f["total"] for f in features] + list(own_project.values()))
 
         out[name] = {
@@ -304,19 +448,31 @@ def critical_path(priced):
 
 
 def duration(priced, project, model, path, team_size):
-    """Derived calendar duration. Secondary to hours and labelled as such everywhere."""
+    """Derived calendar duration. Secondary to hours and labelled as such everywhere.
+
+    Three-point, because overhead is now priced against it: a project that runs longer holds
+    more ceremony, so collapsing the schedule to a single number here would hand overhead a
+    certainty the schedule does not have and quietly narrow the whole band.
+    """
     cal = model["calendar"]
     people = min(team_size or cal["max_useful_parallelism"], cal["max_useful_parallelism"])
-    feature_hours = sum(pert(f["total"])[0] for f in priced)
+    feature_hours = add(*[f["total"] for f in priced]) if priced else (0.0, 0.0, 0.0)
     # Planning is a small-group serial prefix; it does not parallelise across a big team.
-    planning = pert(project["planning_agent"])[0] + pert(project["planning_review"])[0]
-    delivery = max(path["hours"], feature_hours / people) if people else feature_hours
-    weeks = (planning / min(people, 2) + delivery) / cal["hours_per_person_week"]
+    planning = add(project["planning_agent"], project["planning_review"])
+    weeks = tuple(
+        (planning[i] / min(people, 2) + (max(path["hours"], feature_hours[i] / people)
+                                         if people else feature_hours[i]))
+        / cal["hours_per_person_week"]
+        for i in range(3)
+    )
+    mean = pert(feature_hours)[0]
     return {
-        "weeks": round(weeks, 1),
+        "weeks": round(weeks[1], 1),
+        "weeks_range": [round(weeks[0], 1), round(weeks[2], 1)],
+        "weeks_three_point": weeks,
         "assumed_team_size": people,
         "critical_path_hours": path["hours"],
-        "parallelism_ceiling": round(feature_hours / path["hours"], 1) if path["hours"] else None,
+        "parallelism_ceiling": round(mean / path["hours"], 1) if path["hours"] else None,
         "basis": (f"{people} people at {cal['hours_per_person_week']}h/week, planning treated as a "
                   f"serial prefix. Derived from hours — not a commitment, and it moves with team shape."),
     }
@@ -336,7 +492,7 @@ def narrowing_questions(priced, project, model, options, baseline_band, limit=8)
         for feature in clone:
             mutate(feature)
         repriced = [price_feature(f, model, options["team"]) for f in clone]
-        components, _, _ = project_components(repriced, model, options["granularity"], options)
+        components, *_ = project_components(repriced, model, options["granularity"], options)
         *_, half = band_half_width([f["total"] for f in repriced] + list(components.values()),
                                    model, options["input_completeness"])
         return 2 * half
@@ -396,11 +552,18 @@ def traceability(inventory, priced):
         if fid not in priced_ids:
             findings.append(f"{fid}: in the inventory but not priced — every feature must be costed or explicitly excluded")
     for feature in priced:
+        if feature.get("origin") in ("standing", "implicit"):
+            if not feature["_raw"].get("rationale"):
+                findings.append(f"{feature['id']}: {feature['origin']} work with no rationale — "
+                                f"the one thing work standing in for a quote has to carry instead")
+            continue
         if not feature["citations"]:
             findings.append(f"{feature['id']}: priced but carries no citation — hours with no source behind them")
     return {
         "features_in_inventory": len(inventory_ids),
-        "features_priced": len(priced_ids),
+        "features_priced": sum(1 for f in priced if f.get("origin") == "extracted"),
+        "implicit_scope_priced": sum(1 for f in priced if f.get("origin") == "implicit"),
+        "standing_work_priced": sum(1 for f in priced if f.get("origin") == "standing"),
         "findings": findings,
     }
 
@@ -456,6 +619,9 @@ def options_from(estimate, model, overrides=None):
         "qa_platform": inputs.get("qa_platform") or "web",
         "engagement": inputs.get("engagement") or "standard",
         "team_size": inputs.get("team_size"),
+        # Recorded as a positive ("standing_work": true) and consumed as a negative, so an
+        # estimate priced without it re-prices without it rather than silently gaining it back.
+        "no_standing_work": inputs.get("standing_work") is False,
         "granularity": estimate.get("granularity", "project"),
         "input_completeness": float(completeness),
         "inventory_path": estimate.get("inventory") or "reprice",
@@ -477,31 +643,44 @@ def inventory_from(estimate):
     Priced features store tags flat with their reasons alongside; pricing wants them
     nested. That reshaping is the whole job.
     """
-    features = []
+    features, implicit = [], []
     for f in estimate.get("features", []):
+        # Standing work is regenerated from the cost model on the re-price, not carried over.
+        # Carrying it would add it a second time and report the duplicate as the effect of
+        # whatever was being tested — which is precisely what the parity gate exists to catch.
+        if f.get("origin") == "standing":
+            continue
         tags = {}
         for axis, value in (f.get("tags") or {}).items():
             tags[axis] = {"value": value,
                           "why": (f.get("tag_why") or {}).get(axis) or "from a priced estimate",
                           "status": (f.get("tag_status") or {}).get(axis) or "inferred"}
-        features.append({
+        entry = {
             "id": f["id"], "name": f.get("name", f["id"]),
             "description": f.get("name", ""),
             "citations": f.get("citations") or [{"source_id": "S1", "location": "ledger",
                                                  "quote": "recorded estimate"}],
             "commitment": f.get("commitment", "committed"),
             "scope_status": f.get("scope_status"),
+            "epic_id": f.get("epic_id"),
+            "surfaces": f.get("surfaces"),
             "tags": tags,
             "depends_on": [{"feature_id": d, "inferred": True} for d in (f.get("depends_on") or [])],
             "open_questions": f.get("open_questions", []),
-        })
+        }
+        if f.get("origin") == "implicit":
+            entry.pop("citations")
+            entry["rationale"] = f.get("description") or "carried from a priced estimate"
+            implicit.append(entry)
+        else:
+            features.append(entry)
     return {
         "schema_version": "1.0", "generated": estimate.get("generated"),
         "project": estimate.get("project"), "granularity": estimate.get("granularity", "project"),
         "working_language": "en",
         "sources": [{"id": "S1", "path": "ledger", "doc_type": "sow", "language": "en"}],
-        "features": features, "not_scope": [], "conflicts": [], "assumptions": [],
-        "completeness_signals": {},
+        "features": features, "implicit_scope": implicit,
+        "not_scope": [], "conflicts": [], "assumptions": [], "completeness_signals": {},
     }
 
 
@@ -509,8 +688,10 @@ def inventory_from(estimate):
 
 def build_estimate(inventory, model, options):
     features = inventory.get("features", [])
+    implicit = [dict(f, origin="implicit") for f in inventory.get("implicit_scope", [])]
+    standing = standing_features(model, options)
     priced = []
-    for raw in features:
+    for raw in features + implicit + standing:
         entry = price_feature(raw, model, options["team"])
         entry["_raw"] = raw
         priced.append(entry)
@@ -522,7 +703,8 @@ def build_estimate(inventory, model, options):
             "est-scope-extract first, or check that extraction actually found something."
         )
 
-    project, volume, manual_total = project_components(priced, model, options["granularity"], options)
+    project, volume, manual_total, path, span = project_components(
+        priced, model, options["granularity"], options)
     completeness = options["input_completeness"]
     unc = model["uncertainty"]
 
@@ -544,6 +726,7 @@ def build_estimate(inventory, model, options):
             "qa_platform": options["qa_platform"],
             "engagement": options["engagement"],
             "team_size": options["team_size"],
+            "standing_work": not options.get("no_standing_work"),
             "why": ("The profile inputs that produced these figures. Anything recomputing this "
                     "estimate — the interactive report especially — must use these, or its numbers "
                     "will silently disagree with the headline they sit under."),
@@ -569,21 +752,35 @@ def build_estimate(inventory, model, options):
         "assumptions": [
             f"Team profile: {options['team_name']} — modifiers applied to specification, review and rework only, not to build.",
             f"Stack profile: {options['stack']}. QA profile: {options['qa_platform']}. Engagement model: {options['engagement']}.",
-            f"Planning volume derived from the feature set: {volume['epics']} epics, {volume['stories']} stories, documents: {', '.join(volume['documents']) or 'none (inherited from the running project)'}.",
+            f"Planning volume: {volume['epics']} epics ({volume['epics_from']}), {volume['stories']} stories, documents: {', '.join(volume['documents']) or 'none (inherited from the running project)'}.",
+            f"Overhead priced as {span['weeks']} weeks ({span['weeks_range'][0]}–{span['weeks_range'][1]}) x {span['assumed_team_size']} people of ceremony, not as a share of scope.",
             "Cost model is UNCALIBRATED against this company's actuals; coefficients are reasoned starting points.",
-        ] + inventory.get("assumptions", []),
+        ] + [f"Classification quality: {w}" for w in options.get("inventory_warnings") or []]
+          + inventory.get("assumptions", []),
         "planning_volume": volume,
         "features": [
             {k: v for k, v in f.items() if k != "_raw"} | {
                 "hours": round(pert(f["total"])[0], 1),
                 "sd": round(pert(f["total"])[1], 1),
                 "component_hours": {k: round(pert(v)[0], 1) for k, v in f["components"].items()},
+                "by_role": {r: round(h, 1) for r, h in sorted(feature_roles(f, model).items()) if h},
             }
             for f in priced
         ],
         "project_components": {
             name: {"hours": round(pert(value)[0], 1), "sd": round(pert(value)[1], 1)}
             for name, value in project.items()
+        },
+        "overhead_check": overhead_check(priced, project, span),
+        "standing_work": {
+            "items": [{"id": f["id"], "name": f["name"], "hours": round(pert(f["total"])[0], 1),
+                       "why": f["_raw"]["rationale"]}
+                      for f in priced if f.get("origin") == "standing"],
+            "hours": round(sum(pert(f["total"])[0] for f in priced
+                               if f.get("origin") == "standing"), 1),
+            "why": ("Work no client document describes and every project pays. Added openly and "
+                    "priced through the same engine as the extracted scope, so it can be argued "
+                    "with item by item or suppressed with --no-standing-work."),
         },
         "by_phase": by_phase(priced, project, model),
         "by_role": by_role(priced, project, model),
@@ -598,7 +795,8 @@ def build_estimate(inventory, model, options):
             "why": ("Compares BUILD effort only, which is the one like-for-like comparison available: "
                     "manual_baseline is what a human team would have spent writing this code. It is "
                     "deliberately NOT compared against the project total, because planning, "
-                    "environments, QA and client overhead are costs a manual project pays too — "
+                    "standing setup work, QA and client overhead are costs a manual project pays "
+                    "too — "
                     "quoting an 8x build compression as though the project were 8x cheaper is exactly "
                     "the overclaim this module exists to avoid. Whole-project compression needs a full "
                     "manual counterfactual with its own coefficients, which this model does not have."),
@@ -615,9 +813,8 @@ def build_estimate(inventory, model, options):
     }
 
     if options["mode"] != "quick":
-        path = critical_path(priced)
         estimate["dependencies"] = path
-        estimate["duration"] = duration(priced, project, model, path, options["team_size"])
+        estimate["duration"] = {k: v for k, v in span.items() if k != "weeks_three_point"}
         estimate["narrowing_questions"] = narrowing_questions(
             priced, project, model, options, band)
 
@@ -638,6 +835,9 @@ def main():
     ap.add_argument("--qa-platform", default="web")
     ap.add_argument("--engagement", default="standard")
     ap.add_argument("--team-size", type=int, help="people available; caps parallelism for duration")
+    ap.add_argument("--no-standing-work", action="store_true",
+                    help="omit setup, pipeline, environment and release work — only when the "
+                         "client is bringing an existing platform that already has it")
     ap.add_argument("--check-report", metavar="PATH",
                     help="JSON output of est-scope-extract's inventory-check.py; supplies the "
                          "input completeness score and confirms the inventory validated")
@@ -653,7 +853,7 @@ def main():
         print(json.dumps({"ok": False, "error": str(exc)}, indent=2))
         return 2
 
-    completeness, check_findings = args.completeness, None
+    completeness, check_findings, check_warnings = args.completeness, None, []
     if args.check_report:
         try:
             report = json.loads(Path(args.check_report).read_text(encoding="utf-8"))
@@ -661,6 +861,7 @@ def main():
             print(json.dumps({"ok": False, "error": f"cannot read check report: {exc}"}, indent=2))
             return 2
         check_findings = report.get("findings", [])
+        check_warnings = report.get("warnings", [])
         if check_findings:
             # Pricing an inventory that does not validate produces a confident wrong number.
             print(json.dumps({
@@ -696,6 +897,8 @@ def main():
         "qa_platform": args.qa_platform,
         "engagement": args.engagement,
         "team_size": args.team_size,
+        "no_standing_work": args.no_standing_work,
+        "inventory_warnings": check_warnings,
         "granularity": inventory.get("granularity", "project"),
         "input_completeness": float(completeness),
         "inventory_path": args.inventory,

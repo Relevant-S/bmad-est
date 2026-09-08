@@ -428,7 +428,95 @@ def check_integrity(inv):
         if ns.get("source_id") not in source_ids:
             findings.append(f"not_scope[{i}]: source_id '{ns.get('source_id')}' is not in sources")
 
+    findings.extend(check_grouping(inv))
     findings.extend(f"dependency cycle: {' -> '.join(c)}" for c in find_cycles(features))
+    return findings
+
+
+SURFACES = {"backend", "frontend", "design", "infra", "data"}
+
+
+def check_grouping(inv):
+    """Epics, tasks and surfaces: the three things that decide how much the estimate invents.
+
+    Epics are billed per epic, tasks are what a reviewer checks the workbook against, and
+    surfaces are what keeps a role off work it does not do. Each is optional — an inventory
+    from a two-page brief has no epics to declare — but a half-declared one is worse than
+    neither, because the estimate silently mixes a declared count with a derived one.
+    """
+    findings = []
+    features = inv.get("features", [])
+    epics = inv.get("epics", [])
+    epic_ids = {e.get("id") for e in epics}
+
+    for i, epic in enumerate(epics):
+        if epic.get("origin") == "synthesised" and not (epic.get("why") or "").strip():
+            findings.append(f"epics[{i}] ({epic.get('id')}): synthesised but carries no 'why' — "
+                            f"a grouping the source did not make has to say on what basis it was made")
+
+    grouped = [f for f in features if f.get("epic_id")]
+    if epics and len(grouped) != len(features):
+        missing = [f.get("id") for f in features if not f.get("epic_id")][:5]
+        findings.append(
+            f"{len(features) - len(grouped)} stories carry no epic_id while {len(epics)} epics are "
+            f"declared (e.g. {', '.join(missing)}) — planning is priced per epic, so a partial "
+            f"grouping bills a count that matches neither the source nor the stories"
+        )
+    for f in grouped:
+        if epic_ids and f["epic_id"] not in epic_ids:
+            findings.append(f"{f.get('id')}: epic_id '{f['epic_id']}' is not a declared epic")
+
+    task_ids = {}
+    for f in features:
+        for i, task in enumerate(f.get("tasks", [])):
+            tid = task.get("id")
+            if tid in task_ids:
+                findings.append(f"{f.get('id')}.tasks[{i}]: task id '{tid}' is already used by "
+                                f"{task_ids[tid]} — a source row belongs to exactly one story, or "
+                                f"the work behind it is being counted twice")
+            task_ids[tid] = f.get("id")
+            if not task.get("citations"):
+                findings.append(f"{f.get('id')}.tasks[{i}] ({tid}): no citation — the whole point "
+                                f"of keeping the source rows is that they stay verifiable")
+
+    for f in features:
+        surfaces = f.get("surfaces")
+        if surfaces is None:
+            continue
+        unknown = [x for x in surfaces if x not in SURFACES]
+        if unknown:
+            findings.append(f"{f.get('id')}.surfaces: {unknown} not in {sorted(SURFACES)}")
+        if not surfaces:
+            findings.append(f"{f.get('id')}.surfaces: empty — omit the field to mean 'not "
+                            f"classified'. An empty list reads as 'no roles', which prices at zero")
+    return findings
+
+
+def check_boilerplate_tags(features, threshold=0.2, floor=20):
+    """A justification repeated across many features is a default wearing a reason.
+
+    The Kampies extraction tagged 385 of 795 features 'M' with the byte-identical sentence
+    "Treated as one resource or flow; the row's verb does not mark it as a read-only view".
+    Every downstream number rested on that, and nothing objected, because a `why` was
+    present on every single tag. Presence was the only thing being checked.
+    """
+    if len(features) < floor:
+        return []
+    findings = []
+    for axis in TAG_VOCABULARY:
+        counts = {}
+        for f in features:
+            tag = (f.get("tags") or {}).get(axis)
+            if isinstance(tag, dict) and (tag.get("why") or "").strip():
+                key = " ".join(tag["why"].split()).lower()
+                counts.setdefault(key, []).append(f.get("id"))
+        for why, ids in counts.items():
+            if len(ids) > max(floor, threshold * len(features)):
+                findings.append(
+                    f"tags.{axis}: {len(ids)} of {len(features)} features share one justification "
+                    f"— \"{why[:80]}...\" (e.g. {', '.join(ids[:3])}). That is a default, not a "
+                    f"judgement; classify them or say in the report that they were defaulted"
+                )
     return findings
 
 
@@ -546,6 +634,9 @@ def main():
                          "inventory's sources array")
     ap.add_argument("--weights", action="store_true", help="print the scoring weights and exit")
     ap.add_argument("--verbose", action="store_true", help="list findings on stderr as well")
+    ap.add_argument("--boilerplate-threshold", type=float, default=0.2,
+                    help="share of features that may share one tag justification before it is "
+                         "reported as a default rather than a judgement (default 0.2)")
     args = ap.parse_args()
 
     if args.weights:
@@ -577,6 +668,11 @@ def main():
         "citations_verified": bool(args.normalized),
         "coverage": coverage(inv),
         "scoring": score(inv),
+        # Warnings do not block pricing. A backlog of fifty near-identical CRUD screens
+        # legitimately shares a justification, and refusing to estimate it would be wrong;
+        # what would also be wrong is pricing it as though every band had been judged. So the
+        # estimate carries these into its own assumptions instead, where a client reads them.
+        "warnings": check_boilerplate_tags(inv.get("features", []), args.boilerplate_threshold),
     }
     if args.normalized:
         findings += verify_citations(inv, args.normalized) + check_anchors(inv, args.normalized)

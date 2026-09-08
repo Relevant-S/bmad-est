@@ -44,6 +44,14 @@ Cite by sheet name and row number — `sheet 'Backlog' row 14` — which the nor
 
 Watch for a phase, priority or MoSCoW column; it maps onto `commitment`. Watch for rows that are epics with child rows beneath them, and do not double-count the parent.
 
+**Three tab shapes are not scope, and reading them as scope is what inflates a workbook into a project.** `references/story-synthesis.md` has the grouping rules; these are the tells:
+
+- **A grouping column.** Column A is usually the epic, sparse-filled or merged — a value on the first row of a group, blank beneath. Carry it onto every story in the group. Dropping it makes `est-estimate` divide the story count by a rule of thumb instead, and planning is priced per epic, so the invented count goes straight into the bill.
+- **A catalogue tab.** Sixty rows of workspace-health checks, fifty notification events, twelve monitors — these configure one feature, they are not sixty features. One story, sized for the count, with the count named in the size `why`.
+- **A change-log tab.** Rows saying `REPLACE row 300` or `INSERT` are edits to another sheet. Apply them and record that you did. Extracting them alongside the sheet they edit counts the same work twice.
+
+**A status column has already made decisions for you.** `REMOVE` means `not_scope`, not a feature with an open question attached. A "deprioritisation candidate" flag belongs in the cut-line list, not in a footnote under a fully-priced row. And where the workbook has per-discipline estimate columns — `FE Min`, `BE Max`, `DevOps Min` — the client is telling you which roles they expect on this work: read them as evidence for `surfaces`, and still leave the numbers as theirs rather than yours.
+
 ## Brief / email / two paragraphs
 
 The thin end, and the case the whole module exists to handle honestly. Extract what is there, tag nearly all of it `clarity: low`, and put real effort into `open_questions` — with an input this thin, the questions are the deliverable and the number is a placeholder.

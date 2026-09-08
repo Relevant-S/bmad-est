@@ -85,6 +85,32 @@ def log_entry(applied, proposal, backtest, approved_by, when, ledger_ids):
     return "\n".join(lines)
 
 
+BACKUPS_KEPT = 10
+
+
+def take_backup(model_path, when, keep=BACKUPS_KEPT):
+    """Copy the model aside, then prune the oldest copies.
+
+    A reversal should never depend on someone having remembered to take a copy, and the
+    number is per run because a second calibration on the same day would otherwise overwrite
+    the first backup with an already-calibrated model — leaving the rollback pointing at the
+    wrong state. Pruning is the other half of that: unbounded backups beside the live model
+    are how a memory directory becomes something nobody will read, and the tenth-oldest copy
+    of a coefficient has never once been what anybody wanted.
+    """
+    n = 1
+    while (backup := model_path.with_suffix(f".{when}.{n}.bak.json")).exists():
+        n += 1
+    shutil.copyfile(model_path, backup)
+
+    existing = sorted(model_path.parent.glob(f"{model_path.stem}.*.bak.json"),
+                      key=lambda p: p.stat().st_mtime)
+    pruned = []
+    for stale in existing[:-keep] if keep else []:
+        stale.unlink()
+        pruned.append(stale.name)
+    return backup, pruned
+
 def main():
     ap = argparse.ArgumentParser(
         description="Apply human-approved coefficient changes to the cost model.",
@@ -153,14 +179,7 @@ def main():
     when = date.today().isoformat()
     ledger_ids = [e["id"] for e in (analysis.get("accuracy") or {}).get("entries", [])]
 
-    # Keep the pre-change model beside the new one; a reversal should never depend on someone
-    # having remembered to take a copy. Numbered per run, because a second calibration on the
-    # same day would otherwise overwrite the first backup with an already-calibrated model —
-    # leaving the rollback path pointing at the wrong state.
-    n = 1
-    while (backup := model_path.with_suffix(f".{when}.{n}.bak.json")).exists():
-        n += 1
-    shutil.copyfile(model_path, backup)
+    backup, pruned = take_backup(model_path, when)
 
     applied, log = [], []
     for proposal, result in chosen:
@@ -196,6 +215,7 @@ def main():
         return 1
 
     print(json.dumps({"ok": True, "applied": applied, "backup": str(backup),
+                      "backups_pruned": pruned,
                       "calibration_log": str(log_path)}, indent=2, ensure_ascii=False))
     return 0
 

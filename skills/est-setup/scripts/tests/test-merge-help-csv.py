@@ -102,7 +102,12 @@ class Merging(unittest.TestCase):
         installed = PROJECT / "_bmad" / "_config" / "bmad-help.csv"
         if not installed.exists():
             self.skipTest("no installed catalog")
-        theirs = {r["menu-code"] for r in rows(installed) if r["menu-code"]}
+        # Rows this module already installed are not a collision with another module — they
+        # are this module. Without the filter the test fails the moment est is installed into
+        # the repo it is developed in, which is exactly when it is least informative.
+        module = {r["module"] for r in rows(SOURCE)}
+        theirs = {r["menu-code"] for r in rows(installed)
+                  if r["menu-code"] and r["module"] not in module}
         ours = {r["menu-code"] for r in rows(SOURCE) if r["menu-code"]}
         self.assertEqual(ours & theirs, set())
 

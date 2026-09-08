@@ -135,8 +135,15 @@ function compute(ids) {
   const featureTotal = feats.length ? add(...feats.map(f => f.total)) : [0,0,0];
 
   const perSize = M.planning.stories_per_feature;
-  const stories = feats.reduce((s,f) => s + (perSize[f.tags.size_band] || 1), 0);
-  const epics = feats.length ? Math.ceil(feats.length / M.planning.features_per_epic) : 0;
+  /* Standing work gets no epic and no story, so it is out of the planning volume here too. */
+  const planned = feats.filter(f => f.origin !== 'standing');
+  const stories = planned.reduce((s,f) => s + (perSize[f.tags.size_band] || 1), 0);
+  /* Epics are counted from the stories' own epics when the source grouped them, so dropping
+     every story in an epic stops that epic costing. Only an ungrouped inventory falls back
+     to the ratio. Mirrors plan_volume() in estimate.py. */
+  const grouped = new Set(planned.map(f => f.epic_id).filter(Boolean));
+  const epics = grouped.size ? grouped.size
+              : (planned.length ? Math.ceil(planned.length / M.planning.features_per_epic) : 0);
   const docs = M.planning.documents_by_granularity[E.granularity] || [];
 
   const planning = key => {
@@ -150,11 +157,37 @@ function compute(ids) {
   const project = {
     planning_agent: planning('agent_hours'),
     planning_review: planning('review_hours'),
-    env_infra: t(M.env_infra[opts.stack]),
     qa: mul(manual, t(M.qa[opts.qa_platform])),
   };
-  const subtotal = add(featureTotal, ...Object.values(project));
-  project.overhead = mul(subtotal, t(M.overhead_rate[opts.engagement]));
+  /* Overhead is weeks x people x rate, so the page has to derive the same duration the
+     document did — ceremony recurs on the calendar, and a percentage of the subtotal would
+     make cutting scope look like it cancels meetings that still happen. Mirrors
+     critical_path(), duration() and overhead_cost() in estimate.py, rounding where they
+     round, since the rounded weeks are what the hours are multiplied by. */
+  const cal = M.calendar;
+  const people = Math.min(opts.team_size || cal.max_useful_parallelism, cal.max_useful_parallelism);
+  const weight = {}, deps = {};
+  for (const f of feats) weight[f.id] = TP.mean(f.total);
+  for (const f of feats) deps[f.id] = (f.depends_on || []).filter(d => d in weight);
+  const memo = {}, visiting = new Set();
+  const longest = id => {
+    if (id in memo) return memo[id];
+    if (visiting.has(id)) return 0;
+    visiting.add(id);
+    let best = 0;
+    for (const parent of deps[id] || []) best = Math.max(best, longest(parent));
+    visiting.delete(id);
+    return (memo[id] = best + weight[id]);
+  };
+  const pathHours = feats.length ? Math.round(Math.max(...feats.map(f => longest(f.id))) * 10) / 10 : 0;
+  /* Three-point weeks, because a longer project holds more ceremony: collapsing the schedule
+     to one number would give overhead a certainty the schedule does not have. */
+  const planningTP = add(project.planning_agent, project.planning_review);
+  const weeks = [0,1,2].map(i =>
+    (planningTP[i] / Math.min(people, 2)
+     + (people ? Math.max(pathHours, featureTotal[i] / people) : featureTotal[i]))
+    / cal.hours_per_person_week);
+  project.overhead = mul(t(M.overhead_rate[opts.engagement]), scale(weeks, people));
 
   const all = [...feats.map(f => f.total), ...Object.values(project)];
   const mean = all.reduce((s,v) => s + TP.mean(v), 0);
@@ -176,18 +209,32 @@ function compute(ids) {
     const p = M.phase_map[comp];
     phases[p] = (phases[p] || 0) + TP.mean(v);
   };
-  const putRole = (v, key) => {
-    for (const [role, share] of Object.entries(M.role_weights[key]))
+  /* A role weight may require a surface. Roles the story does not have are dropped and the
+     survivors renormalise, so a backend story bills no UX while the shares still sum to 1.
+     Mirrors component_roles() in estimate.py. */
+  const shares = (key, surfaces) => {
+    const kept = {};
+    let total = 0;
+    for (const [role, node] of Object.entries(M.role_weights[key])) {
+      if (role.startsWith('_')) continue;
+      const w = (node && typeof node === 'object') ? node.w : node;
+      const requires = (node && typeof node === 'object') ? node.requires : null;
+      if (requires && surfaces && !surfaces.has(requires)) continue;
+      kept[role] = w;
+      total += w;
+    }
+    for (const role of Object.keys(kept)) kept[role] /= total;
+    return kept;
+  };
+  const putRole = (v, key, surfaces) => {
+    for (const [role, share] of Object.entries(shares(key, surfaces)))
       roles[role] = (roles[role] || 0) + TP.mean(v) * share;
   };
   for (const f of feats) {
-    for (const [comp, v] of Object.entries(f.components)) putPhase(v, comp);
-    putRole(f.components.build, 'build');
-    putRole(f.components.spec, 'spec');
-    putRole(f.components.review, f.tags.review_tier === 'routine' ? 'review_routine' : 'review_sensitive');
-    putRole(f.components.rework, 'rework');
+    const surfaces = f.surfaces ? new Set(f.surfaces) : null;
+    for (const [comp, v] of Object.entries(f.components)) { putPhase(v, comp); putRole(v, comp, surfaces); }
   }
-  for (const [name, v] of Object.entries(project)) { putPhase(v, name); putRole(v, name); }
+  for (const [name, v] of Object.entries(project)) { putPhase(v, name); putRole(v, name, null); }
 
   const scope = {};
   for (const f of feats) {
@@ -296,7 +343,7 @@ document.getElementById('assumptions').innerHTML =
 document.getElementById('footer').innerHTML =
   `Build compression ${E.manual_equivalent.build_compression}× on build effort alone
    (${h(E.manual_equivalent.build_hours)}h manual → ${h(E.manual_equivalent.bmad_build_hours)}h with BMad).
-   This is <em>not</em> whole-project compression: planning, environments, QA and client overhead are
+   This is <em>not</em> whole-project compression: planning, standing setup work, QA and client overhead are
    costs a manual project pays too.`;
 
 document.addEventListener('change', e => {

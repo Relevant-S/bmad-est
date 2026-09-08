@@ -16,7 +16,9 @@ Three properties make it different from a spreadsheet:
 
 **Nothing is invented and nothing is silently dropped.** Every extracted feature carries a verbatim quote from its source. Every substantive passage that *didn't* become a feature is listed with a reason. Both directions are checked mechanically by re-opening the documents — not asserted.
 
-**It learns from what you actually delivered.** When a project closes, you record the real hours. The calibrator backtests any proposed coefficient change against your delivery history and shows you "this would have improved 7 of your last 9 estimates" before you approve it. Nothing changes the model without a named human agreeing to it.
+**Every task is priced per role, and only the roles actually on it.** Each story declares the surfaces it touches — backend, frontend, design, infra, data — and roles whose surface is absent are dropped from that story entirely. A nightly reconciliation job bills no designer. The shares renormalise, so the story still costs what it costs; the hours just land on the people doing the work. The architect appears only in project-level components, because the tech lead does not review individual stories.
+
+**It learns from what you actually delivered.** When a project closes, you record the real hours. The calibrator backtests any proposed coefficient change against your delivery history and shows you "this would have improved 7 of your last 9 estimates" before you approve it. Nothing changes the model without a named human agreeing to it. **One delivered BMad project is enough to start** — it reads that project's own epics and stories for its shape, and stamps the resulting change `n=1` so nobody mistakes it for a trend.
 
 ### The one modelling idea worth understanding
 
@@ -45,11 +47,13 @@ flowchart TB
     EXTRACT["est-scope-extract<br/>─────────────<br/>every feature cites the<br/>sentence it came from"]
     INV[("feature-inventory.json")]
 
-    ESTIMATE["est-estimate<br/>─────────────<br/>band width computed from<br/>input completeness"]
+    ESTIMATE["est-estimate<br/>─────────────<br/>band width computed from<br/>input completeness<br/>roles per story, from its surfaces"]
+    STANDING["standing work<br/>─────────────<br/>scaffold · pipeline · environments<br/>release — every project pays it"]
     OUTPUT["estimate.md · estimate.csv<br/>interactive estimate.html"]
     LEDGER[("ledger entry<br/>+ cost model snapshot")]
 
     CALIBRATE["est-calibrate<br/>─────────────<br/>backtest → a human approves<br/>→ logged and reversible"]
+    DELIVERED["📦 a delivered BMad project<br/>its own epics and stories"]
     MODEL[("cost-model.json<br/>your coefficients")]
 
     NADIA["📐 Nadia — est-agent-estimator<br/>─────────────<br/>explain · defend · what-if<br/>cut to a budget · triage"]
@@ -57,9 +61,11 @@ flowchart TB
     DOCS --> EXTRACT
     TALK -.->|"Nadia captures a<br/>citable transcript"| EXTRACT
     EXTRACT --> INV --> ESTIMATE
+    STANDING -.->|"added openly, on its<br/>own lines"| ESTIMATE
     ESTIMATE --> OUTPUT
     ESTIMATE --> LEDGER
     LEDGER -->|"project delivers<br/>you record real hours"| CALIBRATE
+    DELIVERED -.->|"anchor on one project<br/>when there is no ledger yet"| CALIBRATE
     CALIBRATE -->|"only what a human approved"| MODEL
     MODEL -.->|"read on every estimate"| ESTIMATE
 
@@ -69,6 +75,7 @@ flowchart TB
 
     style NADIA fill:#f5f0ff,stroke:#7c5cff
     style MODEL fill:#fff8e6,stroke:#d9a441
+    style STANDING fill:#fff8e6,stroke:#d9a441
     style OUTPUT fill:#eefaf0,stroke:#3fa45b
 ```
 
@@ -159,7 +166,9 @@ Reads every file in the folder, produces `feature-inventory.json`, and shows you
 estimate it
 ```
 
-Produces the range, split by BMad phase (`planning`, `planning-review`, `spec`, `build`, `review`, `rework`, `environments`, `qa`, `overhead`) and by role (`architect`, `dev`, `qa`, `ba`, `ux`), plus a ledger entry that snapshots the exact coefficients used.
+Produces the range, split by BMad phase (`planning`, `planning-review`, `spec`, `build`, `review`, `rework`, `qa`, `overhead`), by role (`dev`, `devops`, `qa`, `ba`, `ux`, `architect`) **and by role per story**, plus a ledger entry that snapshots the exact coefficients used.
+
+It also adds the work no client document describes — repo scaffold, pipeline, environments, release process — from the cost model's `standing_work` catalogue. Those appear as their own labelled lines with their own total, never folded into the number silently. `--no-standing-work` drops the block when the client is bringing a platform that already has it.
 
 ```
 talk to Nadia
@@ -169,7 +178,7 @@ Then ask her things a spreadsheet can't answer:
 
 - *"Why is the payments feature four times the settings screen?"*
 - *"The client says this should be half — where's the actual give?"*
-- *"What if we drop reporting?"* — she re-prices it properly. Dropping a feature worth 58.8h of its own effort changed one real project by **89.4h**, because planning review, QA and overhead scale with what remains. Quoting the feature's own hours would have been wrong by 52%, in the direction that sounds plausible.
+- *"What if we drop the pricing engine?"* — she re-prices it properly. On a worked example, dropping a story worth **92.9h** of its own effort changed the project by **117.1h**, because QA, overhead and planning all scale with what remains. Quoting the story's own hours would have been wrong by a quarter, in the direction that sounds plausible. She also reports where the saving lands by role — on that cut, `dev −83.3h`, `qa −16.9h`, `devops 0.0h`.
 - *"What fits in 600 hours?"* — a cut line where every figure is a genuine re-price, ordered to disturb as little as possible, with anything the budget didn't actually need put back.
 - *"Play the client and attack this number."*
 
@@ -179,10 +188,10 @@ Then ask her things a spreadsheet can't answer:
 
 | Skill | What you say | What you get |
 |---|---|---|
-| **est-scope-extract** | *"extract scope from this RFP"* | A Feature Inventory where every line cites its source, plus an explicit list of what wasn't treated as scope |
-| **est-estimate** | *"estimate this"* / *"quick gut-check"* | Ranged, role-split, phase-decomposed hours; markdown, CSV, and an interactive HTML report |
+| **est-scope-extract** | *"extract scope from this RFP"* | Epics → stories → the source rows each was built from, every one citing its own line, plus an explicit list of what wasn't treated as scope |
+| **est-estimate** | *"estimate this"* / *"quick gut-check"* | Ranged hours split by phase and by role, per story; markdown, CSV, and an interactive HTML report |
 | **est-agent-estimator** (Nadia) | *"talk to Nadia"* | Explanation, defence, what-ifs, cut lines, portfolio triage, cost-model curation |
-| **est-calibrate** | *"how accurate are our estimates?"* | Accuracy report; backtested, human-approved coefficient changes |
+| **est-calibrate** | *"how accurate are our estimates?"* | Accuracy report; backtested, human-approved coefficient changes — or an anchor fitted to one delivered project |
 | **est-setup** | *"install the estimator"* | Config, seeded memory, registered capabilities |
 
 Every skill runs standalone and headless (`-H`) except Nadia — batch twenty presale extractions overnight, and let a human triage the ones that need attention in the morning.
@@ -204,11 +213,13 @@ _bmad/memory/est/               ← shared by all five skills
 └── ledger/                     ← one entry per estimate, with its model snapshot
 
 {output_folder}/estimates/{project}/
-├── feature-inventory.json      ← the scope, with citations
-├── estimate.json               ← the full estimate
+├── feature-inventory.json      ← epics → stories → the source rows behind each
+├── estimate.json               ← the full estimate, with per-story role splits
 ├── estimate.md / .csv / .html  ← the shareable renders
 └── normalized/                 ← converted sources, so citations stay verifiable
 ```
+
+**The set of output files is declared, not emergent.** `skills/est-setup/assets/module-outputs.yaml` names every path each skill writes and the condition under which the optional ones appear; `check-outputs.py` reports anything missing or undeclared. A folder nobody can read as a set of *current* artefacts is how a leftover from an interrupted run ends up quoted at a client.
 
 **The cost model is a data file, not code.** Open it, read it, argue with it. There is no coefficient in this module that a human can't interrogate — and the two ways to change it (`est-calibrate` for evidence, `curate.py` for judgement) both back up, log, and stay reversible.
 
@@ -226,7 +237,7 @@ Ten settings, written by `est-setup` to `_bmad/custom/config.toml`:
 | `est_output_formats` | `md, csv, html` | What gets rendered |
 | `est_show_manual_baseline` | `false` | Internal pre-BMad comparison; usually off for client output |
 | `est_report_calendar_duration` | `true` | Derived elapsed weeks, always secondary to hours |
-| `est_roles` | `architect, dev, qa, ba, ux` | No PM — the Architect absorbs it during planning |
+| `est_roles` | `architect, dev, devops, qa, ba, ux` | No PM — the Architect absorbs it during planning, and appears only on project-level work |
 | `est_min_calibration_samples` | `3` | Delivered projects before a pattern beats a weak signal |
 | `est_sprint_length_days` | `10` | For delivery-mode capacity fitting |
 | `est_knowledge_pack_source` | *(blank)* | Shared cost model location; blank = local only |
@@ -264,7 +275,7 @@ A single project total with those three fields is enough to start calibrating ba
 ## Development
 
 ```bash
-# All suites (437 tests). Run through uv: est-setup's config tests need Python
+# All suites (499 tests). Run through uv: est-setup's config tests need Python
 # 3.11 for tomllib, the same requirement BMad's own config resolver carries.
 # -B matters too: macOS Python caches bytecode centrally, where a same-length
 # edit within one second can defeat cache invalidation and run stale code.
@@ -282,6 +293,19 @@ python3 -B skills/est-calibrate/evals/ground-truth.py
 # The interactive report recomputes the estimate in the browser, which means two
 # implementations of one model. This executes both and compares them.
 uv run skills/est-estimate/scripts/check-parity.py <workspace>/estimate.json
+
+# Adversarial whole-inventory shapes: a thin brief cannot look certain, compression
+# does not rescue a sensitive feature, adding people cannot beat a dependency chain.
+uv run skills/est-estimate/evals/run-cases.py
+
+# Every file the module writes is declared. This names anything missing from a
+# workspace, or present in it that nothing declared.
+uv run skills/est-setup/scripts/check-outputs.py --skill est-estimate --workspace <dir>
+
+# A cost model from before schema 2.0 prices overhead as a share of scope and has no
+# surfaces. This converts it, keeping every calibrated value it can and saying plainly
+# which sections changed shape and had to be reset.
+uv run skills/est-estimate/scripts/migrate-cost-model.py _bmad/memory/est/cost-model.json --in-place
 ```
 
 Design notes, the full cost model specification, and the build history live in [`skills/reports/estimation-module-plan.md`](skills/reports/estimation-module-plan.md).

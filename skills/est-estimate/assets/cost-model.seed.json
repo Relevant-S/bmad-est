@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "seeded_from": "estimation-module-plan.md — Cost Model Specification",
   "calibration_status": "UNCALIBRATED. Every value below is a reasoned starting point, not a measured one. est-calibrate replaces them with figures derived from real actuals; until it has, treat the numbers as a defensible hypothesis and say so in client-facing output.",
   "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
@@ -233,31 +233,176 @@
       "why": "A whole project pays the full planning pipeline once. An epic inside a running project inherits the brief and UX and pays only for its own requirements and technical design. A sprint or single feature pays neither — the planning artefacts already exist."
     }
   },
-  "env_infra": {
-    "_what": "Environments, CI/CD, deployment, secrets, observability. Largely uncompressed: the work is configuration against real systems with real credentials, and an agent cannot click through a cloud console.",
-    "simple_web": {
-      "lo": 8,
-      "likely": 16,
-      "hi": 32,
-      "why": "One app, one managed host, a standard pipeline"
-    },
-    "standard_saas": {
-      "lo": 16,
-      "likely": 32,
-      "hi": 60,
-      "why": "App plus database plus background jobs, staging and production"
-    },
-    "mobile_plus_backend": {
-      "lo": 30,
-      "likely": 50,
-      "hi": 90,
-      "why": "Adds signing, store provisioning, device build pipelines and release channels"
-    },
-    "multi_service": {
-      "lo": 40,
-      "likely": 80,
-      "hi": 160,
-      "why": "Several deployables, inter-service auth, and an integration environment that has to actually work"
+  "standing_work": {
+    "_what": "Work every project pays and no client document describes. It used to be one opaque `env_infra` lookup — 13.7 hours for a multi-tenant SaaS with payments, calendar sync and bulk imports, which nobody could defend because there was nothing inside it to point at. Each item below is priced through the same engine as any story, so it carries a band, a role split and a line in the feature table, and a client can argue with it item by item instead of being handed a number. Items are selected by the `stacks` list against the --stack profile; `all` means every project pays it. Suppress the whole section with --no-standing-work when the client is bringing an existing platform. Each item's tags carry their own per-axis reason, like any other classification: a single sentence repeated across five axes is the boilerplate pattern inventory-check.py reports, and shipping it in the catalogue would be holding the module to a standard the model itself did not meet.",
+    "items": {
+      "repo_scaffold": {
+        "name": "Repository scaffold and shared configuration",
+        "size_band": "S",
+        "compressibility": "medium",
+        "review_tier": "routine",
+        "clarity": "high",
+        "novelty": "standard",
+        "surfaces": [
+          "infra",
+          "backend"
+        ],
+        "stacks": "all",
+        "why": "Repo or monorepo layout, shared TypeScript/lint/format config, commit hooks, the test harness everything else is written against. Generated quickly, but the decisions in it are load-bearing for every story that follows.",
+        "reasons": {
+          "size_band": "A day or two of decisions that everything after inherits",
+          "compressibility": "The shape is conventional and generates well, but the choices are load-bearing and get read",
+          "review_tier": "No money, no personal data — a spot-check of the config that ships",
+          "clarity": "The stack decides it; there is nothing ambiguous left once that is chosen",
+          "novelty": "Every project starts this way"
+        }
+      },
+      "bmad_setup": {
+        "name": "BMad setup and project context",
+        "size_band": "XS",
+        "compressibility": "none",
+        "review_tier": "routine",
+        "clarity": "high",
+        "novelty": "standard",
+        "surfaces": [
+          "infra"
+        ],
+        "stacks": "all",
+        "why": "Installing the module set, writing project-context, customising the agents to this codebase's conventions. No code is the deliverable, so nothing compresses — but it is real hours on every BMad project and pretending otherwise makes the first sprint look faster than it is.",
+        "reasons": {
+          "size_band": "An afternoon of installation and project-context writing",
+          "compressibility": "No code is the deliverable, so nothing compresses",
+          "review_tier": "Configuration of a working process, not of anything a client depends on",
+          "clarity": "A known checklist",
+          "novelty": "Routine for a team already running BMad"
+        }
+      },
+      "ci_pipeline": {
+        "name": "Build, test and deploy pipeline",
+        "size_band": "M",
+        "compressibility": "low",
+        "review_tier": "routine",
+        "clarity": "high",
+        "novelty": "standard",
+        "surfaces": [
+          "infra"
+        ],
+        "stacks": "all",
+        "why": "Pipeline per environment, caching, migrations in the deploy, preview builds. Low compressibility because the work is configuration against real systems with real credentials, and an agent cannot click through a cloud console.",
+        "reasons": {
+          "size_band": "A pipeline per environment, with caching, migrations and preview builds",
+          "compressibility": "Configuration against real systems with real credentials; an agent cannot click through a cloud console",
+          "review_tier": "It deploys, but it holds no data of its own",
+          "clarity": "The stack and the hosting decide almost all of it",
+          "novelty": "A shape the team has built before"
+        }
+      },
+      "environments": {
+        "name": "Environment provisioning and secrets",
+        "size_band": "M",
+        "compressibility": "low",
+        "review_tier": "sensitive",
+        "clarity": "high",
+        "novelty": "standard",
+        "surfaces": [
+          "infra"
+        ],
+        "stacks": "all",
+        "why": "Staging and production provisioning, DNS and TLS, secret storage and rotation. Sensitive tier because a mistake here exposes production credentials, and that is read line by line before anyone signs their name to it.",
+        "reasons": {
+          "size_band": "Staging and production, with DNS, TLS and secret storage",
+          "compressibility": "Provisioning is manual work against consoles and providers",
+          "review_tier": "A mistake here exposes production credentials, so it is read line by line",
+          "clarity": "The hosting choice settles the work",
+          "novelty": "Standard for the stack"
+        }
+      },
+      "observability": {
+        "name": "Logging, metrics and alerting",
+        "size_band": "S",
+        "compressibility": "medium",
+        "review_tier": "routine",
+        "clarity": "high",
+        "novelty": "standard",
+        "surfaces": [
+          "infra",
+          "backend"
+        ],
+        "stacks": "all",
+        "why": "Structured logs, error tracking, the handful of alerts someone will actually act on. Cheap to generate, and the first thing dropped from an estimate that has no line for it.",
+        "reasons": {
+          "size_band": "Structured logs, error tracking and the few alerts anyone will act on",
+          "compressibility": "Instrumentation is generated well once the libraries are chosen",
+          "review_tier": "Watches the system rather than holding anything",
+          "clarity": "Well understood; the only open question is what to alert on",
+          "novelty": "Familiar tooling"
+        }
+      },
+      "release_process": {
+        "name": "Release, rollback and migration process",
+        "size_band": "S",
+        "compressibility": "low",
+        "review_tier": "sensitive",
+        "clarity": "high",
+        "novelty": "standard",
+        "surfaces": [
+          "infra"
+        ],
+        "stacks": "all",
+        "why": "Versioning, forward-only migrations, a rollback that has been rehearsed rather than assumed. Sensitive because the first time it is exercised is usually the worst possible time.",
+        "reasons": {
+          "size_band": "Versioning, forward-only migrations and a rehearsed rollback",
+          "compressibility": "The rehearsal is the work, and rehearsals do not compress",
+          "review_tier": "The first time it is exercised is usually the worst possible time",
+          "clarity": "Follows from the deployment choice",
+          "novelty": "Conventional"
+        }
+      },
+      "mobile_release": {
+        "name": "Store provisioning and release channels",
+        "size_band": "M",
+        "compressibility": "none",
+        "review_tier": "routine",
+        "clarity": "high",
+        "novelty": "standard",
+        "surfaces": [
+          "infra"
+        ],
+        "stacks": [
+          "mobile_plus_backend"
+        ],
+        "why": "Signing identities, store listings, TestFlight and Play tracks, review turnaround. Runs on someone else's calendar, so it compresses not at all.",
+        "reasons": {
+          "size_band": "Signing identities, store listings, and the tracks releases go out on",
+          "compressibility": "Store review runs on someone else's calendar",
+          "review_tier": "Process and credentials, not product data",
+          "clarity": "The platforms document it exhaustively",
+          "novelty": "Routine for a team that ships mobile"
+        }
+      },
+      "service_integration_env": {
+        "name": "Cross-service integration environment",
+        "size_band": "M",
+        "compressibility": "low",
+        "review_tier": "routine",
+        "clarity": "medium",
+        "novelty": "standard",
+        "surfaces": [
+          "infra",
+          "backend"
+        ],
+        "stacks": [
+          "multi_service"
+        ],
+        "why": "An environment where the services actually talk to each other, with inter-service auth and seeded data. Routinely omitted at estimate time and routinely the reason integration slips.",
+        "reasons": {
+          "size_band": "An environment where the services actually talk, with inter-service auth and seeded data",
+          "compressibility": "Making several deployables agree is discovery work",
+          "review_tier": "A test environment; nothing real passes through it",
+          "clarity": "Depends on service boundaries that are usually still settling",
+          "novelty": "Common in multi-service work"
+        }
+      }
     }
   },
   "qa": {
@@ -288,23 +433,24 @@
     }
   },
   "overhead_rate": {
-    "_what": "Ceremony, demos, client communication and coordination, as a share of the subtotal. Untouched by AI — a status call takes as long as it ever did.",
+    "_what": "Ceremony, demos, client communication and coordination — priced per person per week, NOT as a share of scope. A status call recurs on the calendar, not on the backlog. Charged as a percentage it inherited every scope error the estimate made: a backlog counted ten times over billed ten times the meetings, which turns a granularity mistake into a commercial one. Hours are weeks x people x the rate below; the estimate still reports the implied percentage, as a cross-check rather than as the basis.",
+    "basis": "hours_per_person_week",
     "low_touch": {
-      "lo": 0.06,
-      "likely": 0.08,
-      "hi": 0.12,
+      "lo": 1.5,
+      "likely": 2.0,
+      "hi": 3.0,
       "why": "Async updates, a fortnightly demo, an empowered single point of contact"
     },
     "standard": {
-      "lo": 0.1,
-      "likely": 0.14,
-      "hi": 0.2,
-      "why": "Weekly ceremonies, a demo per sprint, a client team that reviews"
+      "lo": 2.5,
+      "likely": 3.5,
+      "hi": 5.0,
+      "why": "Weekly ceremonies, a demo per sprint, a client team that reviews — roughly half a day a week each"
     },
     "high_touch": {
-      "lo": 0.18,
-      "likely": 0.25,
-      "hi": 0.35,
+      "lo": 5.0,
+      "likely": 7.0,
+      "hi": 10.0,
       "why": "Multiple stakeholders, committee approvals, formal reporting — common in enterprise and public-sector work"
     }
   },
@@ -322,47 +468,103 @@
     "model_risk_why": "Systematic model uncertainty, as a share of the central estimate, combined in quadrature with the feature-level variance. Summing feature variances in quadrature assumes the errors are independent, and they are not: if the size-band or compression calibration is off, it is off for every feature at once. Quadrature therefore understates the real band, and understates it worst on large scopes — a hundred features would otherwise report a suspiciously tight interval. This floor represents systematic model error, which does not shrink however many features are counted. While the model is UNCALIBRATED it is set high, at 15%; est-calibrate should lower it once backtesting shows how far the model actually lands from actuals."
   },
   "role_weights": {
-    "_what": "How each component's hours divide across roles. No PM: at this company the Architect absorbs PM responsibilities during planning.",
+    "_what": "How each component's hours divide across roles, and which roles are on the work at all. Each entry carries 'w' and optionally 'requires' — a surface the story must have before that role counts. Roles whose surface is absent are dropped and the survivors renormalise, so the split stays an allocation of the total rather than an adjustment to it. No PM: the Architect absorbs PM responsibilities. The Architect appears ONLY in project-level components — the tech lead does not review individual stories, the developer does, and EPP Phase 1 (480 h delivered across dev/QA/UX/BA) records no architect hours against story work at all. Spreading a fixed architect share over every story was inventing a quarter of the project out of a weight table.",
     "spec": {
-      "ba": 0.5,
-      "architect": 0.3,
-      "ux": 0.2
+      "ba": {
+        "w": 0.5,
+        "why": "Turning a client sentence into acceptance criteria is BA work"
+      },
+      "dev": {
+        "w": 0.3,
+        "why": "The technical half of a story spec — data shape, contract, edge cases — is written by whoever will build it"
+      },
+      "ux": {
+        "w": 0.2,
+        "requires": "design",
+        "why": "Only where the story has a design surface; a background job has no UX specification"
+      }
     },
     "build": {
-      "dev": 1.0
+      "dev": {
+        "w": 0.8,
+        "why": "Steering, correcting and integrating what the agent generates"
+      },
+      "ux": {
+        "w": 0.12,
+        "requires": "design",
+        "why": "Design runs through build on anything with a visual surface, not only through spec — this is where EPP's real UX share actually sat"
+      },
+      "devops": {
+        "w": 0.08,
+        "requires": "infra",
+        "why": "Pipeline, environment and deployment work carried inside the story rather than as a separate line"
+      }
     },
-    "review_routine": {
-      "dev": 0.7,
-      "architect": 0.3
-    },
-    "review_sensitive": {
-      "architect": 0.6,
-      "dev": 0.4
+    "review": {
+      "dev": {
+        "w": 1.0,
+        "why": "Story review is developer work, at every tier. The architect/tech lead does not review stories"
+      }
     },
     "rework": {
-      "dev": 0.8,
-      "architect": 0.2
+      "dev": {
+        "w": 1.0,
+        "why": "The loop back into the code is the developer's"
+      }
     },
     "planning_agent": {
-      "architect": 0.5,
-      "ba": 0.3,
-      "ux": 0.2
+      "architect": {
+        "w": 0.5,
+        "why": "Steering the BMad planning workflow, and the PM responsibilities folded into that role"
+      },
+      "ba": {
+        "w": 0.3,
+        "why": "Requirements and acceptance criteria across the planning artefacts"
+      },
+      "ux": {
+        "w": 0.2,
+        "why": "The UX artefact and the design decisions the architecture depends on"
+      }
     },
     "planning_review": {
-      "architect": 0.5,
-      "ba": 0.3,
-      "ux": 0.2
+      "architect": {
+        "w": 0.5,
+        "why": "The architecture and epics are read end to end by the person accountable for them"
+      },
+      "ba": {
+        "w": 0.3,
+        "why": "Requirements review against what the client actually asked for"
+      },
+      "ux": {
+        "w": 0.2,
+        "why": "Design review of the UX artefact"
+      }
     },
     "env_infra": {
-      "dev": 0.8,
-      "architect": 0.2
+      "devops": {
+        "w": 0.7,
+        "why": "Environments, CI/CD, secrets and observability are the DevOps line — the role this model previously did not have, so the work was billed to developers"
+      },
+      "dev": {
+        "w": 0.3,
+        "why": "The application-side wiring a pipeline needs"
+      }
     },
     "qa": {
-      "qa": 1.0
+      "qa": {
+        "w": 1.0,
+        "why": "Test execution, triage and release verification"
+      }
     },
     "overhead": {
-      "architect": 0.5,
-      "ba": 0.5
+      "architect": {
+        "w": 0.5,
+        "why": "Demos, technical client conversations and coordination"
+      },
+      "ba": {
+        "w": 0.5,
+        "why": "Ceremony, status and the client communication around scope"
+      }
     }
   },
   "phase_map": {
@@ -373,7 +575,6 @@
     "build": "build",
     "review": "review",
     "rework": "rework",
-    "env_infra": "environments",
     "qa": "qa",
     "overhead": "overhead"
   },
@@ -383,5 +584,13 @@
     "hours_per_person_week_why": "Six hours of focused delivery a day, five days a week. The remainder is the overhead already priced separately, plus the ordinary friction of a working week.",
     "max_useful_parallelism": 6,
     "max_useful_parallelism_why": "Beyond roughly six people on one workstream, coordination cost grows faster than throughput. The critical path, not the headcount, sets the floor on duration."
+  },
+  "surfaces": {
+    "_what": "Which kinds of work a story touches. This is what decides which roles are on it: a role whose 'requires' surface is absent from the story is dropped from that story's split entirely, so a background job bills no UX and a screen bills no devops. Tagged per story at extraction and confirmable like any other tag. A story with no surfaces tag at all is treated as unknown, and unknown keeps every role in — silence must not quietly discount.",
+    "backend": "Server-side logic, data model, APIs, background jobs, third-party integrations",
+    "frontend": "Screens, client state, forms, tables — implementing a design that already exists",
+    "design": "Visual or interaction design: new screens, a design-system component, an accessibility or microcopy pass",
+    "infra": "Environments, pipelines, deployment, observability, secrets, migrations run against real systems",
+    "data": "Schema migration, import and export, backfills, reporting queries"
   }
 }

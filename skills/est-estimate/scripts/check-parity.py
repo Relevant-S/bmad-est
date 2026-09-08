@@ -20,10 +20,12 @@ Exit 0 when they agree, 1 when they drift, 2 when node is unavailable or input u
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "report-template.html"
@@ -54,7 +56,17 @@ const r = compute(new Set(E.features.map(f => f.id)));
 console.log(JSON.stringify({{low: r.low, likely: r.mean, high: r.high,
                             phases: r.phases, roles: r.roles}}));
 """
-    result = subprocess.run(["node", "-e", script], capture_output=True, text=True, timeout=60)
+    # Handed to node as a file, never as `node -e`. The script embeds the whole estimate, and
+    # a story-grained inventory runs to megabytes of JSON — well past the OS argv ceiling, which
+    # fails as `OSError: Argument list too long` before node is even reached. That turned the
+    # parity check into a no-op on exactly the large estimates it most needs to guard.
+    handle = tempfile.NamedTemporaryFile("w", suffix=".js", encoding="utf-8", delete=False)
+    try:
+        with handle:
+            handle.write(script)
+        result = subprocess.run(["node", handle.name], capture_output=True, text=True, timeout=60)
+    finally:
+        os.unlink(handle.name)
     if result.returncode != 0:
         raise SystemExit(f"node failed: {result.stderr.strip()[:400]}")
     return json.loads(result.stdout)
@@ -98,7 +110,8 @@ def main():
     recorded = estimate.get("inputs", {})
     options = {"stack": recorded.get("stack", "standard_saas"),
                "qa_platform": recorded.get("qa_platform", "web"),
-               "engagement": recorded.get("engagement", "standard")}
+               "engagement": recorded.get("engagement", "standard"),
+               "team_size": recorded.get("team_size")}
     drift = compare(estimate, run_js(estimate, options))
     print(json.dumps({"ok": not drift, "checked": ["total_hours", "by_phase", "by_role"],
                       "drift": drift}, indent=2))

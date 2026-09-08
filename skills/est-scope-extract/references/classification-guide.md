@@ -1,6 +1,15 @@
 # Classification Guide
 
-Every feature in a Feature Inventory carries five tags. They are the inputs to the cost model in `est-estimate`, so a wrong tag is a wrong estimate — and each tag needs a one-line `why`, because this module ships no coefficient a human cannot interrogate.
+Tag the **story**, not the source rows under it. A story built from ten workbook lines
+describing one screen is one screen: size it as the screen, not as the sum of the lines.
+
+**A `why` is about this story or it is not a `why`.** The same sentence on two hundred tags is
+a default rule with a justification stapled to it, and it is what turned a workbook into a
+project — `inventory-check.py` reports any justification shared across more than a fifth of
+the inventory, and `est-estimate` prints that report in the estimate's own assumptions. Write
+what decided *this* one, quoting the source where you can.
+
+Every story in a Feature Inventory carries five tags plus `surfaces`. They are the inputs to the cost model in `est-estimate`, so a wrong tag is a wrong estimate — and each tag needs a one-line `why`, because this module ships no coefficient a human cannot interrogate.
 
 Tag from the evidence in front of you. When the source does not say, tag what it implies and say so in the `why` ("no volume given; assumed single-tenant"). Guessing silently is the failure; guessing visibly is the job.
 
@@ -73,3 +82,30 @@ Under BMad this axis costs more than it used to. Ambiguity is no longer resolved
 Separate from the five axes, every feature carries a `commitment` level: `committed` (the source states it as in scope), `implied` (it follows necessarily from something committed — an admin screen for a resource the client asked to manage), or `speculative` (raised as a possibility, a later phase, or an aspiration).
 
 This matters most in transcripts, where all three appear in the same breath. "We'll need user accounts, and eventually maybe some kind of loyalty thing" is one `committed` feature and one `speculative` one. Recording both, correctly labelled, is what lets the estimate offer a phase-one number and a phase-two conversation instead of one inflated figure or one quiet omission.
+
+## surfaces
+
+Which kinds of work the story actually touches. Unlike the five axes above, this one does not
+scale the hours — it decides **which roles are billed to the story at all**. A role whose
+surface is absent is dropped from the split and the rest renormalise, so the story still costs
+what it costs; the hours simply go to the people doing the work.
+
+| Surface | The work |
+| --- | --- |
+| `backend` | Server-side logic, data model, APIs, background jobs, third-party integrations |
+| `frontend` | Screens, client state, forms, tables — implementing a design that exists |
+| `design` | Visual or interaction design: new screens, a design-system component, an accessibility or microcopy pass |
+| `infra` | Environments, pipelines, deployment, observability, secrets, migrations against real systems |
+| `data` | Schema migration, import and export, backfills, reporting queries |
+
+Most stories carry two. A nightly reconciliation job is `[backend]` and bills no designer. A
+new onboarding flow is `[frontend, design]` and often `[backend]` too. A CSV importer is
+`[backend, data]`.
+
+`frontend` is not `design`. Building a screen from an existing design system is frontend work;
+`design` means someone is deciding what it looks like. Tagging every screen `design` puts a
+designer on the whole project, which is how a role split stops meaning anything.
+
+**Omitting the field is not a way to say "none".** An untagged story keeps every role, because
+silence must not quietly discount. If you cannot tell, leave it off and let the full split
+stand — then say in the extraction report that surfaces were not classified.

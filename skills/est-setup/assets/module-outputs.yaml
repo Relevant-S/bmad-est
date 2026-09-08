@@ -1,0 +1,126 @@
+# What each est skill writes, and nothing else.
+#
+# The complaint this answers: "the skills produce too many redundant files; the set of output
+# files must be deterministic — same skill, same files, every run." A real workspace had
+# 8.5 MB of artefacts for one 237 KB spreadsheet, including a byte-identical `.check.json`
+# beside `check.json`, 1.5 MB of subagent findings under names the agent invented that run,
+# and another project's backtest sitting in the same folder.
+#
+# `required` files must exist after a clean run. `optional` files exist under a stated
+# condition. Anything else in the workspace is undeclared, and check-outputs.py names it.
+#
+# Paths are relative to the workspace the skill was pointed at. `{...}` segments match any
+# single path segment.
+
+est-scope-extract:
+  workspace: "{output_folder}/estimates/{project-slug}"
+  required:
+    - path: feature-inventory.json
+      role: source of truth
+    - path: feature-inventory.md
+      role: rendered from the JSON, never edited directly
+    - path: feature-inventory.csv
+      role: rendered from the JSON, never edited directly
+    - path: extraction-report.md
+      role: coverage, gaps and open questions
+    - path: normalized/manifest.json
+      role: provenance for the converted sources
+    - path: .memlog.md
+      role: append-only process record
+  optional:
+    - path: "normalized/S{n}-{stem}.md"
+      when: one per converted source
+    - path: "review/{source_id}.json"
+      when: a review subagent wrote its findings to disk instead of returning them
+    - path: check.json
+      when: written by est-estimate when it validates this inventory
+    - path: feature-inventory.merged.json
+      when: mid-update only; promoted over feature-inventory.json and then removed
+    - path: feature-inventory.next.json
+      when: mid-update only; removed once the merge is promoted
+    - path: feature-inventory.prev.json
+      when: mid-update only; deleted once the merge is promoted, since git and the memlog
+            already hold what it replaced
+    - path: normalized/manifest-v2.json
+      when: mid-update only; deleted with feature-inventory.prev.json
+    - path: confirmation-batch.md
+      when: an interactive run produced a batch for a human to accept
+
+est-estimate:
+  workspace: "{output_folder}/estimates/{project-slug}"
+  required:
+    - path: estimate.json
+      role: source of truth
+    - path: estimate.md
+      role: the document a human reads
+  optional:
+    - path: estimate.csv
+      when: csv is in est_output_formats
+    - path: estimate.html
+      when: html is in est_output_formats
+    - path: estimate-brief.json
+      when: brief is in est_output_formats; what est-agent-estimator loads
+    - path: check.json
+      when: the inventory was validated in this run
+    - path: .memlog.md
+      when: shared with est-scope-extract in the same workspace
+  also_writes:
+    - path: "{memory}/ledger/EST-{date}-{slug}.json"
+      role: the reproducible record; never in the workspace
+    - path: "{memory}/ledger/index.json"
+      role: rebuilt from the entries on every write
+    - path: "{memory}/cost-model.json"
+      when: first run only, seeded from the module asset
+
+est-calibrate:
+  workspace: "{output_folder}/calibration/{date}"
+  required:
+    - path: analysis.json
+      role: source of truth for the run
+    - path: accuracy-report.md
+      role: the document a human reads
+    - path: .memlog.md
+      role: append-only decision record
+  optional:
+    - path: backtest.json
+      when: proposals existed and the engine was available
+    - path: accuracy-report.html
+      when: html rendering was requested
+    - path: accuracy-brief.json
+      when: rendered; what est-agent-estimator loads
+    - path: skeleton.json
+      when: anchor mode, from anchor-project.py
+  also_writes:
+    - path: "{memory}/cost-model.json"
+      when: a human accepted a proposal
+    - path: "{memory}/cost-model.{date}.{n}.bak.json"
+      when: the model was written; pruned to the most recent 10
+    - path: "{memory}/calibration-log.md"
+      role: append-only provenance
+    - path: "{memory}/comparables.md"
+      when: delivered projects were recorded as anchors
+
+est-agent-estimator:
+  workspace: "{output_folder}/estimates/{project-slug}"
+  required: []
+  optional:
+    - path: normalized/conversation.md
+      when: scope was elicited in conversation rather than from a document
+    - path: normalized/manifest.json
+      when: as above
+  also_writes:
+    - path: "{memory}/company-profile.md"
+      when: the profile was updated in conversation
+    - path: "{memory}/comparables.md"
+      when: a delivered project was recorded
+
+est-setup:
+  workspace: "{project-root}/_bmad"
+  required:
+    - path: custom/config.toml
+      role: the settings layer a reinstall does not regenerate
+  optional:
+    - path: custom/config.user.toml
+      when: a setting was routed to the personal layer
+    - path: _config/bmad-help.csv
+      when: the module's capabilities were merged into the catalogue

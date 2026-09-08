@@ -28,6 +28,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import apply as apply_script  # sibling: the other writer of the cost model, and the
+                             # single definition of how a backup is taken and pruned
 import backtest  # sibling: the engine loader and the re-pricing this shares
 
 BOUNDS = ("lo", "likely", "hi")
@@ -259,10 +261,10 @@ def run(args):
         raise Refused("--approved-by is required: the log records who decided this, and 'the "
                       "agent' is not an answer anyone can go back to.")
 
-    n = 1
-    while (backup := model_path.with_suffix(f".{when}.{n}.bak.json")).exists():
-        n += 1
-    shutil.copyfile(model_path, backup)
+    # One definition of "take a backup and prune the old ones", shared with apply.py. Two
+    # would drift on the retention count, and the two writers of this file must not disagree
+    # about how far back a reversal can reach.
+    backup, pruned = apply_script.take_backup(model_path, when)
 
     model.setdefault("calibration_history", []).append({
         "date": when, "approved_by": args.approved_by, "kind": "judgement",
