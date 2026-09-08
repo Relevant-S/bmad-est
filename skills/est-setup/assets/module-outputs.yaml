@@ -136,3 +136,15 @@ est-setup:
       when: a setting was routed to the personal layer
     - path: _config/bmad-help.csv
       when: the module's capabilities were merged into the catalogue
+  also_writes:
+    - path: "{memory}/cost-model.json"
+      role: seeded from est-estimate's asset on a first run, never overwritten after
+    - path: "{memory}/company-profile.md"
+      role: seeded from est-agent-estimator's asset with every section UNANSWERED, never
+            overwritten after — a seeded profile is not a written one
+    - path: "{memory}/comparables.md"
+      role: created empty for est-calibrate and Nadia to append to
+    - path: "{memory}/calibration-log.md"
+      role: created empty; est-calibrate appends every coefficient change to it
+    - path: "{memory}/ledger/"
+      role: created empty; est-estimate writes one entry per estimate

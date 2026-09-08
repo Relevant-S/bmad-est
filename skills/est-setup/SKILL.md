@@ -74,7 +74,7 @@ Two things change. **Never overwrite an existing `{memory}/cost-model.json`**, w
   "cost_model": "seeded | already present",
   "converters_missing": ["pdftotext"],
   "needs_attention": [
-    "company-profile.md not written — estimates will use default team assumptions",
+    "company-profile.md seeded but every section still UNANSWERED — estimates will default the team profile, stack, QA platform and engagement model",
     "cost model calibrated against 1 delivered project (n=1) — read calibration_history, never assume"
   ]
 }
@@ -89,6 +89,10 @@ The four skills share one memory at `{memory}`, and three of them expect it to e
 Scaffold `{est_output_folder}` while you are here — it is `modules.est.est_output_folder`, which every est skill now resolves as the root of its per-project workspace. It defaults to `{output_folder}/estimates`, so with the defaults it is the same directory either way; the point is that when someone changes it, the skills follow rather than writing to a path setup never created.
 
 **Seed the cost model** by copying `{skill-root}/../est-estimate/assets/cost-model.seed.json` to `{memory}/cost-model.json` — **only if it is not already there.** That file becomes the company's own model the moment it exists: `est-calibrate` writes to it under an audit trail, and overwriting it with the seed would discard every calibration and every logged judgement change. If it exists, leave it and say so.
+
+**Seed the company profile** the same way: copy `{skill-root}/../est-agent-estimator/assets/company-profile.seed.md` to `{memory}/company-profile.md`, **only if it is not already there.** The four inputs it settles — team profile, BMad adoption depth, stack, QA capability, engagement model — are the ones `est-estimate` otherwise defaults silently, and a blank file nobody knew to write is why they stayed defaulted. Seeded, the questions are on the page with what each one costs beside it.
+
+It arrives with every section marked **UNANSWERED**, and that marker is the state, not the file's absence: a seeded profile is not a written one. Report it as still needing the interview, and say which sections are unanswered rather than that the file is missing.
 
 Then create the files the module appends to, if absent: an empty `{memory}/comparables.md` (with a one-line heading saying what it is) and `{memory}/calibration-log.md`. `est-estimate` also seeds the cost model on its own first run, so a missed seed here is recoverable — an overwritten one is not.
 
@@ -116,5 +120,5 @@ Show what was written: the settings and where, the help entries registered, whet
 
 Two things this setup cannot do, and both matter more than any setting here:
 
-- **The company profile is not written yet.** `{memory}/company-profile.md` is what stops estimates being priced against industry averages instead of this company's teams. Nadia (`est-agent-estimator`) runs the interview; it takes five minutes and every estimate afterwards rests on it.
+- **The company profile is seeded but unanswered.** `{memory}/company-profile.md` now exists with each question on the page and the coefficient it selects beside it, but every section is still marked `UNANSWERED` — which means `est-estimate` will default the team profile, the stack, the QA platform and the engagement model. The sharpest of those: if mobile QA runs through the MCP server, the industry default overstates it threefold, so leaving it unanswered is wrong in the company's own disfavour. Nadia (`est-agent-estimator`) runs the interview; it takes five minutes, or the file can be edited directly.
 - **Say what the cost model's calibration actually is — read it, do not assert it.** `{memory}/cost-model.json` carries `calibration_history`; a model with no entries, or only `kind: judgement` ones, is uncalibrated, and any other is calibrated against the largest `samples` count in it. The shipped seed is fitted to one delivered project, so the honest line is **n=1**: much stronger than industry averages, and still one project, which cannot separate what is true of BMad delivery from what was true of that project. Hard-coding either answer here is how a client gets told something the file contradicts — `est-estimate/scripts/estimate.py` decides it with `is_calibrated()` and `calibration_samples()`, and this must agree with them rather than reach its own verdict.

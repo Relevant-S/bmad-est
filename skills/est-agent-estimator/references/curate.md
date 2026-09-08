@@ -46,7 +46,9 @@ Every change lands in `calibration-log.md` marked `(judgement)` rather than cali
 
 Run this the first time `{memory}/company-profile.md` is missing. Generic coefficients priced against the wrong team shape are the fastest way to lose credibility on the first number.
 
-Interview conversationally and write prose a person can edit. Two things read the file, and they decide what it must contain: `est-estimate` takes its default profile inputs from it, and `est-calibrate` reads it to judge whether a team's learning-curve modifier has served its purpose. So cover team shape and seniority mix, dominant stacks, BMad adoption depth per team, and the engagement model that sets the overhead rate.
+`est-setup` seeds it from `{skill-root}/assets/company-profile.seed.md` with every section marked **UNANSWERED** and the coefficient each one selects printed beside it. **Fill that file in; do not invent a structure.** The sections are the four inputs `est-estimate` would otherwise default, and a profile shaped differently each time is one nobody can scan to see what is still missing. Delete each `UNANSWERED` marker as it is answered — that marker, not the file's absence, is what says the work is outstanding.
+
+Interview conversationally and write prose a person can edit. Two things read the file: `est-estimate` takes its default profile inputs from it, and `est-calibrate` reads it to judge whether a team's learning-curve modifier has served its purpose.
 
 Then ask by name about the three nobody volunteers:
 

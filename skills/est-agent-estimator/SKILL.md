@@ -57,7 +57,7 @@ Resolve config through `uv run {project-root}/_bmad/scripts/resolve_config.py -p
 
 **When the opening already names a project or a number** — most of the phrases in this skill's description do — go straight to that workspace instead. A portfolio-wide scan before answering a direct question returns attention signals about other people's deals. Scan only if what they named is missing or looks stale.
 
-**Read `{memory}/company-profile.md` and carry it for the session.** It holds how this company actually works — team shape, stacks, BMad adoption depth per team, QA capability, engagement model — and any house rule someone has written there. `est-estimate` takes its default profile inputs from it, so it is also the answer to "what did we assume".
+**Read `{memory}/company-profile.md` and carry it for the session.** It holds how this company actually works — team shape, stacks, BMad adoption depth per team, QA capability, engagement model — and any house rule someone has written there. `est-estimate` takes its default profile inputs from it, so it is also the answer to "what did we assume". Sections still marked `UNANSWERED` are the live gap: those inputs are being defaulted on every estimate, and `references/curate.md` has the interview that closes them. Raise it once, with what it is costing, rather than every time.
 
 **If it does not exist, say so before estimating anything.** Generic industry coefficients priced against the wrong team shape are how this tool loses its credibility on the first number. `references/curate.md` carries the profile interview — it takes five minutes and every estimate afterwards rests on it.
 

@@ -215,12 +215,12 @@ Every skill runs standalone and headless (`-H`) except Nadia — batch twenty pr
 ```
 _bmad/memory/est/               ← shared by all five skills
 ├── cost-model.json             ← your coefficients. Every one carries a `why`.
-├── company-profile.md          ← your teams, stacks, QA setup
+├── company-profile.md          ← your teams, stacks, QA setup — four coefficients hang on it
 ├── comparables.md              ← past projects: estimated vs actual
 ├── calibration-log.md          ← every coefficient change and how to reverse it
 └── ledger/                     ← one entry per estimate, with its model snapshot
 
-{output_folder}/estimates/{project}/
+{est_output_folder}/{project}/        ← defaults to {output_folder}/estimates
 ├── feature-inventory.json      ← epics → stories → the source rows behind each
 ├── classification.json         ← what each story costs to build, keyed by story id
 ├── estimate.json               ← the full estimate, with per-story role splits
@@ -252,6 +252,34 @@ Ten settings, written by `est-setup` to `_bmad/custom/config.toml`:
 | `est_knowledge_pack_source` | *(blank)* | Shared cost model location; blank = local only |
 
 **No rates, no currency, no margin.** The module outputs hours split by role and nothing more. Pricing stays with your sales team.
+
+---
+
+## The company profile
+
+Ten settings above, and then one file that matters more than all of them: `_bmad/memory/est/company-profile.md`.
+
+**Why it exists.** Most of the cost model is the same for everyone — what a story costs by hand, how much BMad compresses it, how hard a payments feature is to review. But four of its coefficients are not one number, they are a **choice between variants**, and the model cannot know which applies to you. Every estimate makes those four choices whether or not anybody decided them.
+
+| What it settles | What changes |
+|---|---|
+| **Team shape and seniority** | Specification, review and rework: `senior-heavy` ×0.8 / ×0.8 / ×0.7 against `junior-heavy` ×1.3 / ×1.4 / ×1.6. Build hours are untouched — the agent writes the code either way, so the whole seniority gap lands in the judgement work |
+| **BMad adoption depth, per team** | A `new-to-bmad` modifier: ×1.2 spec, ×1.2 review, ×1.5 rework. Recorded per team because it is **meant to decay** — once a team's actuals stop showing the penalty, calibration retires it for that team |
+| **Dominant stacks** | Which standing work applies. `mobile_plus_backend` adds ~30 h of release process; `multi_service` adds ~32 h of integration environment. Wrong stack and work every project of that shape pays is simply absent |
+| **QA capability** | A share of the manual baseline: web 3%, mobile manual 7.5%, **mobile through the MCP server 2.5%** |
+| **Engagement model** | Overhead, in hours per person per week rather than a share of scope: `low_touch` 2.0, `standard` 3.5, `high_touch` 5.0+. It follows the calendar, so on a six-month build it is not a rounding difference |
+
+**The defaults are not neutral.** The industry default for mobile QA is 7.5% of baseline. If your mobile testing runs through the MCP server the real figure is 2.5% — so an unanswered profile overstates your own mobile estimates threefold, and you lose work on a number that was never true. That is the case for filling it in that has nothing to do with tidiness.
+
+**What it is.** Prose, not config. Nothing parses it. `est-setup` seeds it with every section marked `UNANSWERED` and the coefficient each one selects printed beside it, so the questions are on the page rather than in someone's head. `est-estimate` reads it to settle those four inputs, and `est-calibrate` reads it to judge whether a team's learning-curve modifier has done its job.
+
+**A seeded profile is not a written one.** While a section still says `UNANSWERED`, that input is defaulted — the estimate is still produced, and `est-estimate` logs each assumption to the workspace memlog, so nothing is silently decided. But an assumption nobody made is a weak answer to *"how did you arrive at this?"*
+
+```
+/est-agent-estimator          # Nadia runs the interview — about five minutes
+```
+
+Or open the file and write it yourself. It is yours to edit, and rates and commercials do not belong in it — delivered-hours anchors from past projects go in `comparables.md` with their source.
 
 ---
 
