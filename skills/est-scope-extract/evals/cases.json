@@ -14,6 +14,19 @@
       ]
     },
     {
+      "id": "band-assignment",
+      "fixture": "sizing-backlog.xlsx",
+      "asks": "Extract scope from this workbook.",
+      "must_hold": [
+        "the six Depots CRUD rows collapse into a single story, not six features",
+        "that depot story is tagged size_band M — CRUD over one entity, however central the entity is, is not L",
+        "'Sign in with Microsoft Entra' is tagged L despite being a single row: it is the first authentication protocol in the codebase",
+        "'Derive depot capacity from its bays' is NOT tagged L — being read by every other feature raises its review_tier, not its size_band",
+        "the 40 alert-rule rows are one story whose size why names the count, not 40 features",
+        "no story is tagged XS"
+      ]
+    },
+    {
       "id": "multiline-quoted-field",
       "fixture": "requirements.csv",
       "asks": "Extract scope from this requirements file.",

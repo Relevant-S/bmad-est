@@ -30,35 +30,88 @@
   "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
   "size_bands": {
     "_what": "manual_baseline in hours: what this STORY would have cost a human team writing it by hand. NOT the BMad effort — the model derives that; conflating the two double-counts the compression. The unit is a story, not a feature: the priced item is one coherent unit of delivery, and these bands were three times too large while they still described a feature. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
+    "_anchor": {
+      "samples": 1,
+      "source": "One delivered multi-surface SaaS platform: 76 stories over 9 epics, 609 acceptance criteria, reconciled against 540 h of recorded actuals across six roles.",
+      "distribution": {
+        "XS": 0.0,
+        "S": 0.11,
+        "M": 0.64,
+        "L": 0.25,
+        "XL": 0.0
+      },
+      "baseline_per_requirement_h": 2.0,
+      "baseline_per_story_h": 15.8,
+      "why": "The shape a band assignment is compared against, not a rule it must obey. M is the median story; L is a quarter of the work and it is the first-of-its-kind quarter; nothing in 76 delivered stories was small enough to be XS, and nothing was left XL. Read it as a reference class to argue with — n=1, and a data-migration or design-led engagement will legitimately sit elsewhere. What it is for: an inventory claiming 37% L is claiming that a third of the product is a capability the codebase has never had, and that claim should be made out loud rather than by accident.",
+      "not_the_discriminator": "Acceptance-criterion count does not separate the bands. In the anchor the first-OIDC story carries 4 acceptance criteria and is L; a routine configuration screen carries 7 and is M. Volume of stated requirement holds at the level of a whole inventory and fails story by story."
+    },
     "XS": {
       "lo": 0.5,
       "likely": 1,
       "hi": 2,
-      "why": "A config change, a copy edit, one field on an existing form"
+      "why": "A config change, a copy edit, one field on an existing form — usually a task, not a story",
+      "exemplars": [
+        "A config value, a copy fix, one field on a form that already exists",
+        "None of the anchor's 76 delivered stories was XS. Something this small is normally a task inside a story, not a story — if a whole inventory carries XS rows, the unit is probably wrong"
+      ]
     },
     "S": {
       "lo": 2,
       "likely": 4,
       "hi": 7,
-      "why": "A single endpoint, a simple form, one static page, one report column"
+      "why": "A single endpoint, a simple form, one static page, one report column",
+      "exemplars": [
+        "A language pack against an i18n framework that already exists",
+        "A microcopy or tone pass over screens already built",
+        "A placeholder route behind a feature flag",
+        "One report column, one export, one static page"
+      ]
     },
     "M": {
       "lo": 6,
       "likely": 11,
       "hi": 20,
-      "why": "One story: an endpoint plus its screen, a documented integration point, a single multi-step flow"
+      "why": "One story: an endpoint plus its screen, a documented integration point, a single multi-step flow",
+      "exemplars": [
+        "A second entity's CRUD plus its configuration screen",
+        "A list and its detail view over one resource",
+        "Another path through a flow that already exists — a manual override beside the automated one",
+        "Profile create-and-edit over an account model already in place",
+        "A documented third-party API called for the first time, where the transport is already there"
+      ],
+      "not_exemplars": [
+        "Not S because a second entity still needs its own rules, its own screens and its own tests — the pattern is free, the specifics are not"
+      ]
     },
     "L": {
       "lo": 20,
       "likely": 33,
       "hi": 55,
-      "why": "A story spanning several surfaces, or one carrying a state machine or a new transport"
+      "why": "The first of its kind in this codebase: a protocol, a transport, an external system, a framework, or a foundation everything after it is built on. The second story that uses that capability is M",
+      "exemplars": [
+        "The first OIDC/SAML integration in the codebase — a new protocol, and both clients",
+        "An append-only ledger behind a hosted checkout, credited only on the verified webhook",
+        "The first real-time transport: sockets plus a broker",
+        "The first native device capability — camera scanning on a staff app",
+        "The i18n framework itself, before any language pack rides on it",
+        "The first outbound sync to an external system, with its retry and dead-letter path",
+        "The repository scaffold, or the design system, that everything after it is built on"
+      ],
+      "not_exemplars": [
+        "Not CRUD over one entity, however central the entity is to the product",
+        "Not a list plus its detail view, however many other features read from it",
+        "Not a derived read the whole product depends on — size it as the query it is; its reach is review_tier's business, and charging for reach here bills it twice"
+      ]
     },
     "XL": {
       "lo": 55,
       "likely": 90,
       "hi": 150,
-      "why": "A story that should have been split — a subsystem tracked as one row. The band is wide because an XL tag means the scope was never decomposed, and the estimate says so rather than pretending otherwise"
+      "why": "A story that should have been split — a subsystem tracked as one row. The band is wide because an XL tag means the scope was never decomposed, and the estimate says so rather than pretending otherwise",
+      "exemplars": [
+        "A catalogue of ~60 rules evaluated as one mechanism, where the source genuinely gives nothing to split on",
+        "Nothing in the anchor was left XL. est-estimate prices a narrowing question for every XL rather than treating the band as an answer"
+      ]
     }
   },
   "compressibility": {

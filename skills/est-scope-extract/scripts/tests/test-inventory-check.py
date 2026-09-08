@@ -531,5 +531,134 @@ class BoilerplateTags(unittest.TestCase):
         self.assertEqual([f for f in check.check_integrity(inv) if "justification" in f], [])
 
 
+class Sizing(unittest.TestCase):
+    """The band distribution against the delivery anchor.
+
+    None of this blocks. All of it exists because one extraction tagged 37% of its stories `L`
+    against an anchor's 25%, priced three times over, and nothing in the pipeline objected.
+    """
+
+    BANDS = check.load_bands()[0]
+
+    def stories(self, bands, lines=1, tier="routine"):
+        """`bands` as {band: count}. `lines` source rows per story — the volume proxy."""
+        out, i = [], 0
+        for band, count in bands.items():
+            for _ in range(count):
+                i += 1
+                out.append(feature(
+                    f"F{i}", f"Thing {i}",
+                    tasks=[{"id": f"T{i}-{k}", "name": "row",
+                            "citations": [{"source_id": "S1", "location": f"row {k}", "quote": "q"}]}
+                           for k in range(lines)],
+                    tags={**feature()["tags"], "size_band": tag(band, why=f"reason {i}"),
+                          "review_tier": tag(tier, why=f"tier {i}")}))
+        return out
+
+    def warn(self, features):
+        return check.check_sizing(features, self.BANDS)[0]
+
+    def test_the_anchor_shape_raises_nothing(self):
+        """25% L, 64% M, 11% S over one source line each — the shape that was delivered."""
+        self.assertEqual(self.warn(self.stories({"L": 19, "M": 49, "S": 8})), [])
+
+    def test_too_many_large_stories_is_reported_with_what_it_is_worth(self):
+        warnings = self.warn(self.stories({"L": 131, "M": 154, "S": 56, "XS": 10, "XL": 1}, lines=3))
+        self.assertTrue(any("37% of stories are L" in w and "25%" in w for w in warnings))
+        self.assertTrue(any("of the whole manual baseline" in w for w in warnings))
+
+    def test_xs_is_reported_because_the_anchor_had_none(self):
+        warnings = self.warn(self.stories({"XS": 6, "M": 45, "L": 18, "S": 7}))
+        self.assertTrue(any("are XS" in w for w in warnings))
+
+    def test_xl_is_reported_as_a_split_signal(self):
+        warnings = self.warn(self.stories({"XL": 1, "M": 49, "L": 19, "S": 8}))
+        self.assertTrue(any("XL" in w and "signal to split" in w for w in warnings))
+
+    def test_a_band_that_tracks_risk_is_the_double_count(self):
+        """Content held at one source line, so only the review tier varies with the band."""
+        features = (self.stories({"S": 12}, lines=1, tier="routine")
+                    + self.stories({"L": 12}, lines=1, tier="sensitive")
+                    # The bulk carries several rows each, which is what makes the inventory
+                    # row-shaped — without a volume proxy the correlation is uninterpretable.
+                    + self.stories({"M": 60}, lines=4, tier="routine"))
+        for i, f in enumerate(features):      # unique ids across the three groups
+            f["id"] = f"G{i}"
+        warnings = check.check_sizing(features, self.BANDS)[0]
+        self.assertTrue(any("tracking risk, not volume" in w for w in warnings))
+
+    def test_one_source_line_priced_as_a_new_capability_is_reported(self):
+        features = self.stories({"L": 30}, lines=1) + self.stories({"M": 120}, lines=4)
+        for i, f in enumerate(features):
+            f["id"] = f"H{i}"
+        warnings = check.check_sizing(features, self.BANDS)[0]
+        self.assertTrue(any("on a single source line" in w for w in warnings))
+
+    def test_density_against_the_anchor_rate(self):
+        """Every story L over three source rows: 11h per row against the anchor's 2h."""
+        warnings = self.warn(self.stories({"L": 40, "M": 20, "S": 5}, lines=3))
+        self.assertTrue(any("manual baseline per source line" in w for w in warnings))
+
+    def test_prose_sourced_inventories_skip_the_volume_checks_and_say_so(self):
+        """One citation over a PRD section is not one line of stated requirement, so the count
+        proves nothing. Silence here has to be explained rather than implied."""
+        _, report = check.check_sizing(self.stories({"L": 19, "M": 49, "S": 8}), self.BANDS)
+        self.assertFalse(report["row_shaped"])
+        self.assertTrue(any("per-source-line" in s for s in report["skipped"]))
+
+    def test_a_small_inventory_is_left_alone(self):
+        self.assertEqual(self.warn(self.stories({"L": 8, "M": 5})), [])
+
+    def test_a_missing_anchor_costs_the_report_not_the_run(self):
+        warnings, report = check.check_sizing(self.stories({"L": 40, "M": 40}), None)
+        self.assertEqual(warnings, [])
+        self.assertIn("skipped", report)
+
+    def test_it_does_not_block_the_estimate(self):
+        """est-estimate refuses to price an inventory with findings. A band distribution is a
+        judgement about a project's shape, never a certainty, so it must never land there."""
+        inv = inventory(features=self.stories({"L": 131, "M": 154, "S": 56}, lines=3))
+        self.assertEqual([f for f in check.check_integrity(inv) if "size_band:" in f], [])
+
+
+class Bands(unittest.TestCase):
+    def test_the_shipped_seed_carries_an_anchor(self):
+        bands, _, source = check.load_bands()
+        self.assertIn("shipped seed", source)
+        self.assertIn("distribution", bands["_anchor"])
+
+    def test_every_band_carries_worked_exemplars(self):
+        """Adjectives are what the classifier had when it over-tagged. Exemplars are the fix,
+        so a band shipped without them is a band with no reference class."""
+        bands = check.load_bands()[0]
+        for band in check.TAG_VOCABULARY["size_band"]:
+            self.assertTrue(bands[band].get("exemplars"), f"{band} has no exemplars")
+
+    def test_a_project_model_without_an_anchor_is_reported_not_silently_replaced(self):
+        """The dangerous case: the project has a model, it has been recalibrated, and the bands
+        being compared against came from somewhere else. Silence there is the original bug."""
+        import subprocess, sys as _s
+        with tempfile.TemporaryDirectory() as tmp:
+            old_model = Path(tmp) / "cost-model.json"
+            old_model.write_text(json.dumps({"size_bands": {"M": {"lo": 6, "likely": 11, "hi": 20}}}))
+            inv_path = Path(tmp) / "inv.json"
+            inv_path.write_text(json.dumps(inventory(features=[
+                feature(f"F{i}", f"Thing {i}") for i in range(25)])))
+            out = subprocess.run(
+                [_s.executable, str(Path(__file__).resolve().parent.parent / "inventory-check.py"),
+                 str(inv_path), "--cost-model", str(old_model)],
+                capture_output=True, text=True)
+            result = json.loads(out.stdout)
+            self.assertTrue(any("carries no size_bands._anchor" in w for w in result["warnings"]))
+            self.assertEqual(result["findings"], [])
+
+    def test_an_unreadable_model_falls_back_to_the_seed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "nope.json"
+            bands, _, source = check.load_bands(missing)
+            self.assertIn("shipped seed", source)
+            self.assertTrue(bands)
+
+
 if __name__ == "__main__":
     unittest.main()

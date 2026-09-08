@@ -604,6 +604,18 @@ def is_calibrated(model):
                for entry in model.get("calibration_history") or [])
 
 
+def calibration_samples(model):
+    """How many delivered projects the model's coefficients actually rest on.
+
+    The largest single calibration rather than the sum: two entries fitted against the same anchor
+    are one project's worth of evidence, and a client told "calibrated against four projects" when
+    it is one anchor read four ways has been told something false.
+    """
+    return max((int(entry.get("samples") or 0)
+                for entry in model.get("calibration_history") or []
+                if (entry.get("kind") or "calibrated") != "judgement"), default=0)
+
+
 def options_from(estimate, model, overrides=None):
     """The pricing inputs an existing estimate was produced with.
 
@@ -733,6 +745,7 @@ def build_estimate(inventory, model, options):
     options["completeness_multiplier"] = multiplier
     band = 2 * half_band
 
+    calibrated_from = calibration_samples(model) if is_calibrated(model) else 0
     estimate = {
         "schema_version": "1.0",
         "project": inventory.get("project"),
@@ -774,7 +787,12 @@ def build_estimate(inventory, model, options):
             f"Stack profile: {options['stack']}. QA profile: {options['qa_platform']}. Engagement model: {options['engagement']}.",
             f"Planning volume: {volume['epics']} epics ({volume['epics_from']}), {volume['stories']} stories, documents: {', '.join(volume['documents']) or 'none (inherited from the running project)'}.",
             f"Overhead priced as {span['weeks']} weeks ({span['weeks_range'][0]}–{span['weeks_range'][1]}) x {span['assumed_team_size']} people of ceremony, not as a share of scope.",
-            "Cost model is UNCALIBRATED against this company's actuals; coefficients are reasoned starting points.",
+            (f"Cost model calibrated against {calibrated_from} delivered "
+             f"{'project' if calibrated_from == 1 else 'projects'}; a single anchor is a weak "
+             f"statistical base and the coefficients say so in their own why lines."
+             if calibrated_from else
+             "Cost model is UNCALIBRATED against this company's actuals; coefficients are reasoned "
+             "starting points."),
         ] + [f"Classification quality: {w}" for w in options.get("inventory_warnings") or []]
           + inventory.get("assumptions", []),
         "planning_volume": volume,

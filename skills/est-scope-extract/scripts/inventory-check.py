@@ -27,6 +27,12 @@ from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).resolve().parent.parent / "assets" / "feature-inventory.schema.json"
 
+# The bands are defined by the cost model, not by this script. Falling back to the shipped seed
+# matters: extraction legitimately runs before a project has a model of its own, and a band table
+# quoted from memory instead of read from the file is how the two drift apart.
+SEED_MODEL_PATH = (Path(__file__).resolve().parent.parent.parent
+                   / "est-estimate" / "assets" / "cost-model.seed.json")
+
 TAG_VOCABULARY = {
     "size_band": ["XS", "S", "M", "L", "XL"],
     "compressibility": ["high", "medium", "low", "none"],
@@ -520,6 +526,160 @@ def check_boilerplate_tags(features, threshold=0.2, floor=20):
     return findings
 
 
+def load_bands(cost_model=None):
+    """The band table and the delivery anchor it was fitted against.
+
+    Returns (size_bands, used_path, source_label), or (None, None, reason). Never raises: a
+    missing or older model costs the sizing report, not the validation run.
+    """
+    for path, label in ((cost_model, "cost model"), (SEED_MODEL_PATH, "shipped seed")):
+        if not path:
+            continue
+        try:
+            bands = json.loads(Path(path).read_text(encoding="utf-8")).get("size_bands")
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(bands, dict) and bands.get("_anchor"):
+            return bands, Path(path), f"{label}: {path}"
+    return None, None, ("no cost model with a size_bands._anchor block was readable — "
+                        "sizing is unchecked for this run")
+
+
+def band_of(feature):
+    tag = (feature.get("tags") or {}).get("size_band")
+    return tag.get("value") if isinstance(tag, dict) else None
+
+
+def source_lines(feature):
+    """How many lines of the client's own document this story absorbed.
+
+    `tasks` is where story synthesis parks the source rows; a story built straight from one
+    passage has none and is measured by its citations instead.
+    """
+    return max(len(feature.get("tasks") or []), len(feature.get("citations") or []), 1)
+
+def check_sizing(features, bands, floor=20, impact=0.10, ratio=1.5):
+    """Is the band distribution the shape a delivered project actually had?
+
+    Nothing here is an error and none of it blocks pricing. A migration engagement or a
+    design-led build legitimately sits away from the anchor. What is not legitimate is landing
+    there by accident: one extraction tagged 37% of its stories `L` against an anchor's 25% and
+    priced three times over, because nothing said so out loud.
+
+    Half of these need a volume proxy — how much of the client's own document each story
+    absorbed — and that only exists once story synthesis has parked the source rows as `tasks`.
+    Against a prose source one citation can cover three pages, so the count means nothing and
+    those checks are skipped rather than guessed at. `skipped` says which and why.
+    """
+    order = TAG_VOCABULARY["size_band"]
+    if len(features) < floor or not bands:
+        return [], {"skipped": "fewer than %d stories" % floor if bands else "no anchor"}
+    anchor = bands["_anchor"]
+    expected = anchor.get("distribution") or {}
+    counts = {b: [f.get("id") for f in features if band_of(f) == b] for b in order}
+    n = len(features)
+    baseline = sum(float(bands[b]["likely"]) * len(ids) for b, ids in counts.items() if b in bands)
+    lines_total = sum(source_lines(f) for f in features)
+    # Row-shaped: the source rows survived into the inventory, so a count of them is a real
+    # measure of how much was stated. Prose-shaped: it is not, and nothing below pretends it is.
+    row_shaped = lines_total >= 1.5 * n
+    warnings, skipped = [], []
+
+    if counts["XS"]:
+        warnings.append(
+            f"size_band: {len(counts['XS'])} of {n} stories are XS (e.g. "
+            f"{', '.join(counts['XS'][:3])}), and none of the anchor's delivered stories was. "
+            f"Something under two hours is usually a task inside a story — check the unit before "
+            f"pricing it as one"
+        )
+    if counts["XL"]:
+        plural = "story is" if len(counts["XL"]) == 1 else "stories are"
+        warnings.append(
+            f"size_band: {len(counts['XL'])} {plural} XL (e.g. {', '.join(counts['XL'][:3])}). "
+            f"An XL is a signal to split, not a size — est-estimate will price a narrowing "
+            f"question for each one"
+        )
+
+    # Judged by what the deviation is worth, not by how far the percentage moved. Two points off
+    # the anchor matters at L and does not at XS, because the hours behind them differ thirty-fold
+    # — and what a reader needs is how much of the estimate rests on the difference.
+    for band in ("S", "M", "L"):
+        want = expected.get(band)
+        if want is None or not baseline:
+            continue
+        share = len(counts[band]) / n
+        worth = (share - want) * n * float(bands[band]["likely"]) / baseline
+        if abs(worth) >= impact:
+            direction = "more" if share > want else "fewer"
+            warnings.append(
+                f"size_band: {share:.0%} of stories are {band}, against {want:.0%} in the delivery "
+                f"anchor — {direction} than the reference class, and worth {abs(worth):.0%} of the "
+                f"whole manual baseline. Sound if the project really is shaped that way; say so in "
+                f"the extraction report. {band} is "
+                f"\"{(bands[band].get('why') or '').split(',')[0].strip().lower()}\""
+            )
+
+    if row_shaped:
+        # The double count. Holding the source volume at one line so the content cannot vary,
+        # does the band still track how dangerous the story is? Then criticality is paid for
+        # twice — here, and again through review_rate.
+        thin = [f for f in features if source_lines(f) == 1]
+        risky = {}
+        for band in ("S", "M", "L"):
+            group = [f for f in thin if band_of(f) == band]
+            if len(group) >= 8:
+                risky[band] = sum(
+                    1 for f in group
+                    if ((f.get("tags") or {}).get("review_tier") or {}).get("value")
+                    in ("sensitive", "critical")
+                ) / len(group)
+        if len(risky) >= 2:
+            low = min(risky, key=lambda b: order.index(b))
+            high = max(risky, key=lambda b: order.index(b))
+            if risky[high] - risky[low] >= 0.20:
+                warnings.append(
+                    f"size_band: among stories citing a single source line, where the content "
+                    f"cannot vary, {risky[low]:.0%} of {low} stories are sensitive or critical "
+                    f"against {risky[high]:.0%} of {high} ones. The band is tracking risk, not "
+                    f"volume — and review_tier already prices risk, so it is being billed twice. "
+                    f"Size is how much work there is; reach and consequence belong in review_tier"
+                )
+
+        # The clearest single case: one line of the client's document, priced as a new capability.
+        big = [f.get("id") for f in features
+               if source_lines(f) == 1 and band_of(f) in ("L", "XL")]
+        if len(big) >= max(10, 0.05 * n):
+            warnings.append(
+                f"size_band: {len(big)} stories are L or XL on a single source line (e.g. "
+                f"{', '.join(big[:3])}). One line can genuinely describe a protocol or a new "
+                f"transport — \"sign in with Microsoft\" does — but at this count the band is "
+                f"more likely reading importance than size"
+            )
+    else:
+        skipped.append(
+            "the per-source-line checks: this inventory carries %.2f source lines per story, so "
+            "the citation count is not a measure of how much the source stated" % (lines_total / n)
+        )
+
+    rate, want, unit, over = (
+        (baseline / lines_total, anchor.get("baseline_per_requirement_h"), "source line", lines_total)
+        if row_shaped else
+        (baseline / n, anchor.get("baseline_per_story_h"), "story", n)
+    )
+    if want and rate and (rate / want >= ratio or want / rate >= ratio):
+        warnings.append(
+            f"size_band: the bands assign {rate:.1f}h of manual baseline per {unit}, against "
+            f"{want:.1f}h in the delivery anchor ({baseline:.0f}h over {over} {unit}s). The whole "
+            f"estimate scales with this, so it is worth being deliberate about"
+        )
+
+    return warnings, {"row_shaped": row_shaped,
+                      "baseline_h": round(baseline, 1),
+                      f"baseline_h_per_{'source_line' if row_shaped else 'story'}": round(rate, 2),
+                      "anchor_expects": round(want, 2) if want else None,
+                      "skipped": skipped}
+
+
 def find_cycles(features):
     """Depth-first cycle detection. est-estimate cannot compute a critical path over a cyclic graph."""
     graph = {f.get("id"): [d.get("feature_id") for d in f.get("depends_on", [])] for f in features}
@@ -601,6 +761,14 @@ def coverage(inv):
                       if (f.get("tags", {}).get("review_tier") or {}).get("value") == tier)
             for tier in TAG_VOCABULARY["review_tier"]
         },
+        # The band distribution, for the same reason the tiers are here: it is the shape a
+        # reviewer judges, and re-deriving it means re-walking the inventory this just walked.
+        "size_bands": {
+            band: sum(1 for f in features if band_of(f) == band)
+            for band in TAG_VOCABULARY["size_band"]
+        },
+        "source_lines_per_story": round(
+            sum(source_lines(f) for f in features) / len(features), 2) if features else 0,
         # Ids, not just counts: the confirmation batch needs the items themselves, and
         # re-deriving them means re-reading the inventory the script just walked.
         "sensitive_or_critical": [
@@ -632,12 +800,26 @@ def main():
     ap.add_argument("--manifest", metavar="PATH",
                     help="convert-input manifest; reconciles converted sources against the "
                          "inventory's sources array")
+    ap.add_argument("--cost-model", metavar="PATH",
+                    help="cost-model.json, for the band table and the delivery anchor the sizing "
+                         "report compares against; falls back to the shipped seed")
+    ap.add_argument("--bands", action="store_true",
+                    help="print the size bands, their worked exemplars and the delivery anchor, "
+                         "then exit — read this before classifying, not from memory")
     ap.add_argument("--weights", action="store_true", help="print the scoring weights and exit")
     ap.add_argument("--verbose", action="store_true", help="list findings on stderr as well")
     ap.add_argument("--boilerplate-threshold", type=float, default=0.2,
                     help="share of features that may share one tag justification before it is "
                          "reported as a default rather than a judgement (default 0.2)")
     args = ap.parse_args()
+
+    if args.bands:
+        bands, _, source = load_bands(args.cost_model)
+        if not bands:
+            print(json.dumps({"ok": False, "error": source}, indent=2))
+            return 2
+        print(json.dumps({"source": source, "size_bands": bands}, indent=2, ensure_ascii=False))
+        return 0
 
     if args.weights:
         print(json.dumps({"weights": SIGNAL_WEIGHTS, "signal_points": SIGNAL_POINTS,
@@ -646,7 +828,7 @@ def main():
         return 0
 
     if not args.inventory:
-        ap.error("inventory path is required unless --weights is given")
+        ap.error("inventory path is required unless --weights or --bands is given")
 
     path = Path(args.inventory)
     try:
@@ -674,6 +856,22 @@ def main():
         # estimate carries these into its own assumptions instead, where a client reads them.
         "warnings": check_boilerplate_tags(inv.get("features", []), args.boilerplate_threshold),
     }
+    bands, band_path, band_source = load_bands(args.cost_model)
+    sizing_warnings, sizing = check_sizing(inv.get("features", []), bands)
+    if args.cost_model and band_path != Path(args.cost_model):
+        # The project has its own model and the bands were read from somewhere else. If that
+        # model has ever been recalibrated, the reference class being applied here is the wrong
+        # one — and a wrong reference class that nobody mentions is how this went wrong before.
+        sizing_warnings.append(
+            f"size_band: {args.cost_model} carries no size_bands._anchor, so the bands and "
+            f"exemplars came from the shipped seed instead. If that model has been recalibrated, "
+            f"re-run est-estimate's migrate-cost-model.py so the reference class matches the "
+            f"hours it will actually be priced at"
+        )
+    result["sizing"] = {"anchor": band_source,
+                        "distribution": result["coverage"]["size_bands"],
+                        "source_lines_per_story": result["coverage"]["source_lines_per_story"]} | sizing
+    result["warnings"] += sizing_warnings
     if args.normalized:
         findings += verify_citations(inv, args.normalized) + check_anchors(inv, args.normalized)
         result["unreferenced_regions"] = coverage_regions(inv, args.normalized)

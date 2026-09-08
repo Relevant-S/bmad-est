@@ -17,17 +17,41 @@ Tag from the evidence in front of you. When the source does not say, tag what it
 
 The **manual-equivalent** effort — what this **story** would have cost a human team writing it by hand. Not the BMad effort. The cost model derives BMad hours from this band; conflating the two double-counts the compression.
 
-**The unit is a story.** These bands described a *feature* until they were fitted against EPP, and a story is roughly a third of one — which made every story-grained inventory price about three times too high. If a row you are tagging looks like "authentication" rather than "log in with email and password", it is an epic and it should have been split.
+**Read the calibrated bands before you tag anything:**
+
+```
+uv run scripts/inventory-check.py --bands [--cost-model {project-root}/_bmad/memory/est/cost-model.json]
+```
+
+That prints the hour ranges, the worked exemplars for each band, and the shape of the delivered project the bands were fitted against. The exemplars live in the cost model beside the hours they illustrate, so they move when the hours move — a table copied into your head from a previous run is a table that has drifted.
+
+**The unit is a story.** These bands described a *feature* until they were fitted against a delivered project, and a story is roughly a third of one — which made every story-grained inventory price about three times too high. If a row you are tagging looks like "authentication" rather than "log in with email and password", it is an epic and it should have been split.
 
 | Band | Manual-equivalent | Looks like |
 | --- | --- | --- |
-| `XS` | under 2h | A config change, a copy edit, one field added to an existing form |
-| `S` | 2–7h | A single endpoint, a simple form, one static page, one report column |
-| `M` | 6–20h | One story: an endpoint plus its screen, a documented integration point, a single multi-step flow |
-| `L` | 20–55h | A story spanning several surfaces, or carrying a state machine or a new transport |
+| `XS` | under 2h | A config change, a copy edit, one field added to an existing form — usually a task inside a story rather than a story |
+| `S` | 2–7h | A single endpoint, a simple form, one static page, one report column, a language pack against a framework that already exists |
+| `M` | 6–20h | An endpoint plus its screen, a second entity's CRUD and its config screen, a list and its detail view, another path through a flow that already exists |
+| `L` | 20–55h | **The first of its kind in this codebase** — a protocol, a transport, an external system, a framework, or a foundation everything after it is built on |
 | `XL` | over 55h | A story that should have been split — a subsystem tracked as one row |
 
-An `XL` tag is a signal to split. A story that large hides too much variance to estimate as one item, and the range it produces will be uselessly wide. Split it into the parts the source describes and note the split in `assumptions`. Only leave it `XL` when the source genuinely gives nothing to split on — and then say so in the `why`, because that is itself an open question worth asking the client.
+**The question that separates `M` from `L`: does this introduce a capability the codebase does not yet have?** The first OIDC integration is `L` — a new protocol, on every client. The second thing that signs in through it is `M`. The first real-time transport is `L`; the ninth screen that subscribes to it is `M`. The exemplars in the cost model are all of this shape, and they are what you compare against.
+
+**Centrality is not size, and neither is risk.** A derived read that every other feature depends on is sized as the query it is. That it is read everywhere is `review_tier`'s business, and `review_tier` charges for it — 0.04, 0.17 and 0.30 of the baseline across the three tiers. Size it for its reach as well and the estimate bills the same fact twice. This is not hypothetical: in one extraction, holding the source volume fixed at exactly one row so the content could not vary, the share of stories tagged `sensitive` or `critical` still climbed **41% at `S`, 68% at `M`, 78% at `L`** — the band was tracking how dangerous the story was, not how much of it there was.
+
+The tell is in the `why` you are about to write. *"The aggregation every customer-facing answer depends on"*, *"lands in the schema before any screen exists"*, *"read by every quote and every availability response"* — every one of those argues from blast radius, and every one of those is a reason to raise the review tier, not the band.
+
+**And it is not the row count.** Acceptance criteria and source rows do not decide the band: in the anchor, the first-OIDC story carries **4** acceptance criteria and is `L`, while a routine configuration screen carries **7** and is `M`. Volume of stated requirement is a real signal across a whole inventory — `inventory-check.py` compares yours against the anchor's rate — and it is not one story by story.
+
+Three calls that are made wrong most often:
+
+- **CRUD over one entity is `M`**, however central the entity is to the product. "Create, view, update and delete a vehicle type" is the same size whether the product rents vehicles or merely lists them.
+- **A list plus its detail view is `M`**, however many other features read from it.
+- **A story you cannot describe without naming a protocol, a transport or an external system is `L`**, even when the source states it in one line. A single row reading "sign in with Microsoft" is a `L`.
+
+An `XL` tag is a signal to split. A story that large hides too much variance to estimate as one item, and the range it produces will be uselessly wide. Split it into the parts the source describes and note the split in `assumptions`. Only leave it `XL` when the source genuinely gives nothing to split on — and then say so in the `why`, because that is itself an open question worth asking the client. `est-estimate` prices a narrowing question for every `XL` rather than treating the band as an answer.
+
+**Expect most of the inventory to be `M`.** In the delivered project the bands are fitted against, the split was 64% `M`, 25% `L`, 11% `S`, and nothing was `XS` or left `XL`. That is a reference class to argue with, not a quota — a data-migration engagement or a design-led build will legitimately sit elsewhere, and `inventory-check.py` reports the comparison rather than enforcing it. But an inventory where a third of the stories are `L` is claiming that a third of the product is a capability nobody has built before, and that is a claim worth making deliberately.
 
 ## compressibility
 

@@ -51,6 +51,48 @@ def banner_workbook(out):
     wb.save(out / "backlog-with-banner.xlsx")
 
 
+def sizing_workbook(out):
+    """Band assignment: four rows whose correct band is not arguable.
+
+    Every one of these was got wrong on a real workbook, and each wrong answer reads as
+    reasonable on the page. The depot rows are six faces of one resource and must collapse to a
+    single `M`; the SSO row is one line and is nonetheless `L`, because it is the first
+    authentication protocol in the codebase; the capacity row is the trap — it is read by
+    everything in the product, which raises its review tier and not its size; and the alert
+    catalogue is one story configured forty ways, not forty features.
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Backlog"
+    ws.append(["Epic", "Feature", "Detail"])
+    rows = [
+        ("Depots", "Create a depot", "An operator creates a depot with its name, address and opening hours."),
+        ("Depots", "View a depot", "An operator opens a depot and sees its details and its bays."),
+        ("Depots", "Edit a depot", "An operator changes a depot's details."),
+        ("Depots", "Archive a depot", "An operator archives a depot; archived depots take no new jobs."),
+        ("Depots", "List depots", "A paginated list of depots with the columns the operator chose."),
+        ("Depots", "Search depots", "Free-text search over depot name and address."),
+        ("Access", "Sign in with Microsoft Entra",
+         "Staff sign in with their work account instead of a password."),
+        ("Depots", "Derive depot capacity from its bays",
+         "A depot's capacity is the count of its in-service bays. Every job assignment, the "
+         "planning board, the capacity report and the public availability API read this."),
+        ("Billing", "Export the monthly invoice run",
+         "An operator downloads the month's invoices as a single PDF."),
+        ("Access", "Reset a forgotten password",
+         "A member requests a reset link by email and sets a new password."),
+    ]
+    for row in rows:
+        ws.append(list(row))
+
+    alerts = wb.create_sheet("Alert rules")
+    alerts.append(["Rule", "Fires when"])
+    for i in range(1, 41):
+        alerts.append([f"ALERT-{i:02d}", f"Condition {i} is met on a depot or a vehicle"])
+
+    wb.save(out / "sizing-backlog.xlsx")
+
+
 def multiline_csv(out):
     """A quoted field containing a newline. Splitting on newlines first tears it in half
     and shifts every row after it, corrupting both the quote and the anchor."""
@@ -144,6 +186,22 @@ CASES = [
         ],
     },
     {
+        "id": "band-assignment",
+        "fixture": "sizing-backlog.xlsx",
+        "asks": "Extract scope from this workbook.",
+        "must_hold": [
+            "the six Depots CRUD rows collapse into a single story, not six features",
+            "that depot story is tagged size_band M — CRUD over one entity, however central "
+            "the entity is, is not L",
+            "'Sign in with Microsoft Entra' is tagged L despite being a single row: it is the "
+            "first authentication protocol in the codebase",
+            "'Derive depot capacity from its bays' is NOT tagged L — being read by every other "
+            "feature raises its review_tier, not its size_band",
+            "the 40 alert-rule rows are one story whose size why names the count, not 40 features",
+            "no story is tagged XS",
+        ],
+    },
+    {
         "id": "multiline-quoted-field",
         "fixture": "requirements.csv",
         "asks": "Extract scope from this requirements file.",
@@ -206,7 +264,7 @@ def main():
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    for build in (banner_workbook, multiline_csv, non_english_source,
+    for build in (banner_workbook, sizing_workbook, multiline_csv, non_english_source,
                   contradicting_sources, thin_brief, unreadable_sources):
         build(out)
 

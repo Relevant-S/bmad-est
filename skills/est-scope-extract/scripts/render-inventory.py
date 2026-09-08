@@ -155,7 +155,7 @@ def render_csv(inv, target):
     columns = [
         "id", "name", "description", "epic_id", "surfaces", "tasks", "origin",
         "commitment", "scope_status",
-        "size_band", "compressibility", "compressibility_why",
+        "size_band", "size_band_why", "compressibility", "compressibility_why",
         "review_tier", "review_tier_why", "clarity", "novelty",
         "depends_on", "tag_status", "sources", "locations",
         "primary_quote", "open_questions",
@@ -177,6 +177,7 @@ def render_csv(inv, target):
                 "commitment": f.get("commitment"),
                 "scope_status": f.get("scope_status") or "in_agreed_scope",
                 "size_band": tag(f, "size_band"),
+                "size_band_why": tag(f, "size_band", "why"),
                 "compressibility": tag(f, "compressibility"),
                 "compressibility_why": tag(f, "compressibility", "why"),
                 "review_tier": tag(f, "review_tier"),
