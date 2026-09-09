@@ -52,11 +52,11 @@
         "properties": {
           "size_band": {
             "$ref": "#/$defs/tag",
-            "description": "XS/S/M/L/XL band of manual-equivalent effort"
+            "description": "XS/S/M/L/XL band of DELIVERED hours for the story. Not a manual-equivalent baseline — the 3.0 model stopped pricing one, because no delivered project ever recorded it."
           },
           "compressibility": {
             "$ref": "#/$defs/tag",
-            "description": "How much BMad compresses building this"
+            "description": "How much BMad compresses building this. REPORTED ONLY since 3.0: it produces the client-facing manual-equivalent figure and no priced hour depends on it."
           },
           "review_tier": {
             "$ref": "#/$defs/tag",
@@ -69,6 +69,19 @@
           "novelty": {
             "$ref": "#/$defs/tag",
             "description": "standard or novel relative to work the team has done before"
+          },
+          "manual_effort": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "money_rail",
+                "external_idp",
+                "native_release",
+                "provisioning"
+              ]
+            },
+            "description": "Work on this story whose cost is not the code: provider dashboards, credentials, store review, console clicking, verification an agent cannot perform. Priced as ADDITIVE hours from cost-model.json's manual_effort_premium, because it does not scale with how big the story is — a payment account is the same console work behind a small story as a large one. Measured on the anchor as the residual over what a story's surface count predicts: money rail +0.75 points, external IdP +0.73, native/device +0.41, and a story touching nothing external -0.07. Several may apply and they sum. `provisioning` is deliberately unpriced — no anchor ever paid for real environments — so it raises an open question instead of a number. Absent or empty means none, which is the common case."
           }
         }
       }

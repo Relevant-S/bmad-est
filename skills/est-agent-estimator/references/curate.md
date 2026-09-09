@@ -21,7 +21,7 @@ uv run {project-root}/skills/est-calibrate/scripts/curate.py \
   --cost-model {memory}/cost-model.json \
   --calibration-log {memory}/calibration-log.md \
   --ledger {memory}/ledger \
-  --set review_rate.sensitive=0.30/0.42/0.60 \
+  --set qa.web=0.07/0.095/0.14 \
   --why "<the reasoning, in their words>" \
   --preview
 ```

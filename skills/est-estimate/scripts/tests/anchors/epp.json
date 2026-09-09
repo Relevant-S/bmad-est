@@ -1,0 +1,3627 @@
+{
+ "schema_version": "1.0",
+ "generated": "2026-09-09T00:00:00Z",
+ "project": "EPP (myEPP) epics 1-9",
+ "granularity": "project",
+ "working_language": "en",
+ "_provenance": "Bands, surfaces and the money/IdP/native premiums are read from EPP's own measured per-story record: docs/reference/phase-1-per-feature-estimate.csv (75 stories, 237 points, 1.165 h/point). review_tier is inferred from each story's subject matter using the classification guide's own trigger words. Actuals: dev 300 / architect 110 / BA 100 / UX 100 / QA 40 / DevOps 40 = 690 h over 7 weeks, 8 planned epics.",
+ "sources": [
+  {
+   "id": "S1",
+   "path": "epp/epics.md",
+   "doc_type": "backlog",
+   "language": "en"
+  }
+ ],
+ "features": [
+  {
+   "id": "F1",
+   "name": "Monorepo scaffold & shared contracts",
+   "epic_id": "E1",
+   "description": "Monorepo scaffold & shared contracts",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.1",
+     "quote": "Monorepo scaffold & shared contracts"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F2",
+   "name": "Official Figma DS - design-system foundation",
+   "epic_id": "E1",
+   "description": "Official Figma DS - design-system foundation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.2",
+     "quote": "Official Figma DS - design-system foundation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F3",
+   "name": "Logged-off public experience & responsive app shell",
+   "epic_id": "E1",
+   "description": "Logged-off public experience & responsive app shell",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.3",
+     "quote": "Logged-off public experience & responsive app shell"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F4",
+   "name": "Email sign-up & pending account creation",
+   "epic_id": "E1",
+   "description": "Email sign-up & pending account creation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.4",
+     "quote": "Email sign-up & pending account creation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F5",
+   "name": "Login / logout & persistent member session",
+   "epic_id": "E1",
+   "description": "Login / logout & persistent member session",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.5",
+     "quote": "Login / logout & persistent member session"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F6",
+   "name": "Password reset",
+   "epic_id": "E1",
+   "description": "Password reset",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.6",
+     "quote": "Password reset"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F7",
+   "name": "Microsoft Entra SSO",
+   "epic_id": "E1",
+   "description": "Microsoft Entra SSO",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.7",
+     "quote": "Microsoft Entra SSO"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "external_idp"
+   ]
+  },
+  {
+   "id": "F8",
+   "name": "Member profile creation & management",
+   "epic_id": "E1",
+   "description": "Member profile creation & management",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.8",
+     "quote": "Member profile creation & management"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F9",
+   "name": "Pending member gate (browse but can't act)",
+   "epic_id": "E1",
+   "description": "Pending member gate (browse but can't act)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.9",
+     "quote": "Pending member gate (browse but can't act)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F10",
+   "name": "Admin authentication & 2-role RBAC foundation",
+   "epic_id": "E1",
+   "description": "Admin authentication & 2-role RBAC foundation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.10",
+     "quote": "Admin authentication & 2-role RBAC foundation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F11",
+   "name": "Member approval / rejection & role administration",
+   "epic_id": "E1",
+   "description": "Member approval / rejection & role administration",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.11",
+     "quote": "Member approval / rejection & role administration"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F12",
+   "name": "Admin user management",
+   "epic_id": "E1",
+   "description": "Admin user management",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.12",
+     "quote": "Admin user management"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F13",
+   "name": "Email verification gate & incomplete account state",
+   "epic_id": "E1",
+   "description": "Email verification gate & incomplete account state",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.13",
+     "quote": "Email verification gate & incomplete account state"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F14",
+   "name": "Suspended / deactivated member state",
+   "epic_id": "E1",
+   "description": "Suspended / deactivated member state",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1.14",
+     "quote": "Suspended / deactivated member state"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F15",
+   "name": "Optimistic locking on mutating paths",
+   "epic_id": "E2",
+   "description": "Optimistic locking on mutating paths",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.0",
+     "quote": "Optimistic locking on mutating paths"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F16",
+   "name": "Staff event create / edit - core entity",
+   "epic_id": "E2",
+   "description": "Staff event create / edit - core entity",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.1",
+     "quote": "Staff event create / edit - core entity"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F17",
+   "name": "Sessions & agenda management",
+   "epic_id": "E2",
+   "description": "Sessions & agenda management",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.2",
+     "quote": "Sessions & agenda management"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F18",
+   "name": "Speakers - profile-linked & external invite",
+   "epic_id": "E2",
+   "description": "Speakers - profile-linked & external invite",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.3",
+     "quote": "Speakers - profile-linked & external invite"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F19",
+   "name": "Partners / attending companies on the event",
+   "epic_id": "E2",
+   "description": "Partners / attending companies on the event",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.4",
+     "quote": "Partners / attending companies on the event"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F20",
+   "name": "Ticket type configuration",
+   "epic_id": "E2",
+   "description": "Ticket type configuration",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.5",
+     "quote": "Ticket type configuration"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F21",
+   "name": "Per-event custom registration fields",
+   "epic_id": "E2",
+   "description": "Per-event custom registration fields",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.6",
+     "quote": "Per-event custom registration fields"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F22",
+   "name": "Event catalog - browse, search, filter",
+   "epic_id": "E2",
+   "description": "Event catalog - browse, search, filter",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.7",
+     "quote": "Event catalog - browse, search, filter"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F23",
+   "name": "Event detail page & pre-registration",
+   "epic_id": "E2",
+   "description": "Event detail page & pre-registration",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.8",
+     "quote": "Event detail page & pre-registration"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F24",
+   "name": "Free event registration",
+   "epic_id": "E2",
+   "description": "Free event registration",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.9",
+     "quote": "Free event registration"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F25",
+   "name": "QR ticket generation & display",
+   "epic_id": "E2",
+   "description": "QR ticket generation & display",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.10",
+     "quote": "QR ticket generation & display"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "native_release"
+   ]
+  },
+  {
+   "id": "F26",
+   "name": "Member registration status & history",
+   "epic_id": "E2",
+   "description": "Member registration status & history",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.11",
+     "quote": "Member registration status & history"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F27",
+   "name": "Registration administration & attendee export",
+   "epic_id": "E2",
+   "description": "Registration administration & attendee export",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.12",
+     "quote": "Registration administration & attendee export"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F28",
+   "name": "Event lifecycle - archive & cancel",
+   "epic_id": "E2",
+   "description": "Event lifecycle - archive & cancel",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.13",
+     "quote": "Event lifecycle - archive & cancel"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F29",
+   "name": "Companies admin directory",
+   "epic_id": "E2",
+   "description": "Companies admin directory",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.14",
+     "quote": "Companies admin directory"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F30",
+   "name": "Brochure lead capture (public)",
+   "epic_id": "E2",
+   "description": "Brochure lead capture (public)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.15",
+     "quote": "Brochure lead capture (public)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F31",
+   "name": "Admin invite / non-member registration",
+   "epic_id": "E2",
+   "description": "Admin invite / non-member registration",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2.16",
+     "quote": "Admin invite / non-member registration"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F32",
+   "name": "Payment integrity prerequisites",
+   "epic_id": "E3",
+   "description": "Payment integrity prerequisites",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.0",
+     "quote": "Payment integrity prerequisites"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F33",
+   "name": "Free membership & membership model",
+   "epic_id": "E3",
+   "description": "Free membership & membership model",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.1",
+     "quote": "Free membership & membership model"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F34",
+   "name": "Credits wallet, ledger & direct credit purchase",
+   "epic_id": "E3",
+   "description": "Credits wallet, ledger & direct credit purchase",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.2",
+     "quote": "Credits wallet, ledger & direct credit purchase"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "money_rail"
+   ]
+  },
+  {
+   "id": "F35",
+   "name": "Paid recurring membership",
+   "epic_id": "E3",
+   "description": "Paid recurring membership",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.3",
+     "quote": "Paid recurring membership"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "measured: 5 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "money_rail"
+   ]
+  },
+  {
+   "id": "F36",
+   "name": "Paid event checkout - credits as discount",
+   "epic_id": "E3",
+   "description": "Paid event checkout - credits as discount",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.4",
+     "quote": "Paid event checkout - credits as discount"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "measured: 5 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "money_rail"
+   ]
+  },
+  {
+   "id": "F37",
+   "name": "Payment state handling, cancellation & credit restore",
+   "epic_id": "E3",
+   "description": "Payment state handling, cancellation & credit restore",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.5",
+     "quote": "Payment state handling, cancellation & credit restore"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "money_rail"
+   ]
+  },
+  {
+   "id": "F38",
+   "name": "Admin payment record visibility",
+   "epic_id": "E3",
+   "description": "Admin payment record visibility",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.6",
+     "quote": "Admin payment record visibility"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F39",
+   "name": "Invoice / bank-transfer checkout & Zoho rail",
+   "epic_id": "E3",
+   "description": "Invoice / bank-transfer checkout & Zoho rail",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3.7",
+     "quote": "Invoice / bank-transfer checkout & Zoho rail"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "money_rail"
+   ]
+  },
+  {
+   "id": "F40",
+   "name": "Pre-Epic-4 hardening",
+   "epic_id": "E4",
+   "description": "Pre-Epic-4 hardening",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.0",
+     "quote": "Pre-Epic-4 hardening"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "measured: 1 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F41",
+   "name": "Communities & profile-gated access",
+   "epic_id": "E4",
+   "description": "Communities & profile-gated access",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.1",
+     "quote": "Communities & profile-gated access"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F42",
+   "name": "Attendee visibility & networking",
+   "epic_id": "E4",
+   "description": "Attendee visibility & networking",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.2",
+     "quote": "Attendee visibility & networking"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F43",
+   "name": "1-to-1 event chat (real-time)",
+   "epic_id": "E4",
+   "description": "1-to-1 event chat (real-time)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.3",
+     "quote": "1-to-1 event chat (real-time)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F44",
+   "name": "Community & event feeds with member posting",
+   "epic_id": "E4",
+   "description": "Community & event feeds with member posting",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.4",
+     "quote": "Community & event feeds with member posting"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F45",
+   "name": "Event content containers & visibility",
+   "epic_id": "E4",
+   "description": "Event content containers & visibility",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.5",
+     "quote": "Event content containers & visibility"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F46",
+   "name": "Event hub - post-registration workspace",
+   "epic_id": "E4",
+   "description": "Event hub - post-registration workspace",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.6",
+     "quote": "Event hub - post-registration workspace"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F47",
+   "name": "Community moderation & report queue",
+   "epic_id": "E4",
+   "description": "Community moderation & report queue",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.7",
+     "quote": "Community moderation & report queue"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F48",
+   "name": "In-app notification center & staff broadcast",
+   "epic_id": "E4",
+   "description": "In-app notification center & staff broadcast",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.8",
+     "quote": "In-app notification center & staff broadcast"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F49",
+   "name": "General content library & visibility tiers",
+   "epic_id": "E4",
+   "description": "General content library & visibility tiers",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4.9",
+     "quote": "General content library & visibility tiers"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F50",
+   "name": "Online event join-link access",
+   "epic_id": "E5",
+   "description": "Online event join-link access",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5.1",
+     "quote": "Online event join-link access"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F51",
+   "name": "Staff app - native admin auth",
+   "epic_id": "E5",
+   "description": "Staff app - native admin auth",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5.1.5",
+     "quote": "Staff app - native admin auth"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "native_release"
+   ]
+  },
+  {
+   "id": "F52",
+   "name": "QR scan check-in (staff, native)",
+   "epic_id": "E5",
+   "description": "QR scan check-in (staff, native)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5.2",
+     "quote": "QR scan check-in (staff, native)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "native_release"
+   ]
+  },
+  {
+   "id": "F53",
+   "name": "Manual check-in override (staff)",
+   "epic_id": "E5",
+   "description": "Manual check-in override (staff)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5.3",
+     "quote": "Manual check-in override (staff)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "native_release"
+   ]
+  },
+  {
+   "id": "F54",
+   "name": "Operational dashboard",
+   "epic_id": "E5",
+   "description": "Operational dashboard",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5.4",
+     "quote": "Operational dashboard"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F55",
+   "name": "One-way Zoho CRM sync",
+   "epic_id": "E6",
+   "description": "One-way Zoho CRM sync",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6.1",
+     "quote": "One-way Zoho CRM sync"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "measured: 5 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "money_rail"
+   ]
+  },
+  {
+   "id": "F56",
+   "name": "Integration retry & dead-letter alerting",
+   "epic_id": "E6",
+   "description": "Integration retry & dead-letter alerting",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6.2",
+     "quote": "Integration retry & dead-letter alerting"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F57",
+   "name": "Audit logging & notification automation configuration",
+   "epic_id": "E6",
+   "description": "Audit logging & notification automation configuration",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6.3",
+     "quote": "Audit logging & notification automation configuration"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F58",
+   "name": "i18n framework, string externalization & switcher",
+   "epic_id": "E7",
+   "description": "i18n framework, string externalization & switcher",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7.1",
+     "quote": "i18n framework, string externalization & switcher"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F59",
+   "name": "German language pack",
+   "epic_id": "E7",
+   "description": "German language pack",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7.2",
+     "quote": "German language pack"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F60",
+   "name": "Accessibility hardening pass (WCAG 2.1 AA)",
+   "epic_id": "E7",
+   "description": "Accessibility hardening pass (WCAG 2.1 AA)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7.3",
+     "quote": "Accessibility hardening pass (WCAG 2.1 AA)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F61",
+   "name": "Voice, tone & microcopy consistency pass",
+   "epic_id": "E7",
+   "description": "Voice, tone & microcopy consistency pass",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7.4",
+     "quote": "Voice, tone & microcopy consistency pass"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F62",
+   "name": "Observability, performance & global delivery wiring",
+   "epic_id": "E7",
+   "description": "Observability, performance & global delivery wiring",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7.5",
+     "quote": "Observability, performance & global delivery wiring"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F63",
+   "name": "EVA AI placeholder",
+   "epic_id": "E7",
+   "description": "EVA AI placeholder",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7.6",
+     "quote": "EVA AI placeholder"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, measured - inside the 240h actual",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F64",
+   "name": "Ecosystem hub landing",
+   "epic_id": "E8",
+   "description": "Ecosystem hub landing",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.1",
+     "quote": "Ecosystem hub landing"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F65",
+   "name": "Segment marketing pages",
+   "epic_id": "E8",
+   "description": "Segment marketing pages",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.2",
+     "quote": "Segment marketing pages"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F66",
+   "name": "Marketing nav, routing & SEO",
+   "epic_id": "E8",
+   "description": "Marketing nav, routing & SEO",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.3",
+     "quote": "Marketing nav, routing & SEO"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F67",
+   "name": "Public member profile",
+   "epic_id": "E9",
+   "description": "Public member profile",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.1",
+     "quote": "Public member profile"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F68",
+   "name": "Image cropper primitive & upload foundation",
+   "epic_id": "E9",
+   "description": "Image cropper primitive & upload foundation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.2",
+     "quote": "Image cropper primitive & upload foundation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "measured: 4 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F69",
+   "name": "Member avatar upload & crop",
+   "epic_id": "E9",
+   "description": "Member avatar upload & crop",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.3",
+     "quote": "Member avatar upload & crop"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F70",
+   "name": "Admin event & community images",
+   "epic_id": "E9",
+   "description": "Admin event & community images",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.4",
+     "quote": "Admin event & community images"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "measured: 3 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F71",
+   "name": "Warranty - event brochure member access",
+   "epic_id": "E9",
+   "description": "Warranty - event brochure member access",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7",
+     "quote": "Warranty - event brochure member access"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F72",
+   "name": "Warranty - public card buyable ticket availability",
+   "epic_id": "E9",
+   "description": "Warranty - public card buyable ticket availability",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.8",
+     "quote": "Warranty - public card buyable ticket availability"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "measured: 1 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F73",
+   "name": "Warranty - event content description & edit",
+   "epic_id": "E9",
+   "description": "Warranty - event content description & edit",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.9",
+     "quote": "Warranty - event content description & edit"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F74",
+   "name": "Warranty - admin moderation nav & incomplete filter",
+   "epic_id": "E9",
+   "description": "Warranty - admin moderation nav & incomplete filter",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.10",
+     "quote": "Warranty - admin moderation nav & incomplete filter"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F75",
+   "name": "Warranty - agenda block legibility",
+   "epic_id": "E9",
+   "description": "Warranty - agenda block legibility",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.11",
+     "quote": "Warranty - agenda block legibility"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "measured: 2 pts, extrapolated @ observed velocity",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  }
+ ],
+ "not_scope": [],
+ "conflicts": [],
+ "assumptions": [],
+ "completeness_signals": {
+  "acceptance_criteria": {
+   "value": "most",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "stack_specified": {
+   "value": "full",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "integrations_named": {
+   "value": "all",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "nfrs_stated": {
+   "value": "most",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "data_model_described": {
+   "value": "detailed",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "ui_defined": {
+   "value": "designed",
+   "why": "a delivered project's own epics, read after the fact"
+  }
+ }
+}

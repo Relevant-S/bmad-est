@@ -1,0 +1,5828 @@
+{
+ "schema_version": "1.0",
+ "generated": "2026-09-09T00:00:00Z",
+ "project": "memorial-healthcare epics 1-9.7",
+ "granularity": "project",
+ "working_language": "en",
+ "_provenance": "NO per-story effort record exists. Bands are bridged onto EPP's measured 1-5 scale by files-touched (mean error 1.09 points per story; within 4% in aggregate). Surfaces and premiums are inferred from story titles. Actuals: dev 140 / architect 60 / BA 80 / UX 80, no QA and no DevOps = 360 h over 3.5 weeks, 9 planned epics.",
+ "sources": [
+  {
+   "id": "S1",
+   "path": "memorial-healthcare/epics.md",
+   "doc_type": "backlog",
+   "language": "en"
+  }
+ ],
+ "features": [
+  {
+   "id": "F1",
+   "name": "Story 1.1: Initialize Frontend Project with React + Vite + shadcn/ui",
+   "epic_id": "E1",
+   "description": "Story 1.1: Initialize Frontend Project with React + Vite + shadcn/ui",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-1-initialize-frontend-project-with-react-vite-shadcn",
+     "quote": "Story 1.1: Initialize Frontend Project with React + Vite + shadcn/ui"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 21 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F2",
+   "name": "Story 1.2: Initialize Backend Project with NestJS + Prisma",
+   "epic_id": "E1",
+   "description": "Story 1.2: Initialize Backend Project with NestJS + Prisma",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-2-initialize-backend-project-with-nestjs",
+     "quote": "Story 1.2: Initialize Backend Project with NestJS + Prisma"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 20 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F3",
+   "name": "Story 1.3: Configure Local Development Environment",
+   "epic_id": "E1",
+   "description": "Story 1.3: Configure Local Development Environment",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-3-configure-local-development",
+     "quote": "Story 1.3: Configure Local Development Environment"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 7 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F4",
+   "name": "Story 1.4: Set Up CI/CD Pipeline with GitHub Actions",
+   "epic_id": "E1",
+   "description": "Story 1.4: Set Up CI/CD Pipeline with GitHub Actions",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-4-set-up-ci-cd-pipeline-with-github",
+     "quote": "Story 1.4: Set Up CI/CD Pipeline with GitHub Actions"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 21 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F5",
+   "name": "Story 1.5: Configure Swagger/OpenAPI Documentation",
+   "epic_id": "E1",
+   "description": "Story 1.5: Configure Swagger/OpenAPI Documentation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-5-configure-swagger-openapi",
+     "quote": "Story 1.5: Configure Swagger/OpenAPI Documentation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 9 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F6",
+   "name": "Story 1.6: Establish Code Quality Standards with Linting, Prettier, Husky, and Commitlint",
+   "epic_id": "E1",
+   "description": "Story 1.6: Establish Code Quality Standards with Linting, Prettier, Husky, and Commitlint",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-6-establish-code-quality-standards-with-linting-prettier-and",
+     "quote": "Story 1.6: Establish Code Quality Standards with Linting, Prettier, Husky, and Commitlint"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 6 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F7",
+   "name": "Story 2.1: Create Database Schema for Users and Authentication",
+   "epic_id": "E2",
+   "description": "Story 2.1: Create Database Schema for Users and Authentication",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-1-create-database-schema-for-users-and",
+     "quote": "Story 2.1: Create Database Schema for Users and Authentication"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F8",
+   "name": "Story 2.2: Implement User Registration with Password Hashing",
+   "epic_id": "E2",
+   "description": "Story 2.2: Implement User Registration with Password Hashing",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-2-implement-user-registration-with-password",
+     "quote": "Story 2.2: Implement User Registration with Password Hashing"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 11 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F9",
+   "name": "Story 2.3: Implement JWT Authentication with Login Endpoint",
+   "epic_id": "E2",
+   "description": "Story 2.3: Implement JWT Authentication with Login Endpoint",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-3-implement-jwt-authentication-with-login",
+     "quote": "Story 2.3: Implement JWT Authentication with Login Endpoint"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F10",
+   "name": "Story 2.4: Implement JWT Refresh Token Flow",
+   "epic_id": "E2",
+   "description": "Story 2.4: Implement JWT Refresh Token Flow",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4-implement-jwt-refresh-token",
+     "quote": "Story 2.4: Implement JWT Refresh Token Flow"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F11",
+   "name": "Story 2.5: Implement RBAC Guards and Role-Based Decorators",
+   "epic_id": "E2",
+   "description": "Story 2.5: Implement RBAC Guards and Role-Based Decorators",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-5-implement-rbac-guards-and-role-based",
+     "quote": "Story 2.5: Implement RBAC Guards and Role-Based Decorators"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F12",
+   "name": "Story 2.6: Implement Session Management and Timeout",
+   "epic_id": "E2",
+   "description": "Story 2.6: Implement Session Management and Timeout",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-6-implement-session-management-and",
+     "quote": "Story 2.6: Implement Session Management and Timeout"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 9 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F13",
+   "name": "Story 2.7: Implement Authentication Audit Logging for HIPAA",
+   "epic_id": "E2",
+   "description": "Story 2.7: Implement Authentication Audit Logging for HIPAA",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-7-implement-authentication-audit-logging-for",
+     "quote": "Story 2.7: Implement Authentication Audit Logging for HIPAA"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F14",
+   "name": "Story 2.8: Create Frontend Login UI with React Hook Form",
+   "epic_id": "E2",
+   "description": "Story 2.8: Create Frontend Login UI with React Hook Form",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-8-create-frontend-login-ui-with-react-hook",
+     "quote": "Story 2.8: Create Frontend Login UI with React Hook Form"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 18 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F15",
+   "name": "Story 2.9: Implement Protected Routes and Auth Context",
+   "epic_id": "E2",
+   "description": "Story 2.9: Implement Protected Routes and Auth Context",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-9-implement-protected-routes-and-auth",
+     "quote": "Story 2.9: Implement Protected Routes and Auth Context"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 19 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F16",
+   "name": "Story 3.1: Create Database Schema for Company and Site Models",
+   "epic_id": "E3",
+   "description": "Story 3.1: Create Database Schema for Company and Site Models",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-1-create-database-schema-for-company-and-site",
+     "quote": "Story 3.1: Create Database Schema for Company and Site Models"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F17",
+   "name": "Story 3.2: Implement Tenant Guard for Automatic Data Isolation",
+   "epic_id": "E3",
+   "description": "Story 3.2: Implement Tenant Guard for Automatic Data Isolation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-2-implement-tenant-middleware-for-automatic-data",
+     "quote": "Story 3.2: Implement Tenant Guard for Automatic Data Isolation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F18",
+   "name": "Story 3.3: Implement Company CRUD Endpoints for Super Admin",
+   "epic_id": "E3",
+   "description": "Story 3.3: Implement Company CRUD Endpoints for Super Admin",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-3-implement-company-crud-endpoints-for-super",
+     "quote": "Story 3.3: Implement Company CRUD Endpoints for Super Admin"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F19",
+   "name": "Story 3.4: Implement Site CRUD Endpoints for Super Admin",
+   "epic_id": "E3",
+   "description": "Story 3.4: Implement Site CRUD Endpoints for Super Admin",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-4-implement-site-crud-endpoints-for-super",
+     "quote": "Story 3.4: Implement Site CRUD Endpoints for Super Admin"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F20",
+   "name": "Story 3.5: Implement Company Admin Read-Only Configuration View",
+   "epic_id": "E3",
+   "description": "Story 3.5: Implement Company Admin Read-Only Configuration View",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-5-implement-company-admin-read-only-configuration",
+     "quote": "Story 3.5: Implement Company Admin Read-Only Configuration View"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 7 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F21",
+   "name": "Story 3.6: Create Frontend Company Management UI for Super Admin",
+   "epic_id": "E3",
+   "description": "Story 3.6: Create Frontend Company Management UI for Super Admin",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-6-create-frontend-company-management-ui-for-super",
+     "quote": "Story 3.6: Create Frontend Company Management UI for Super Admin"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 20 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F22",
+   "name": "Story 3.7: Create Frontend Site Management UI for Super Admin",
+   "epic_id": "E3",
+   "description": "Story 3.7: Create Frontend Site Management UI for Super Admin",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-7-create-frontend-site-management-ui-for-super",
+     "quote": "Story 3.7: Create Frontend Site Management UI for Super Admin"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 11 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F23",
+   "name": "Story 4.1: Implement User Invitation Endpoint",
+   "epic_id": "E4",
+   "description": "Story 4.1: Implement User Invitation Endpoint",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-1-implement-user-invitation",
+     "quote": "Story 4.1: Implement User Invitation Endpoint"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 10 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F24",
+   "name": "Story 4.2: Implement Invitation Notification System",
+   "epic_id": "E4",
+   "description": "Story 4.2: Implement Invitation Notification System",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-2-implement-invitation-notification",
+     "quote": "Story 4.2: Implement Invitation Notification System"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F25",
+   "name": "Story 4.3: Implement User Invitation Acceptance Flow",
+   "epic_id": "E4",
+   "description": "Story 4.3: Implement User Invitation Acceptance Flow",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-3-implement-user-invitation-acceptance",
+     "quote": "Story 4.3: Implement User Invitation Acceptance Flow"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 18 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F26",
+   "name": "Story 4.4: Implement User List and Role Management Endpoints",
+   "epic_id": "E4",
+   "description": "Story 4.4: Implement User List and Role Management Endpoints",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-4-implement-user-list-and-role-management",
+     "quote": "Story 4.4: Implement User List and Role Management Endpoints"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 9 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F27",
+   "name": "Story 4.5: Create Frontend User Management UI for Company Admin",
+   "epic_id": "E4",
+   "description": "Story 4.5: Create Frontend User Management UI for Company Admin",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-5-create-frontend-user-management-ui-for-company",
+     "quote": "Story 4.5: Create Frontend User Management UI for Company Admin"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 19 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F28",
+   "name": "Story 4.6: Create Frontend Invitation Acceptance UI",
+   "epic_id": "E4",
+   "description": "Story 4.6: Create Frontend Invitation Acceptance UI",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-6-create-frontend-invitation-acceptance",
+     "quote": "Story 4.6: Create Frontend Invitation Acceptance UI"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 10 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F29",
+   "name": "Story 5.1: Create Database Schema for Device Model",
+   "epic_id": "E5",
+   "description": "Story 5.1: Create Database Schema for Device Model",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-1-create-database-schema-for-device",
+     "quote": "Story 5.1: Create Database Schema for Device Model"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F30",
+   "name": "Story 5.2: Implement Device CRUD Endpoints for Company Admin",
+   "epic_id": "E5",
+   "description": "Story 5.2: Implement Device CRUD Endpoints for Company Admin",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-2-implement-device-crud-endpoints-for-company",
+     "quote": "Story 5.2: Implement Device CRUD Endpoints for Company Admin"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F31",
+   "name": "Story 5.3: Implement Device Auto-Discovery from Parsed Data",
+   "epic_id": "E5",
+   "description": "Story 5.3: Implement Device Auto-Discovery from Parsed Data",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-3-implement-device-auto-discovery-from-parsed",
+     "quote": "Story 5.3: Implement Device Auto-Discovery from Parsed Data"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F32",
+   "name": "Story 5.4: Implement Campus/Site Selection API",
+   "epic_id": "E5",
+   "description": "Story 5.4: Implement Campus/Site Selection API",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-4-implement-campus-site-selection",
+     "quote": "Story 5.4: Implement Campus/Site Selection API"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F33",
+   "name": "Story 5.5: Implement Device List with Recently Worked Sorting",
+   "epic_id": "E5",
+   "description": "Story 5.5: Implement Device List with Recently Worked Sorting",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-5-implement-device-list-with-recently-worked",
+     "quote": "Story 5.5: Implement Device List with Recently Worked Sorting"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 4 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F34",
+   "name": "Story 5.6: Create Frontend Site Selector Component",
+   "epic_id": "E5",
+   "description": "Story 5.6: Create Frontend Site Selector Component",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-6-create-frontend-site-selector",
+     "quote": "Story 5.6: Create Frontend Site Selector Component"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F35",
+   "name": "Story 5.6b: Create Frontend Sidebar and Refactor Header",
+   "epic_id": "E5",
+   "description": "Story 5.6b: Create Frontend Sidebar and Refactor Header",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-6b-create-frontend-sidebar-and-refactor",
+     "quote": "Story 5.6b: Create Frontend Sidebar and Refactor Header"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F36",
+   "name": "Story 5.7: Create Frontend Device List UI with Recently Worked Sorting",
+   "epic_id": "E5",
+   "description": "Story 5.7: Create Frontend Device List UI with Recently Worked Sorting",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-7-create-frontend-device-list-ui-with-recently-worked",
+     "quote": "Story 5.7: Create Frontend Device List UI with Recently Worked Sorting"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F37",
+   "name": "Story 6.1: Create Database Schema for Formulary Model",
+   "epic_id": "E6",
+   "description": "Story 6.1: Create Database Schema for Formulary Model",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6-1-create-database-schema-for-formulary",
+     "quote": "Story 6.1: Create Database Schema for Formulary Model"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F38",
+   "name": "Story 6.2: Implement File Parser Services for XLS/CSV/JSON",
+   "epic_id": "E6",
+   "description": "Story 6.2: Implement File Parser Services for XLS/CSV/JSON",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6-2-implement-file-parser-services-for-xls-csv",
+     "quote": "Story 6.2: Implement File Parser Services for XLS/CSV/JSON"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 15 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F39",
+   "name": "Story 6.3: Implement Formulary Upload and Replace Endpoint",
+   "epic_id": "E6",
+   "description": "Story 6.3: Implement Formulary Upload and Replace Endpoint",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6-3-implement-formulary-upload-and-replace",
+     "quote": "Story 6.3: Implement Formulary Upload and Replace Endpoint"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 11 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F40",
+   "name": "Story 6.4: Implement Formulary Lookup API for Algorithm",
+   "epic_id": "E6",
+   "description": "Story 6.4: Implement Formulary Lookup API for Algorithm",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6-4-implement-formulary-lookup-api-for",
+     "quote": "Story 6.4: Implement Formulary Lookup API for Algorithm"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 10 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F41",
+   "name": "Story 6.5: create-frontend-formulary-upload-ui",
+   "epic_id": "E6",
+   "description": "Story 6.5: create-frontend-formulary-upload-ui",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6-5-create-frontend-formulary-upload",
+     "quote": "Story 6.5: create-frontend-formulary-upload-ui"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F42",
+   "name": "Story 6.6: create-frontend-formulary-view-and-management-ui",
+   "epic_id": "E6",
+   "description": "Story 6.6: create-frontend-formulary-view-and-management-ui",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 6-6-create-frontend-formulary-view-and-management",
+     "quote": "Story 6.6: create-frontend-formulary-view-and-management-ui"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 15 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F43",
+   "name": "Story 7.1: Create Database Schema for Pyxis Upload Model",
+   "epic_id": "E7",
+   "description": "Story 7.1: Create Database Schema for Pyxis Upload Model",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7-1-create-database-schema-for-pyxis-upload",
+     "quote": "Story 7.1: Create Database Schema for Pyxis Upload Model"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F44",
+   "name": "Story 7.2: Implement File Parser Services for Pyxis Data",
+   "epic_id": "E7",
+   "description": "Story 7.2: Implement File Parser Services for Pyxis Data",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7-2-implement-file-parser-services-for-pyxis",
+     "quote": "Story 7.2: Implement File Parser Services for Pyxis Data"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F45",
+   "name": "Story 7.3: Implement Pyxis Upload and Parse Endpoint",
+   "epic_id": "E7",
+   "description": "Story 7.3: Implement Pyxis Upload and Parse Endpoint",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7-3-implement-pyxis-upload-and-parse",
+     "quote": "Story 7.3: Implement Pyxis Upload and Parse Endpoint"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F46",
+   "name": "Story 7.4: Create Mock Pyxis File Generator",
+   "epic_id": "E7",
+   "description": "Story 7.4: Create Mock Pyxis File Generator",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7-4-create-mock-pyxis-file",
+     "quote": "Story 7.4: Create Mock Pyxis File Generator"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 4 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F47",
+   "name": "Story 7.5: Create Frontend Pyxis Upload UI",
+   "epic_id": "E7",
+   "description": "Story 7.5: Create Frontend Pyxis Upload UI",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7-5-create-frontend-pyxis-upload",
+     "quote": "Story 7.5: Create Frontend Pyxis Upload UI"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 20 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F48",
+   "name": "Story 7.6: Create Frontend Pyxis Data View UI",
+   "epic_id": "E7",
+   "description": "Story 7.6: Create Frontend Pyxis Data View UI",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 7-6-create-frontend-pyxis-data-view",
+     "quote": "Story 7.6: Create Frontend Pyxis Data View UI"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F49",
+   "name": "Story 8.1: Create Database Schema for Task Model",
+   "epic_id": "E8",
+   "description": "Story 8.1: Create Database Schema for Task Model",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-1-create-database-schema-for-task",
+     "quote": "Story 8.1: Create Database Schema for Task Model"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F50",
+   "name": "Story 8.2: Implement Task Service and CRUD Operations",
+   "epic_id": "E8",
+   "description": "Story 8.2: Implement Task Service and CRUD Operations",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-2-implement-task-service-and-crud",
+     "quote": "Story 8.2: Implement Task Service and CRUD Operations"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 11 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F51",
+   "name": "Story 8.3: Implement Task List API with Filtering and Sorting",
+   "epic_id": "E8",
+   "description": "Story 8.3: Implement Task List API with Filtering and Sorting",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-3-implement-task-list-api-with-filtering-and",
+     "quote": "Story 8.3: Implement Task List API with Filtering and Sorting"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F52",
+   "name": "Story 8.4: Implement Task Detail API with Related Data",
+   "epic_id": "E8",
+   "description": "Story 8.4: Implement Task Detail API with Related Data",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-4-implement-task-detail-api-with-related",
+     "quote": "Story 8.4: Implement Task Detail API with Related Data"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F53",
+   "name": "Story 8.5: Implement Task Completion Workflow",
+   "epic_id": "E8",
+   "description": "Story 8.5: Implement Task Completion Workflow",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-5-implement-task-completion",
+     "quote": "Story 8.5: Implement Task Completion Workflow"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 8 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F54",
+   "name": "Story 8.6: Create Frontend Task List UI",
+   "epic_id": "E8",
+   "description": "Story 8.6: Create Frontend Task List UI",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-6-create-frontend-task-list",
+     "quote": "Story 8.6: Create Frontend Task List UI"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 11 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F55",
+   "name": "Story 8.7: Create Frontend Task Detail UI",
+   "epic_id": "E8",
+   "description": "Story 8.7: Create Frontend Task Detail UI",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-7-create-frontend-task-detail",
+     "quote": "Story 8.7: Create Frontend Task Detail UI"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 15 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F56",
+   "name": "Story 8.8: Create Frontend Task Completion UI",
+   "epic_id": "E8",
+   "description": "Story 8.8: Create Frontend Task Completion UI",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-8-create-frontend-task-completion",
+     "quote": "Story 8.8: Create Frontend Task Completion UI"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 15 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F57",
+   "name": "Story 8.5.1: Create Shared Utility Components and Migrate Standalone Usages",
+   "epic_id": "E8.5",
+   "description": "Story 8.5.1: Create Shared Utility Components and Migrate Standalone Usages",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.5-1-create-shared-utility-components-and-migrate-standalone",
+     "quote": "Story 8.5.1: Create Shared Utility Components and Migrate Standalone Usages"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F58",
+   "name": "Story 8.5.2: Create Generic DataTable Component",
+   "epic_id": "E8.5",
+   "description": "Story 8.5.2: Create Generic DataTable Component",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.5-2-create-generic-datatable",
+     "quote": "Story 8.5.2: Create Generic DataTable Component"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 5 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F59",
+   "name": "Story 8.5.3: Create Generic ConfirmDialog Component",
+   "epic_id": "E8.5",
+   "description": "Story 8.5.3: Create Generic ConfirmDialog Component",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.5-3-create-generic-confirm-dialog",
+     "quote": "Story 8.5.3: Create Generic ConfirmDialog Component"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F60",
+   "name": "Story 8.5.4: Migrate Admin Table Pages to DataTable and ConfirmDialog",
+   "epic_id": "E8.5",
+   "description": "Story 8.5.4: Migrate Admin Table Pages to DataTable and ConfirmDialog",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.5-4-migrate-admin-table-pages-to-datatable-and-confirm",
+     "quote": "Story 8.5.4: Migrate Admin Table Pages to DataTable and ConfirmDialog"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 6 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F61",
+   "name": "Story 8.5.5: Migrate Data Table Components and Remaining Dialogs",
+   "epic_id": "E8.5",
+   "description": "Story 8.5.5: Migrate Data Table Components and Remaining Dialogs",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.5-5-migrate-data-table-components-and-remaining",
+     "quote": "Story 8.5.5: Migrate Data Table Components and Remaining Dialogs"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F62",
+   "name": "Story 8.5.6: Convert Card-Based Lists to Table-Based Lists",
+   "epic_id": "E8.5",
+   "description": "Story 8.5.6: Convert Card-Based Lists to Table-Based Lists",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.5-6-convert-card-based-lists-to-table-based",
+     "quote": "Story 8.5.6: Convert Card-Based Lists to Table-Based Lists"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 6 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F63",
+   "name": "Story 8.6.1: Rebuild Database Schema for Task and Pyxis Models",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.1: Rebuild Database Schema for Task and Pyxis Models",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-1-rebuild-database-schema-for-task-and-pyxis",
+     "quote": "Story 8.6.1: Rebuild Database Schema for Task and Pyxis Models"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F64",
+   "name": "Story 8.6.10: Enhance Frontend Device Review Flow with Task Reassignment",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.10: Enhance Frontend Device Review Flow with Task Reassignment",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-10-enhance-frontend-device-review-flow-with-task",
+     "quote": "Story 8.6.10: Enhance Frontend Device Review Flow with Task Reassignment"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F65",
+   "name": "Story 8.6.11: Implement Task Generation for All Devices During Upload",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.11: Implement Task Generation for All Devices During Upload",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-11-implement-task-generation-for-all-devices-during",
+     "quote": "Story 8.6.11: Implement Task Generation for All Devices During Upload"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F66",
+   "name": "Story 8.6.2: Implement Pyxis File Upload and Parse Endpoint (Company-Scoped)",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.2: Implement Pyxis File Upload and Parse Endpoint (Company-Scoped)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-2-implement-pyxis-file-upload-and-parse",
+     "quote": "Story 8.6.2: Implement Pyxis File Upload and Parse Endpoint (Company-Scoped)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 7 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F67",
+   "name": "Story 8.6.3: Implement Device Auto-Discovery and Review Flow",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.3: Implement Device Auto-Discovery and Review Flow",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-3-implement-device-auto-discovery-and-review",
+     "quote": "Story 8.6.3: Implement Device Auto-Discovery and Review Flow"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 18 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F68",
+   "name": "Story 8.6.4: Implement Task and TaskItem Generation from Pyxis Upload",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.4: Implement Task and TaskItem Generation from Pyxis Upload",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-4-implement-task-and-taskitem-generation-from-pyxis",
+     "quote": "Story 8.6.4: Implement Task and TaskItem Generation from Pyxis Upload"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 18 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F69",
+   "name": "Story 8.6.5: Implement Task and TaskItem Service Layer",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.5: Implement Task and TaskItem Service Layer",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-5-implement-task-and-taskitem-service",
+     "quote": "Story 8.6.5: Implement Task and TaskItem Service Layer"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 19 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F70",
+   "name": "Story 8.6.6: Create Frontend Pyxis Upload UI (Company-Scoped)",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.6: Create Frontend Pyxis Upload UI (Company-Scoped)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-6-create-frontend-pyxis-upload-ui-company",
+     "quote": "Story 8.6.6: Create Frontend Pyxis Upload UI (Company-Scoped)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F71",
+   "name": "Story 8.6.7: Create Frontend Tasks Page with Sidebar Navigation",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.7: Create Frontend Tasks Page with Sidebar Navigation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-7-create-frontend-tasks-page-with-sidebar",
+     "quote": "Story 8.6.7: Create Frontend Tasks Page with Sidebar Navigation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 10 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F72",
+   "name": "Story 8.6.8: Create Frontend Task Completion UI with Task Items",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.8: Create Frontend Task Completion UI with Task Items",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-8-create-frontend-task-completion-ui-with-task",
+     "quote": "Story 8.6.8: Create Frontend Task Completion UI with Task Items"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F73",
+   "name": "Story 8.6.9: Implement Device Task Reassignment on Delete",
+   "epic_id": "E8.6",
+   "description": "Story 8.6.9: Implement Device Task Reassignment on Delete",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.6-9-implement-device-task-reassignment-on",
+     "quote": "Story 8.6.9: Implement Device Task Reassignment on Delete"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 5 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F74",
+   "name": "Story 8.7.1: Refine Device Deletion with Conditional Task Handling",
+   "epic_id": "E8.7",
+   "description": "Story 8.7.1: Refine Device Deletion with Conditional Task Handling",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8.7-1-refine-device-deletion-with-conditional-task",
+     "quote": "Story 8.7.1: Refine Device Deletion with Conditional Task Handling"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 20 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F75",
+   "name": "Story 9.1: Implement Core Algorithm Calculation Engine",
+   "epic_id": "E9",
+   "description": "Story 9.1: Implement Core Algorithm Calculation Engine",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9-1-implement-core-algorithm-calculation",
+     "quote": "Story 9.1: Implement Core Algorithm Calculation Engine"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 5 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F76",
+   "name": "Story 9.2: Implement Formulary-Driven Rules and Special Handling",
+   "epic_id": "E9",
+   "description": "Story 9.2: Implement Formulary-Driven Rules and Special Handling",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9-2-implement-formulary-driven-rules-and-special",
+     "quote": "Story 9.2: Implement Formulary-Driven Rules and Special Handling"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 4 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F77",
+   "name": "Story 9.3: Implement Busywork Suppression and Output Filtering",
+   "epic_id": "E9",
+   "description": "Story 9.3: Implement Busywork Suppression and Output Filtering",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9-3-implement-busywork-suppression-and-output",
+     "quote": "Story 9.3: Implement Busywork Suppression and Output Filtering"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 5 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F78",
+   "name": "Story 9.4: Integrate Algorithm into Task Generation Pipeline",
+   "epic_id": "E9",
+   "description": "Story 9.4: Integrate Algorithm into Task Generation Pipeline",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9-4-integrate-algorithm-into-task-generation",
+     "quote": "Story 9.4: Integrate Algorithm into Task Generation Pipeline"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 9 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F79",
+   "name": "Story 9.7: Implement Algorithm Decision Logging and Audit Trail",
+   "epic_id": "E9",
+   "description": "Story 9.7: Implement Algorithm Decision Logging and Audit Trail",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9-7-implement-algorithm-decision-logging-and-audit",
+     "quote": "Story 9.7: Implement Algorithm Decision Logging and Audit Trail"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 17 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F80",
+   "name": "Story 9.9: Cleanup - Remove Redundant Validation Feature",
+   "epic_id": "E9",
+   "description": "Story 9.9: Cleanup - Remove Redundant Validation Feature",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9-9-cleanup-remove-redundant-validation",
+     "quote": "Story 9.9: Cleanup - Remove Redundant Validation Feature"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 28 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F81",
+   "name": "Story 9.5.1: Rebuild Shared Component Library from Figma Design System",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.1: Rebuild Shared Component Library from Figma Design System",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-1-rebuild-shared-component-library-from-figma-design",
+     "quote": "Story 9.5.1: Rebuild Shared Component Library from Figma Design System"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 20 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F82",
+   "name": "Story 9.5.10: Company Admin — User Management Page",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.10: Company Admin — User Management Page",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-10-company-admin-user-management",
+     "quote": "Story 9.5.10: Company Admin — User Management Page"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 24 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F83",
+   "name": "Story 9.5.11: Company Admin — Campus/Site Management Page",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.11: Company Admin — Campus/Site Management Page",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-11-company-admin-campus-site-management",
+     "quote": "Story 9.5.11: Company Admin — Campus/Site Management Page"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F84",
+   "name": "Story 9.5.12: Super Admin — Companies List + Company Details",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.12: Super Admin — Companies List + Company Details",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-12-super-admin-companies-list-and-company",
+     "quote": "Story 9.5.12: Super Admin — Companies List + Company Details"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F85",
+   "name": "Story 9.5.15: Add Missing Fields to PyxisInventoryItem Schema and Parser",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.15: Add Missing Fields to PyxisInventoryItem Schema and Parser",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-15-add-missing-fields-to-pyxis-schema-and",
+     "quote": "Story 9.5.15: Add Missing Fields to PyxisInventoryItem Schema and Parser"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F86",
+   "name": "Story 9.5.16: Fix Algorithm Engine to Use Correct Data Fields",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.16: Fix Algorithm Engine to Use Correct Data Fields",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-16-fix-algorithm-engine-to-use-correct-data",
+     "quote": "Story 9.5.16: Fix Algorithm Engine to Use Correct Data Fields"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F87",
+   "name": "Story 9.5.17: Fix Algorithm Calculation Logic to Match Excel Reference",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.17: Fix Algorithm Calculation Logic to Match Excel Reference",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-17-fix-algorithm-calculation",
+     "quote": "Story 9.5.17: Fix Algorithm Calculation Logic to Match Excel Reference"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F88",
+   "name": "Story 9.5.18: Block Device Deletion and Site Reassignment When Open Tasks Exist",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.18: Block Device Deletion and Site Reassignment When Open Tasks Exist",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-18-block-device-deletion-and-reassignment-with-open",
+     "quote": "Story 9.5.18: Block Device Deletion and Site Reassignment When Open Tasks Exist"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 10 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F89",
+   "name": "Story 9.5.19: Defer Task Generation for NeedsReview Devices, Block Uploads Until Resolved, Formulary Gate",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.19: Defer Task Generation for NeedsReview Devices, Block Uploads Until Resolved, Formulary Gate",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-19-defer-task-generation-upload-blocking-formulary",
+     "quote": "Story 9.5.19: Defer Task Generation for NeedsReview Devices, Block Uploads Until Resolved, Formulary Gate"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 23 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F90",
+   "name": "Story 9.5.2: Redesign Auth Pages and Logout Modal",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.2: Redesign Auth Pages and Logout Modal",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-2-redesign-auth-pages-and-logout",
+     "quote": "Story 9.5.2: Redesign Auth Pages and Logout Modal"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F91",
+   "name": "Story 9.5-2.1: Implement Password Reset Backend Endpoints",
+   "epic_id": "E9.5",
+   "description": "Story 9.5-2.1: Implement Password Reset Backend Endpoints",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-2.1-implement-password-reset-backend",
+     "quote": "Story 9.5-2.1: Implement Password Reset Backend Endpoints"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F92",
+   "name": "Story 9.5.20: Implement Task Soft-Delete with TaskItem Cascade",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.20: Implement Task Soft-Delete with TaskItem Cascade",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-20-implement-task-soft-delete-with-taskitem",
+     "quote": "Story 9.5.20: Implement Task Soft-Delete with TaskItem Cascade"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F93",
+   "name": "Story 9.5.3: Technician — Campuses/Sites Page",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.3: Technician — Campuses/Sites Page",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-3-technician-campuses-sites",
+     "quote": "Story 9.5.3: Technician — Campuses/Sites Page"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F94",
+   "name": "Story 9.5.4: Technician — Tasks List Page",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.4: Technician — Tasks List Page",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-4-technician-tasks-list",
+     "quote": "Story 9.5.4: Technician — Tasks List Page"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F95",
+   "name": "Story 9.5.5: Technician — Task Details Page",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.5: Technician — Task Details Page",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-5-technician-task-details",
+     "quote": "Story 9.5.5: Technician — Task Details Page"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 24 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F96",
+   "name": "Story 9.5.6: Company Admin — Tasks List Page",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.6: Company Admin — Tasks List Page",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-6-company-admin-tasks-list",
+     "quote": "Story 9.5.6: Company Admin — Tasks List Page"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 31 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F97",
+   "name": "Story 9.5.7: Company Admin — Task Details Drawer",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.7: Company Admin — Task Details Drawer",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-7-company-admin-task-details",
+     "quote": "Story 9.5.7: Company Admin — Task Details Drawer"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 15 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F98",
+   "name": "Story 9.5.8: Company Admin — Task Item Edit/Delete + Backend API",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.8: Company Admin — Task Item Edit/Delete + Backend API",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-8-company-admin-task-item-edit-delete-backend",
+     "quote": "Story 9.5.8: Company Admin — Task Item Edit/Delete + Backend API"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 22 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F99",
+   "name": "Story 9.5.9: Company Admin — Device Management Page",
+   "epic_id": "E9.5",
+   "description": "Story 9.5.9: Company Admin — Device Management Page",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.5-9-company-admin-device-management",
+     "quote": "Story 9.5.9: Company Admin — Device Management Page"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 23 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F100",
+   "name": "Story 9.6.1: Add Database Schema for PickList and RemoveData Models",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.1: Add Database Schema for PickList and RemoveData Models",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-1-add-database-schema-for-picklist-and-removedata",
+     "quote": "Story 9.6.1: Add Database Schema for PickList and RemoveData Models"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F101",
+   "name": "Story 9.6.10: Resume Incomplete Batches from Upload History",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.10: Resume Incomplete Batches from Upload History",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-10-resume-incomplete-batches-from-upload",
+     "quote": "Story 9.6.10: Resume Incomplete Batches from Upload History"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 4 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F102",
+   "name": "Story 9.6.2: Implement Pick List File Parser",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.2: Implement Pick List File Parser",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-2-implement-pick-list-file",
+     "quote": "Story 9.6.2: Implement Pick List File Parser"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 6 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F103",
+   "name": "Story 9.6.3: Implement Remove Data (4-Day Dispense) File Parser",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.3: Implement Remove Data (4-Day Dispense) File Parser",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-3-implement-remove-data",
+     "quote": "Story 9.6.3: Implement Remove Data (4-Day Dispense) File Parser"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 7 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F104",
+   "name": "Story 9.6.4: Refactor Upload Endpoint for Multi-Report Ingestion",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.4: Refactor Upload Endpoint for Multi-Report Ingestion",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-4-refactor-upload-endpoint-for-multi-report",
+     "quote": "Story 9.6.4: Refactor Upload Endpoint for Multi-Report Ingestion"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F105",
+   "name": "Story 9.6.5: Rewrite Algorithm Engine for Real Remove/Pick Data",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.5: Rewrite Algorithm Engine for Real Remove/Pick Data",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-5-rewrite-algorithm-engine-for-real-remove-pick",
+     "quote": "Story 9.6.5: Rewrite Algorithm Engine for Real Remove/Pick Data"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 4 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F106",
+   "name": "Story 9.6.6: Update Task Generation Pipeline for Multi-Report Batch",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.6: Update Task Generation Pipeline for Multi-Report Batch",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-6-update-task-generation-pipeline-for-multi-report",
+     "quote": "Story 9.6.6: Update Task Generation Pipeline for Multi-Report Batch"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 4 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F107",
+   "name": "Story 9.6.7: Rebuild Frontend Upload UI for Multi-File Flow",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.7: Rebuild Frontend Upload UI for Multi-File Flow",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-7-rebuild-frontend-upload-ui-for-multi-file",
+     "quote": "Story 9.6.7: Rebuild Frontend Upload UI for Multi-File Flow"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F108",
+   "name": "Story 9.6.8: Defer Data Commits to Batch Processing",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.8: Defer Data Commits to Batch Processing",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-8-defer-data-commits-to-batch",
+     "quote": "Story 9.6.8: Defer Data Commits to Batch Processing"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 6 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F109",
+   "name": "Story 9.6.9: Add Batch Delete Endpoint and Orphan Cleanup",
+   "epic_id": "E9.6",
+   "description": "Story 9.6.9: Add Batch Delete Endpoint and Orphan Cleanup",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.6-9-add-batch-delete-endpoint-and-orphan",
+     "quote": "Story 9.6.9: Add Batch Delete Endpoint and Orphan Cleanup"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F110",
+   "name": "Story 9.7.1: Database Migration — Drop Batch Model, Add Fields",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.1: Database Migration — Drop Batch Model, Add Fields",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-1-database-migration-drop-batch-model-add",
+     "quote": "Story 9.7.1: Database Migration — Drop Batch Model, Add Fields"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F111",
+   "name": "Story 9.7.10: Implement Adjust Max and Adjust Min Task Types",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.10: Implement Adjust Max and Adjust Min Task Types",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-10-implement-adjust-max-and-adjust-min-task",
+     "quote": "Story 9.7.10: Implement Adjust Max and Adjust Min Task Types"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 11 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F112",
+   "name": "Story 9.7.11: Adjust Max/Min Standard Stock Guard",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.11: Adjust Max/Min Standard Stock Guard",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-11-adjust-max-min-standard-stock",
+     "quote": "Story 9.7.11: Adjust Max/Min Standard Stock Guard"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F113",
+   "name": "Story 9.7.12: Align Algorithm Calculation Logic with Excel Rules",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.12: Align Algorithm Calculation Logic with Excel Rules",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-12-align-algorithm-with-excel-calculation",
+     "quote": "Story 9.7.12: Align Algorithm Calculation Logic with Excel Rules"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F114",
+   "name": "Story 9.7.13: Redesign Data Upload Page to Match Figma",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.13: Redesign Data Upload Page to Match Figma",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-13-redesign-data-upload-page-to-match",
+     "quote": "Story 9.7.13: Redesign Data Upload Page to Match Figma"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 19 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F115",
+   "name": "Story 9.7.14: Algorithm & Excel Alignment — Round 2 (7 Fixes)",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.14: Algorithm & Excel Alignment — Round 2 (7 Fixes)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-14-algorithm-excel-alignment-round",
+     "quote": "Story 9.7.14: Algorithm & Excel Alignment — Round 2 (7 Fixes)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F116",
+   "name": "Story 9.7.15: Implement ROTATE_STOCK Task Type",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.15: Implement ROTATE_STOCK Task Type",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-15-implement-rotate-stock-task",
+     "quote": "Story 9.7.15: Implement ROTATE_STOCK Task Type"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 13 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F117",
+   "name": "Story 9.7.16: Implement \"Adjust Manually\" Toggle for ADJUST_MIN / ADJUST_MAX",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.16: Implement \"Adjust Manually\" Toggle for ADJUST_MIN / ADJUST_MAX",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-16-implement-adjust-manually",
+     "quote": "Story 9.7.16: Implement \"Adjust Manually\" Toggle for ADJUST_MIN / ADJUST_MAX"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 16 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F118",
+   "name": "Story 9.7.2: Implement Single Upload-All Endpoint",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.2: Implement Single Upload-All Endpoint",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-2-implement-single-upload-all",
+     "quote": "Story 9.7.2: Implement Single Upload-All Endpoint"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 7 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F119",
+   "name": "Story 9.7.3: Clean Parser Field Mappings to Exact CSV Headers",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.3: Clean Parser Field Mappings to Exact CSV Headers",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-3-clean-parser-field-mappings-to-exact-csv",
+     "quote": "Story 9.7.3: Clean Parser Field Mappings to Exact CSV Headers"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F120",
+   "name": "Story 9.7.4: Remove Batch Dead Code (Backend)",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.4: Remove Batch Dead Code (Backend)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-4-remove-batch-dead-code",
+     "quote": "Story 9.7.4: Remove Batch Dead Code (Backend)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F121",
+   "name": "Story 9.7.5: Rebuild Frontend Upload Page with Field Guidance",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.5: Rebuild Frontend Upload Page with Field Guidance",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-5-rebuild-frontend-upload-page-with-field",
+     "quote": "Story 9.7.5: Rebuild Frontend Upload Page with Field Guidance"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 8 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F122",
+   "name": "Story 9.7.6: Remove Batch Dead Code (Frontend)",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.6: Remove Batch Dead Code (Frontend)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-6-remove-batch-dead-code",
+     "quote": "Story 9.7.6: Remove Batch Dead Code (Frontend)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 11 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F123",
+   "name": "Story 9.7.7: Fix Parser to Accept Decimal Values and Optional PAR",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.7: Fix Parser to Accept Decimal Values and Optional PAR",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-7-fix-parser-decimal-values-and-optional",
+     "quote": "Story 9.7.7: Fix Parser to Accept Decimal Values and Optional PAR"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 27 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F124",
+   "name": "Story 9.7.8: Rewrite Upload Tests for New Flow",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.8: Rewrite Upload Tests for New Flow",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-8-rewrite-upload-tests-for-new",
+     "quote": "Story 9.7.8: Rewrite Upload Tests for New Flow"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 5 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F125",
+   "name": "Story 9.7.9: Fix Formulary Parser to Accept Decimal Values",
+   "epic_id": "E9.7",
+   "description": "Story 9.7.9: Fix Formulary Parser to Accept Decimal Values",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 9.7-9-fix-formulary-parser-decimal",
+     "quote": "Story 9.7.9: Fix Formulary Parser to Accept Decimal Values"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 7 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  }
+ ],
+ "not_scope": [],
+ "conflicts": [],
+ "assumptions": [],
+ "completeness_signals": {
+  "acceptance_criteria": {
+   "value": "most",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "stack_specified": {
+   "value": "full",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "integrations_named": {
+   "value": "all",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "nfrs_stated": {
+   "value": "most",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "data_model_described": {
+   "value": "detailed",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "ui_defined": {
+   "value": "designed",
+   "why": "a delivered project's own epics, read after the fact"
+  }
+ }
+}

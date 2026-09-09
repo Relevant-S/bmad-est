@@ -131,6 +131,19 @@ const widen = (v,f) => (f === 1 || v[1] <= 0) ? v
   : [v[0] > 0 ? v[1] * Math.pow(v[0]/v[1], f) : v[0], v[1],
      v[2] > 0 ? v[1] * Math.pow(v[2]/v[1], f) : v[2]];
 const bandOf = f => f.clarity_band_multiplier || 1;
+/* Mirrors shares_for() in estimate.py: the base shares, adjusted multiplicatively by the tier,
+   the clarity and the novelty, then renormalised. They decide only where a story's hours are
+   REPORTED — they sum to 1, so moving one can never change what the story costs. */
+const sharesFor = (tier, clarity, novelty) => {
+  const s = {...M.component_shares.base};
+  s.review *= (M.review_tier[tier].review_share_adjust ?? 1);
+  s.spec   *= (M.clarity[clarity].spec_share_adjust ?? 1);
+  s.rework *= (M.clarity[clarity].rework_share_adjust ?? 1)
+            * (M.novelty_rework_multiplier[novelty].rework_share_adjust ?? 1);
+  const tot = Object.values(s).reduce((a,b) => a+b, 0);
+  for (const k in s) s[k] /= tot;
+  return s;
+};
 const h = n => Math.round(n).toLocaleString();
 
 const opts = E._render_options;
@@ -146,10 +159,13 @@ function compute(ids) {
   const manual = feats.length ? add(...feats.map(f => f.manual_baseline)) : [0,0,0];
   const featureTotal = feats.length ? add(...feats.map(f => f.total)) : [0,0,0];
 
-  const perSize = M.planning.stories_per_feature;
   /* Standing work gets no epic and no story, so it is out of the planning volume here too. */
   const planned = feats.filter(f => f.origin !== 'standing');
-  const stories = planned.reduce((s,f) => s + (perSize[f.tags.size_band] || 1), 0);
+  /* Planning is the ONE component priced per artefact written, so it is the one place a split
+     story genuinely costs more — two stories get two story files and two reviews. Splitting is
+     decomposition, not scope growth, so it is applied here and nowhere else. Mirrors
+     plan_volume() in estimate.py. */
+  const stories = planned.length * M.planning.split_factor.likely;
   /* Epics are counted from the stories' own epics when the source grouped them, so dropping
      every story in an epic stops that epic costing. Only an ungrouped inventory falls back
      to the ratio. Mirrors plan_volume() in estimate.py. */
@@ -169,7 +185,9 @@ function compute(ids) {
   const project = {
     planning_agent: planning('agent_hours'),
     planning_review: planning('review_hours'),
-    qa: mul(manual, t(M.qa[opts.qa_platform])),
+    /* A share of the STORY-WORK TOTAL, not of the manual-equivalent — which 3.0 stopped
+       treating as an input to anything. */
+    qa: mul(featureTotal, t(M.qa[opts.qa_platform])),
   };
   /* Overhead is weeks x people x rate, so the page has to derive the same duration the
      document did — ceremony recurs on the calendar, and a percentage of the subtotal would
@@ -199,11 +217,21 @@ function compute(ids) {
   /* Three-point weeks, because a longer project holds more ceremony: collapsing the schedule
      to one number would give overhead a certainty the schedule does not have. */
   const planningTP = add(project.planning_agent, project.planning_review);
+  /* QA runs on the calendar alongside the build, so it is part of the parallel work. Leaving
+     it out put the anchor at 5.7 weeks against a recorded 7, and the architect — priced per
+     week — inherited the whole of that error. */
+  const scheduled = add(featureTotal, project.qa);
   const weeks = [0,1,2].map(i =>
     (planningTP[i] / Math.min(people, 2)
-     + (people ? Math.max(pathHours, featureTotal[i] / people) : featureTotal[i]))
+     + (people ? Math.max(pathHours, scheduled[i] / people) : scheduled[i]))
     / cal.hours_per_person_week);
   project.overhead = mul(t(M.overhead_rate[opts.engagement]), scale(weeks, people));
+  /* The architect is setup plus a capped weekly rate, not a share of anything — so unticking
+     features shortens the project and buys less support, but never less setup. Mirrors
+     architect_cost() in estimate.py. */
+  const arch = M.architect, cap = arch.weekly_cap || arch.weekly_h.hi;
+  const weekly = t(arch.weekly_h).map(w => Math.min(w, cap));
+  project.architect = add(t(arch.setup_h), mul(weekly, weeks));
 
   const all = [...feats.map(f => f.total), ...Object.values(project)];
   const mean = all.reduce((s,v) => s + TP.mean(v), 0);

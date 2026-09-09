@@ -8,11 +8,24 @@ The whole cost model lives in cost-model.json — no coefficient is hardcoded he
 script does the arithmetic and nothing else: it decides no classification, invents no
 scope, and cannot be persuaded to narrow a range.
 
-The one modelling choice worth naming, because it is the reason the module exists:
-`review_h` is a share of `manual_baseline`, never of the compressed `build_h`. Review
-effort tracks the volume of output produced, not the time taken to produce it, so
-compression shrinks the build and leaves the review untouched. Routine CRUD collapses;
-a payments feature does not. Nothing special-cases that — it falls out of the formula.
+The one modelling choice worth naming, because the 3.0 rebuild inverted it: a story's cost
+comes from its band in DELIVERED hours, and nothing is divided by compressibility. The 2.x
+engine priced a manual-equivalent baseline and divided; neither of those quantities was ever
+recorded on a delivered project, so the division was arithmetic over a construct. The
+manual-equivalent now runs the other way — delivered x compressibility — is reported for the
+client narrative, and is consumed by no downstream figure.
+
+Three things move a story off its band, and each is separate on purpose:
+
+- `manual_effort_premium` is ADDITIVE hours for work whose cost is not the code — a payment
+  rail, an external IdP, a device build. Measured as the residual over what a story's surface
+  count predicts, and additive because a Stripe account is the same console work whether it
+  backs one checkout or three.
+- `review_tier`, `clarity` and `novelty` are MULTIPLIERS on the total. The tier one is small
+  and measured: EPP's sensitive stories average 1.05x routine ones. Criticality is expensive
+  in consequences, not in hours.
+- `component_shares` decide only where those hours are REPORTED. They sum to 1, so moving a
+  share can never change what a story costs.
 
 Reads: feature-inventory.json (from est-scope-extract) + cost-model.json
 Writes: estimate.json — the source of truth; render-estimate.py makes the human views.
@@ -180,6 +193,63 @@ def standing_features(model, options):
     return out
 
 
+def effort_premium(feature, model):
+    """Additive hours for work whose cost is not the code.
+
+    Console clicking, credentials, provider dashboards, store review, and verification an
+    agent cannot perform. ADDITIVE rather than a band, because it does not scale with how big
+    the story is: setting up a payment provider is the same amount of work whether it backs
+    one checkout or three. Several can apply to one story and they sum.
+
+    Measured as the residual over what a story's surface count alone predicts, across the
+    anchor's 75 weighted stories: a money rail carries +0.75 points, an external IdP +0.73,
+    native/device +0.41, and a story touching nothing external -0.07. That last row is the
+    control — it is what tells you the first three are real.
+    """
+    catalogue = model.get("manual_effort_premium") or {}
+    applied, total = [], (0.0, 0.0, 0.0)
+    for key in feature.get("manual_effort") or []:
+        spec = catalogue.get(key)
+        if spec is None:
+            raise ValueError(
+                f"{feature.get('id')} carries manual_effort '{key}', which the cost model's "
+                f"manual_effort_premium does not define. Known: "
+                f"{sorted(k for k in catalogue if not k.startswith('_'))}")
+        if spec.get("likely") is None:
+            # Deliberately unpriced — `provisioning` is the case: no anchor ever paid it, so
+            # it raises an open question rather than inventing a number. Recorded, not costed.
+            applied.append({"key": key, "hours": None, "why": spec.get("why")})
+            continue
+        total = add(total, tp(spec))
+        applied.append({"key": key, "hours": round(pert(tp(spec))[0], 2), "why": spec.get("why")})
+    return total, applied
+
+
+def shares_for(model, tier, clarity, novelty):
+    """Where a story's hours are REPORTED, which is not the same as what it costs.
+
+    The base shares are adjusted multiplicatively by the tier, the clarity and the novelty,
+    then renormalised — so they always sum to 1 and moving one can never change a story's
+    total. A vague sensitive story reports roughly 37% build against a routine specified
+    one's 60%; both cost what their band and multipliers say.
+
+    Kept separate from the multipliers on purpose. All three anchors recorded hours by role
+    and never by phase, so this decomposition is a hypothesis; stating it as numbers is what
+    lets a future project falsify it.
+    """
+    shares = dict(model["component_shares"]["base"])
+    adjust = {
+        "review": float(model["review_tier"][tier].get("review_share_adjust", 1.0)),
+        "spec": float(model["clarity"][clarity].get("spec_share_adjust", 1.0)),
+        "rework": float(model["clarity"][clarity].get("rework_share_adjust", 1.0))
+                * float(model["novelty_rework_multiplier"][novelty].get("rework_share_adjust", 1.0)),
+    }
+    for key, factor in adjust.items():
+        shares[key] *= factor
+    total = sum(shares.values())
+    return {k: v / total for k, v in shares.items()}
+
+
 def price_feature(feature, model, team):
     """Cost one feature. Returns its components and the inputs that produced them."""
     tags = feature.get("tags", {})
@@ -190,27 +260,44 @@ def price_feature(feature, model, team):
     size, comp_class = value("size_band"), value("compressibility")
     tier, clarity, novelty = value("review_tier"), value("clarity"), value("novelty")
 
+    # The band is DELIVERED hours for the story, across every role billed to story work.
+    # `manual_hours` still overrides it — standing_work carries absolute hours, because a
+    # pipeline costs what it costs however the product backlog is sliced.
     override = feature.get("manual_hours")
-    manual = (override["lo"], override["likely"], override["hi"]) if override \
+    base = (override["lo"], override["likely"], override["hi"]) if override \
         else tp(model, "size_bands", size)
-    compression = tp(model, "compressibility", comp_class)
+    premium, premium_applied = effort_premium(feature, model)
     clarity_row = model["clarity"][clarity]
-    novelty_factor = model["novelty_rework_multiplier"][novelty]["factor"]
 
-    build = div(manual, compression)
-    spec = scale(manual, clarity_row["spec_rate"] * team["spec"])
-    # The load-bearing line: review scales with manual_baseline, not with build.
-    review = scale(mul(manual, tp(model, "review_rate", tier)), team["review"])
-    rework = scale(add(build, review),
-                   clarity_row["rework_rate"] * novelty_factor * team["rework"])
+    # Multipliers on the whole story. The tier one is the measured surprise: on the anchor,
+    # sensitive stories run 1.05x routine ones and 1.06x with every provider-touching story
+    # excluded. Criticality is expensive in consequences, not in hours — what is expensive is
+    # the provider behind it, and that arrived above as `premium`.
+    total_factor = (float(model["review_tier"][tier]["multiplier"])
+                    * float(clarity_row["multiplier"])
+                    * float(model["novelty_rework_multiplier"][novelty]["multiplier"]))
+    story = scale(add(base, premium), total_factor)
 
-    # How well-specified the work is has to show up as width, and until this line it did the
-    # opposite: spec and rework are scalar multiples of an interval and so proportionally
-    # tight, and low clarity adds MORE of them, which pulled the relative band DOWN. A real
+    # Split into phases, then let the team profile touch the judgement-heavy ones ONLY. build
+    # is left alone deliberately and that has not changed since 2.x: the agent writes the code
+    # either way, so the seniority gap lands entirely where judgement does.
+    shares = shares_for(model, tier, clarity, novelty)
+    build = scale(story, shares["build"])
+    spec = scale(story, shares["spec"] * team["spec"])
+    review = scale(story, shares["review"] * team["review"])
+    rework = scale(story, shares["rework"] * team["rework"])
+
+    # How well-specified the work is has to show up as width, and before this line it did the
+    # opposite: spec and rework were scalar multiples of an interval and so proportionally
+    # tight, and low clarity added MORE of them, which pulled the relative band DOWN. A real
     # inventory read 6.32 hi/lo at high clarity against 5.52 at low — a vague story presenting
     # as the more certain one.
     band = float(clarity_row.get("band_multiplier", 1.0))
     total = widen(add(build, spec, review, rework), band)
+
+    # Reported, never divided by: the client-facing "this would have cost X by hand" figure.
+    # Nothing downstream reads it, so if the compression class is wrong only that sentence moves.
+    manual = mul(total, tp(model, "compressibility", comp_class))
 
     return {
         "id": feature.get("id"),
@@ -232,6 +319,19 @@ def price_feature(feature, model, team):
                                   "quote": c.get("quote")} for c in t.get("citations", [])]}
                   for t in feature.get("tasks", [])],
         "depends_on": [d.get("feature_id") for d in feature.get("depends_on", [])],
+        "band_hours": base,
+        # The plain key list, kept round-trippable: inventory_from() reads it straight back, and
+        # a priced estimate that could not be re-priced to its own headline would break every
+        # scenario and every backtest. The resolved detail goes in its own field.
+        "manual_effort": list(feature.get("manual_effort") or []),
+        "manual_effort_detail": premium_applied,
+        "manual_effort_hours": round(pert(premium)[0], 2),
+        "multiplier": round(total_factor, 3),
+        "component_shares": {k: round(v, 3) for k, v in shares.items()},
+        # Reported only. Kept under the 2.x name because est-calibrate, the agreed-scope
+        # apportionment and the report all read it, but it is now an OUTPUT of the story's
+        # cost rather than the input that produced it.
+        "manual_equivalent": manual,
         "manual_baseline": manual,
         "components": {"build": build, "spec": spec, "review": review, "rework": rework},
         "clarity_band_multiplier": band,
@@ -251,8 +351,13 @@ def plan_volume(priced, model, granularity):
     # Standing work is excluded: setting up a pipeline does not get a PRD section, an epic or
     # a story, so counting it here would bill planning artefacts that will never be written.
     priced = [f for f in priced if f.get("origin") != "standing"]
-    per_size = model["planning"]["stories_per_feature"]
-    stories = sum(per_size.get(f["tags"]["size_band"], 1) for f in priced)
+    # Splitting is the ONE thing that genuinely costs more here and nowhere else: two stories
+    # get two story files and two reviews. It is decomposition, not scope growth — the scope
+    # is unchanged and the build is unchanged — so this factor is applied to planning alone.
+    # Applying it to build would bill the same work twice. Measured on all three anchors:
+    # EPP 50 planned stories delivered as 76, memorial-healthcare 63 as 125, easyterms 50 as 78.
+    split = model["planning"]["split_factor"]["likely"]
+    stories = len(priced) * float(split)
     grouped = {f["epic_id"] for f in priced if f.get("epic_id")}
     if grouped:
         # The source grouped the work itself. Dividing the story count by a rule of thumb
@@ -266,7 +371,11 @@ def plan_volume(priced, model, granularity):
         epics = math.ceil(len(priced) / model["planning"]["features_per_epic"]) if priced else 0
         epics_from = f"derived: {len(priced)} stories / {model['planning']['features_per_epic']} per epic"
     documents = model["planning"]["documents_by_granularity"].get(granularity, [])
-    return {"epics": epics, "epics_from": epics_from, "stories": stories, "documents": documents}
+    return {"epics": epics, "epics_from": epics_from, "stories": stories,
+            "stories_in_inventory": len(priced), "split_factor": float(split),
+            "stories_from": (f"{len(priced)} inventory stories x {split} split factor — planning is "
+                             f"priced per artefact written, and a story that gets split gets two"),
+            "documents": documents}
 
 
 def planning_cost(volume, model, key):
@@ -297,6 +406,28 @@ def overhead_cost(model, options, span):
                scale(span["weeks_three_point"], span["assumed_team_size"]))
 
 
+def architect_cost(model, span):
+    """Setup plus a weekly rate, capped — not a share of anything.
+
+    The best-evidenced coefficient in the model, and the one the 2.x engine got structurally
+    wrong. There it had no component of its own: architect hours fell out of role_weights on
+    planning_agent, planning_review and overhead, all three of which scale with story and epic
+    count. On a 371-story inventory that produced three times the anchored setup.
+
+    All three delivered projects fit the same formula exactly, and it was stated independently
+    of the totals rather than fitted to them: EPP 40 h setup + 7 weeks x 10 = 110;
+    memorial-healthcare 30 + 3 x 10 = 60; easyterms 30 + 5 x 10 = 80. Setup does not scale with
+    the backlog and support scales with the calendar, so a long project buys more support and
+    the same setup — up to `weekly_cap`, which every one of the three sat at.
+    """
+    spec = model["architect"]
+    setup = tp(spec, "setup_h")
+    weekly = tp(spec, "weekly_h")
+    cap = float(spec.get("weekly_cap") or weekly[2])
+    weekly = tuple(min(w, cap) for w in weekly)
+    return add(setup, mul(weekly, span["weeks_three_point"]))
+
+
 def overhead_check(priced, project, span):
     """What the duration-based overhead works out to as a share of everything else.
 
@@ -322,16 +453,20 @@ def project_components(priced, model, granularity, options):
     and a second derivation of the same weeks would be a second answer to the same question.
     """
     volume = plan_volume(priced, model, granularity)
-    manual_total = add(*[f["manual_baseline"] for f in priced]) if priced else (0.0, 0.0, 0.0)
+    manual_total = add(*[f["manual_equivalent"] for f in priced]) if priced else (0.0, 0.0, 0.0)
+    story_total = add(*[f["total"] for f in priced]) if priced else (0.0, 0.0, 0.0)
 
     components = {
         "planning_agent": planning_cost(volume, model, "agent_hours"),
         "planning_review": planning_cost(volume, model, "review_hours"),
-        "qa": mul(manual_total, tp(model, "qa", options["qa_platform"])),
+        # A share of the STORY-WORK TOTAL, not of the manual-equivalent — which is no longer
+        # an input to anything. Re-fitted to EPP: 40 h of QA against 400 h of story work.
+        "qa": mul(story_total, tp(model, "qa", options["qa_platform"])),
     }
     path = critical_path(priced)
     span = duration(priced, components, model, path, options["team_size"])
     components["overhead"] = overhead_cost(model, options, span)
+    components["architect"] = architect_cost(model, span)
     return components, volume, manual_total, path, span
 
 
@@ -538,7 +673,11 @@ def duration(priced, project, model, path, team_size):
     """
     cal = model["calendar"]
     people = min(team_size or cal["max_useful_parallelism"], cal["max_useful_parallelism"])
+    # QA runs on the calendar alongside the build, so it is part of the parallel work rather
+    # than a cost that happens outside time. Leaving it out put EPP at 5.7 weeks against a
+    # recorded 7 — and the architect, priced per week, inherited the whole of that error.
     feature_hours = add(*[f["total"] for f in priced]) if priced else (0.0, 0.0, 0.0)
+    feature_hours = add(feature_hours, project.get("qa", (0.0, 0.0, 0.0)))
     # Planning is a small-group serial prefix; it does not parallelise across a big team.
     planning = add(project["planning_agent"], project["planning_review"])
     weeks = tuple(
@@ -665,11 +804,17 @@ def load_scope(inventory, classification):
     missing = []
     for key in ("features", "implicit_scope"):
         for feature in joined.get(key) or []:
-            tags = rows.get(feature.get("id"))
-            if not tags:
+            row = rows.get(feature.get("id"))
+            if not row:
                 missing.append(feature.get("id"))
                 continue
-            feature["tags"] = json.loads(json.dumps(tags))
+            row = json.loads(json.dumps(row))
+            # `manual_effort` sits beside the five axes rather than among them: it is a list of
+            # named work classes, not a tag with a value and a why, and price_feature reads it
+            # off the feature. Lifting it out here keeps the tag block exactly the five axes
+            # AXES iterates, so nothing downstream has to special-case a sixth shape.
+            feature["manual_effort"] = row.pop("manual_effort", []) or []
+            feature["tags"] = row
     orphans = sorted(set(rows) - {f.get("id") for k in ("features", "implicit_scope")
                                   for f in joined.get(k) or []})
     return joined, missing, orphans
@@ -783,6 +928,7 @@ def inventory_from(estimate):
             "scope_status": f.get("scope_status"),
             "epic_id": f.get("epic_id"),
             "surfaces": f.get("surfaces"),
+            "manual_effort": f.get("manual_effort") or [],
             "tags": tags,
             "depends_on": [{"feature_id": d, "inferred": True} for d in (f.get("depends_on") or [])],
             "open_questions": f.get("open_questions", []),
@@ -927,20 +1073,30 @@ def build_estimate(inventory, model, options):
         "by_role": by_role(priced, project, model),
         "scope_split": agreed_split(priced, project, model, options),
         "manual_equivalent": {
-            "build_hours": round(pert(manual_total)[0], 1),
-            "bmad_build_hours": round(sum(pert(f["components"]["build"])[0] for f in priced), 1),
-            "build_compression": round(
-                pert(manual_total)[0] / sum(pert(f["components"]["build"])[0] for f in priced), 2)
+            "story_hours": round(pert(add(*[f["total"] for f in priced]))[0], 1) if priced else 0.0,
+            "manual_hours": round(pert(manual_total)[0], 1),
+            "story_compression": round(
+                pert(manual_total)[0] / pert(add(*[f["total"] for f in priced]))[0], 2)
             if priced else None,
             "whole_project_compression": None,
-            "why": ("Compares BUILD effort only, which is the one like-for-like comparison available: "
-                    "manual_baseline is what a human team would have spent writing this code. It is "
-                    "deliberately NOT compared against the project total, because planning, "
+            "basis": "story work only; project components are excluded from both sides",
+            "why": ("Compares STORY WORK on both sides, which is the one like-for-like comparison "
+                    "available. In 3.0 the direction reversed: `story_hours` are what this model "
+                    "actually prices, measured from delivered projects, and `manual_hours` is that "
+                    "figure multiplied by each story's compressibility class. It is a REPORTED "
+                    "consequence of the estimate, not an input to it — no priced hour depends on "
+                    "it, so a wrong compression class moves this sentence and nothing else. "
+                    "2.x divided the other way, against a manual baseline no delivered project "
+                    "ever recorded, and compared it to build hours alone, which mixed a "
+                    "whole-story numerator with a build-only denominator. "
+                    "It is deliberately NOT compared against the project total, because planning, "
                     "standing setup work, QA and client overhead are costs a manual project pays "
-                    "too — "
-                    "quoting an 8x build compression as though the project were 8x cheaper is exactly "
-                    "the overclaim this module exists to avoid. Whole-project compression needs a full "
-                    "manual counterfactual with its own coefficients, which this model does not have."),
+                    "too — quoting a build compression as though the project were that much "
+                    "cheaper is exactly the overclaim this module exists to avoid. Whole-project "
+                    "compression needs a full manual counterfactual with its own coefficients, "
+                    "which this model does not have. NOTE the evidence behind the multiple itself "
+                    "is one sentence in the anchor's own effort assessment; nobody estimated any "
+                    "of the three calibration projects manually."),
         },
         "risk_quadrant": [
             {"id": f["id"], "name": f["name"], "hours": round(pert(f["total"])[0], 1),
@@ -988,6 +1144,11 @@ def main():
                          "input completeness score and confirms the inventory validated")
     ap.add_argument("--completeness", type=float,
                     help="input completeness score, when no check report is available")
+    ap.add_argument("--split-factor", type=float, metavar="N",
+                    help="override planning.split_factor. Planning is priced per artefact "
+                         "written, so an inventory whose stories have ALREADY been split — a "
+                         "backtest against a delivered story list — needs 1.0 here, or every "
+                         "story file gets counted 1.7 times")
     ap.add_argument("--generated", default="", help="ISO timestamp to stamp on the estimate")
     args = ap.parse_args()
 
@@ -1058,6 +1219,11 @@ def main():
                           "error": f"unknown team profile '{args.team_profile}' — known: {sorted(k for k in profiles if not k.startswith('_'))}"},
                          indent=2))
         return 2
+
+    if args.split_factor is not None:
+        model["planning"]["split_factor"] = {"lo": args.split_factor,
+                                             "likely": args.split_factor,
+                                             "hi": args.split_factor}
 
     options = {
         "mode": args.mode,

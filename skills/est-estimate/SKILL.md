@@ -55,12 +55,15 @@ uv run {project-root}/skills/est-scope-extract/scripts/inventory-check.py {works
 
 `estimate.py` refuses to price an inventory with unresolved findings — pricing a broken inventory is how a confident wrong number gets made. Classify only what has passed this: a classifier working over possibly-invented scope is judging work nobody asked for.
 
-**Then classify it.** This is the judgement this skill exists to make, and `references/classification-guide.md` is how it is made. Four beats:
+**Then classify it.** This is the judgement this skill exists to make, and `references/classification-guide.md` is how it is made. Five beats:
 
-1. **Read the bands from the model that will price them.** `uv run {project-root}/skills/est-scope-extract/scripts/inventory-check.py --bands --cost-model {memory}/cost-model.json` prints the hour ranges, the worked exemplars for each band, and the delivered project they were fitted against. A band table quoted from memory is a table that has drifted.
-2. **Seed the run's own reference class.** Classify about a dozen stories yourself, spanning every epic, and keep them. Every classifier gets them alongside the model's exemplars. Skip this and the classifiers agree with the cost model but not with each other.
-3. **Fan out, one subagent per epic**, each given only its own stories, the exemplars and the seed, returning ONLY a compact summary. **If one writes to disk rather than returning, the path is `{workspace}/classify/<epic_id>.json` and nothing else.** Assemble the returns into `{workspace}/classification.json`. Without subagents, work the epics in order and say in the report which way it ran.
-4. **Reconcile.** Run the checker again, now with the classification:
+1. **Read the granularity report before you read the bands.** The checker's `granularity` block compares this inventory's surfaces per story against the anchor's 2.29. It is worth more than any individual band: the band spread is 4.8x, so one band of error moves a story about a third, while the story count moves the whole estimate one-for-one and varies threefold between projects writing the same kind of scope. If it says the inventory is sliced materially finer than the anchor, decide what to do about that first — re-synthesise, or record that the grain is deliberate and the number is read with it.
+2. **Read the bands from the model that will price them.** `uv run {project-root}/skills/est-scope-extract/scripts/inventory-check.py --bands --cost-model {memory}/cost-model.json` prints the hour ranges, the worked exemplars for each band, and the delivered project they were fitted against. A band table quoted from memory is a table that has drifted.
+3. **Seed the run's own reference class.** Classify about a dozen stories yourself, spanning every epic, and keep them. Every classifier gets them alongside the model's exemplars. Skip this and the classifiers agree with the cost model but not with each other.
+4. **Fan out, one subagent per epic**, each given only its own stories, the exemplars and the seed, returning ONLY a compact summary. **If one writes to disk rather than returning, the path is `{workspace}/classify/<epic_id>.json` and nothing else.** Assemble the returns into `{workspace}/classification.json`. Without subagents, work the epics in order and say in the report which way it ran.
+
+   **Give one classifier a blind cross-check.** Pick roughly a tenth of the stories at random from epics other than its own, hand them over WITHOUT their existing bands, and compare. This is the only independent signal in the pass: the seed dozen, the fan-out and the reconciliation are otherwise all your own judgement, so a wrong seed propagates to the whole inventory with nothing to catch it. Disagreement of more than one band on more than a fifth of the sample means the reference class did not hold — say so in the report and re-read the seed, not the individual stories. Record the sample and the agreement rate under `how`.
+5. **Reconcile.** Run the checker again, now with the classification:
 
 ```
 uv run {project-root}/skills/est-scope-extract/scripts/inventory-check.py {workspace}/feature-inventory.json \
@@ -68,7 +71,12 @@ uv run {project-root}/skills/est-scope-extract/scripts/inventory-check.py {works
   --cost-model {memory}/cost-model.json -o {workspace}/check.json
 ```
 
-Its `sizing` block is the drift detector: an L on a single source line, a band tracking `review_tier` rather than volume, a baseline-per-source-line away from the anchor. Re-judge **only what it flags**, and re-run until it is quiet or the extraction report answers it. A band shape away from the anchor can be right — but it has to be a decision.
+Its `sizing` block reports two different kinds of thing, and they are not to be treated alike.
+
+- **Per-story findings are worth re-judging**: an L on a single source line, a band tracking `review_tier` rather than volume. Those name a story and a reason.
+- **The distribution comparison is not.** A share away from the anchor's mix is information about the project's shape, never on its own a reason to move a band — and the checker now says so in the warning itself. In 2.x this ran the other way: the classification guide stated the expected mix before anything was judged and the checker flagged deviation from the same figure afterwards, so the distribution was a prior being enforced rather than a measurement being taken. If your shape differs, say why in the extraction report and leave it.
+
+Re-judge only the per-story findings, and re-run until they are quiet or the extraction report answers them.
 
 That second run also completes the completeness score. `clarity` is 18% of it, so the first run returns `input_completeness: null` rather than a number that reads as a thin brief when the truth is an unclassified one.
 
@@ -102,6 +110,18 @@ Reuse `{workspace}/check.json` if it is newer than both the inventory and the cl
   The width is the message: `clarity` widens a story's own band, so a well-specified story reads
   tighter than a vague one. Before that it ran backwards — a vague story came out *narrower*,
   because spec and rework are scalar multiples of an interval and low clarity added more of them.
+- **The bands are delivered hours, and nothing is divided by `compressibility`.** Schema 3.0
+  rebuilt the model against three delivered projects and found that the two quantities 2.x priced
+  on — a manual-equivalent baseline and a compression divisor — had never been recorded on any of
+  them. `manual_equivalent` now runs the other way, is reported for the client narrative, and is
+  consumed by nothing.
+- **A sensitive story is barely more expensive than a routine one; the PROVIDER is.** Measured on
+  the anchor: 1.05x for the tier, against +0.75 points for a money rail over what a story's surface
+  count predicts. If a payments estimate looks low, check `manual_effort` before you touch a band.
+- **The model is fitted to the most expensive of its three anchors** and runs high against a
+  finely-sliced inventory — memorial-healthcare by ~1.5x, easyterms by ~2.9x on their own delivered
+  story lists. `check_granularity` reports which way an inventory sits. Say it when you present the
+  number; it is a real limit, not a caveat to bury.
 
 
 - **Never adjust the number directly.** If it looks wrong, either a story is misclassified — fix it in `classification.json` and re-price, which needs no re-extraction — or the scope is wrong, which does, or a coefficient is wrong, in which case read `references/cost-model-guide.md` first, then edit `{memory}/cost-model.json` and say what evidence changed. A hand-adjusted total destroys the traceability the whole estimate rests on, and calibration can never learn from it.

@@ -129,7 +129,7 @@ def not_identifiable(actuals):
     missing = []
     if not actuals.get("by_phase"):
         missing.append(
-            "size_bands vs review_rate vs compressibility cannot be separated: all three drive "
+            "size_bands vs review_tier vs compressibility cannot be separated: all three drive "
             "components that only `by_phase` actuals distinguish. Without them the total's error "
             "can be attributed to any of the three, or split between them, and the evidence "
             "cannot say which. Capture hours by BMad phase on the next project.")

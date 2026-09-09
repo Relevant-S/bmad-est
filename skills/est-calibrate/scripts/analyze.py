@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 PHASES = ["planning", "planning-review", "spec", "build", "review", "rework",
-          "qa", "overhead"]
+          "qa", "overhead", "architecture"]
 
 CONFIDENCE_WEIGHT = {"measured": 1.0, "reconstructed": 0.6, "estimated": 0.3}
 
@@ -324,8 +324,9 @@ def propose_global_scale(acc, model, min_samples, k=DEFAULT_SHRINKAGE_K):
     """A systematic direction in the totals means the sizing baseline is off.
 
     Deliberately proposed against size_bands rather than any single downstream coefficient:
-    manual_baseline drives build, spec, review and rework alike, so a uniform sizing error
-    is the simplest explanation consistent with a total that is consistently off.
+    the band IS the story's hours, and build, spec, review and rework are shares of it, so a
+    uniform sizing error is the simplest explanation consistent with a total that is
+    consistently off.
     """
     if acc["samples"] < min_samples:
         return None
@@ -370,6 +371,11 @@ def phase_deltas(entries, min_samples):
             continue
         weight = CONFIDENCE_WEIGHT.get(actuals.get("confidence", "measured"), 1.0)
         for phase, hours in by_phase.items():
+            if phase not in ratios:
+                # A ledger entry from a model with a phase this build does not know. Recorded
+                # rather than crashed: history is the asset, and a KeyError here would make an
+                # older entry unreadable rather than merely unmapped.
+                ratios[phase] = []
             estimated = (entry.get("by_phase") or {}).get(phase, {}).get("hours")
             if estimated and estimated > 0 and weight >= 0.6:
                 ratios[phase].append(hours / estimated)
@@ -395,6 +401,10 @@ PHASE_COEFFICIENTS = {
     "planning": "planning.agent_hours",
     "qa": "qa",
     "overhead": "overhead_rate",
+    # Architecture maps to a weekly rate, not to a per-project figure, so a ratio here is a
+    # statement about the RATE only if the schedule was right too. It is deliberately absent:
+    # architect hours are `setup + weekly x weeks`, and an over-run could be either term.
+    # analyze() reports the phase; curate.py is where a human decides which half moved.
 }
 
 

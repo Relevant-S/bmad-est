@@ -742,13 +742,23 @@ def source_lines(feature):
     """
     return max(len(feature.get("tasks") or []), len(feature.get("citations") or []), 1)
 
-def check_sizing(features, bands, floor=20, impact=0.10, ratio=1.5):
+def check_sizing(features, bands, floor=20, impact=0.25, ratio=1.5):
     """Is the band distribution the shape a delivered project actually had?
 
-    Nothing here is an error and none of it blocks pricing. A migration engagement or a
-    design-led build legitimately sits away from the anchor. What is not legitimate is landing
-    there by accident: one extraction tagged 37% of its stories `L` against an anchor's 25% and
-    priced three times over, because nothing said so out loud.
+    INFORMATIONAL, ALWAYS. Nothing here is an error, none of it blocks pricing, and none of it
+    is grounds on its own to re-judge a story. That last clause is the 3.0 change, and it is
+    the fix for a real bias: the classification guide told the classifier what distribution to
+    expect BEFORE it judged anything, and this function then flagged deviation from that same
+    distribution AFTERWARDS. The prior was injected and then enforced, so the distribution
+    stopped carrying information about the project and all the real variance was squeezed into
+    the story count — which nothing checked. `check_granularity` is the check that was missing.
+
+    The thresholds also moved, because the arithmetic under them did. On the 2.x bands, which
+    ran 1 h to 90 h of manual baseline, shifting an inventory's L share from 25% to 37% moved
+    the baseline 17%; on the measured delivered-hours bands, which run 1.6 h to 7.7 h, the same
+    shift moves it 2%. A threshold tuned to the first is noise against the second, so `impact`
+    rose from 0.10 to 0.25 — a deviation now has to be worth a quarter of the estimate before
+    it is worth a reader's attention.
 
     Half of these need a volume proxy — how much of the client's own document each story
     absorbed — and that only exists once story synthesis has parked the source rows as `tasks`.
@@ -769,20 +779,26 @@ def check_sizing(features, bands, floor=20, impact=0.10, ratio=1.5):
     row_shaped = lines_total >= 1.5 * n
     warnings, skipped = [], []
 
-    if counts["XS"]:
-        warnings.append(
-            f"size_band: {len(counts['XS'])} of {n} stories are XS (e.g. "
-            f"{', '.join(counts['XS'][:3])}), and none of the anchor's delivered stories was. "
-            f"Something under two hours is usually a task inside a story — check the unit before "
-            f"pricing it as one"
-        )
-    if counts["XL"]:
-        plural = "story is" if len(counts["XL"]) == 1 else "stories are"
-        warnings.append(
-            f"size_band: {len(counts['XL'])} {plural} XL (e.g. {', '.join(counts['XL'][:3])}). "
-            f"An XL is a signal to split, not a size — est-estimate will price a narrowing "
-            f"question for each one"
-        )
+    # XS and XL are NOT reported merely for existing. Both warnings used to fire on the first
+    # tag and both pointed the same way — "check the unit", "a signal to split" — so between
+    # them and a stated 64%-M expectation the classifier had three separate nudges toward the
+    # middle of the table and none away from it. The anchor's own measured record has 2.7% XS
+    # and 4.0% XL; the claim that it had neither was simply false, and it was pushing real work
+    # up and down a band. They now fire only on a share the anchor cannot account for.
+    for extreme, floor_share, note in (
+        ("XS", 0.10, "Something this small is usually a task inside a story — the anchor's own "
+                     "share is 2.7%, so a few are expected and a tenth of the inventory is not. "
+                     "Check the unit before pricing it as one"),
+        ("XL", 0.10, "An XL is a signal to look for a split — the anchor's own share is 4.0%. "
+                     "est-estimate prices a narrowing question for each one"),
+    ):
+        share = len(counts[extreme]) / n
+        if share >= floor_share:
+            warnings.append(
+                f"size_band: {share:.0%} of stories are {extreme} ({len(counts[extreme])} of {n}, "
+                f"e.g. {', '.join(counts[extreme][:3])}), against "
+                f"{expected.get(extreme, 0):.1%} in the delivery anchor. {note}"
+            )
 
     # Judged by what the deviation is worth, not by how far the percentage moved. Two points off
     # the anchor matters at L and does not at XS, because the hours behind them differ thirty-fold
@@ -798,15 +814,16 @@ def check_sizing(features, bands, floor=20, impact=0.10, ratio=1.5):
             warnings.append(
                 f"size_band: {share:.0%} of stories are {band}, against {want:.0%} in the delivery "
                 f"anchor — {direction} than the reference class, and worth {abs(worth):.0%} of the "
-                f"whole manual baseline. Sound if the project really is shaped that way; say so in "
-                f"the extraction report. {band} is "
-                f"\"{(bands[band].get('why') or '').split(',')[0].strip().lower()}\""
+                f"story hours. A reference class is not a target: this is here so a shape you did "
+                f"not intend gets noticed, and it is NOT on its own a reason to re-band anything. "
+                f"If the project really is shaped that way, say so in the extraction report. "
+                f"{band} is \"{(bands[band].get('why') or '').split(',')[0].strip().lower()}\""
             )
 
     if row_shaped:
         # The double count. Holding the source volume at one line so the content cannot vary,
         # does the band still track how dangerous the story is? Then criticality is paid for
-        # twice — here, and again through review_rate.
+        # twice — here, and again through review_tier.
         thin = [f for f in features if source_lines(f) == 1]
         risky = {}
         for band in ("S", "M", "L"):
@@ -846,22 +863,80 @@ def check_sizing(features, bands, floor=20, impact=0.10, ratio=1.5):
         )
 
     rate, want, unit, over = (
-        (baseline / lines_total, anchor.get("baseline_per_requirement_h"), "source line", lines_total)
+        (baseline / lines_total, anchor.get("baseline_per_source_line_h"), "source line", lines_total)
         if row_shaped else
         (baseline / n, anchor.get("baseline_per_story_h"), "story", n)
     )
     if want and rate and (rate / want >= ratio or want / rate >= ratio):
         warnings.append(
-            f"size_band: the bands assign {rate:.1f}h of manual baseline per {unit}, against "
-            f"{want:.1f}h in the delivery anchor ({baseline:.0f}h over {over} {unit}s). The whole "
-            f"estimate scales with this, so it is worth being deliberate about"
+            f"size_band: the bands assign {rate:.1f}h per {unit}, against {want:.1f}h in the "
+            f"delivery anchor ({baseline:.0f}h over {over} {unit}s). The whole estimate scales "
+            f"with this, so it is worth being deliberate about — but note that BOTH sides of this "
+            f"ratio are under the extraction's own control: the citation count is set by its "
+            f"quoting policy and the story count by its synthesis policy, so it can always be "
+            f"satisfied by re-slicing. check_granularity is the check that cannot be"
         )
 
     return warnings, {"row_shaped": row_shaped,
                       "baseline_h": round(baseline, 1),
                       f"baseline_h_per_{'source_line' if row_shaped else 'story'}": round(rate, 2),
                       "anchor_expects": round(want, 2) if want else None,
+                      "advisory_only": "no finding here is grounds on its own to re-band a story",
                       "skipped": skipped}
+
+
+def check_granularity(features, bands, floor=20, tol=1.6):
+    """Is this inventory sliced the way the anchor was? The check that was missing.
+
+    Everything downstream is linear in the story count, and the story count is a property of
+    whoever wrote the document rather than of the work. Across the three delivered projects the
+    SAME scope was written at wildly different grain: hours per delivered story ran 9.2 / 2.9 /
+    3.1, a 3.2-fold spread, and per acceptance criterion it was worse. Nothing in 2.x checked
+    it, and both of the sanity ratios that existed divided by numbers the extraction itself
+    chose — so they could always be satisfied by re-slicing.
+
+    Surfaces per story is the one signal that cannot: it is an observation about what each story
+    touches, and it separated the three anchors cleanly at 2.29 (EPP), 1.25 (memorial-healthcare)
+    and 1.12 (easyterms) while hours per surface-touch stayed inside 1.74x. The cost model is
+    fitted to EPP, so an inventory materially below the anchor's figure is sliced finer than the
+    bands assume and the estimate will run HIGH. Reported with its direction, never gated: a
+    genuinely fine-grained backlog is a real thing, and this is how it gets said out loud
+    instead of quietly multiplying.
+    """
+    anchor = (bands or {}).get("_anchor") or {}
+    want = anchor.get("surfaces_per_story")
+    tagged = [f for f in features if f.get("surfaces")]
+    if len(features) < floor or not want:
+        return [], {"skipped": "fewer than %d stories" % floor if want
+                    else "the cost model's anchor records no surfaces_per_story"}
+    if len(tagged) < 0.5 * len(features):
+        return [], {"skipped": f"only {len(tagged)} of {len(features)} stories carry surfaces, so "
+                               f"the ratio would measure the tagging rather than the slicing"}
+
+    got = sum(len(f["surfaces"]) for f in tagged) / len(tagged)
+    stories_per_epic = None
+    epics = {f.get("epic_id") for f in features if f.get("epic_id")}
+    if epics:
+        stories_per_epic = round(len(features) / len(epics), 1)
+
+    warnings = []
+    if got and (want / got >= tol or got / want >= tol):
+        finer = got < want
+        warnings.append(
+            f"granularity: this inventory averages {got:.2f} surfaces per story against "
+            f"{want:.2f} in the delivery anchor — sliced {want / got:.1f}x "
+            f"{'FINER' if finer else 'COARSER'}. The bands are fitted to the anchor's grain, so "
+            f"the estimate will run {'HIGH' if finer else 'LOW'} by roughly that factor. Either "
+            f"re-synthesise toward the anchor's unit or say in the extraction report that the "
+            f"grain is deliberate and the number is read with it. This is the ONE sizing signal "
+            f"the extraction cannot satisfy by re-slicing, which is why it is here"
+        )
+    return warnings, {"surfaces_per_story": round(got, 2),
+                      "anchor_expects": round(float(want), 2),
+                      "ratio_to_anchor": round(got / float(want), 2),
+                      "stories_per_epic": stories_per_epic,
+                      "stories": len(features),
+                      "advisory_only": "reported with its direction; never gates pricing"}
 
 
 def find_cycles(features):
@@ -1118,6 +1193,14 @@ def main():
                             "distribution": result["coverage"]["size_bands"],
                             "source_lines_per_story": result["coverage"]["source_lines_per_story"]} | sizing
         result["warnings"] += sizing_warnings
+    # Granularity does NOT need the classification: surfaces are set at extraction, so the one
+    # sizing signal the extraction cannot re-slice its way out of is also the one that can be
+    # reported before anybody has banded a single story.
+    if bands is None:
+        bands = load_bands(args.cost_model)[0]
+    grain_warnings, grain = check_granularity(inv.get("features", []), bands)
+    result["granularity"] = grain
+    result["warnings"] += grain_warnings
     if args.normalized:
         findings += verify_citations(inv, args.normalized) + check_anchors(inv, args.normalized)
         clipped, partial = check_quote_completeness(inv, args.normalized)

@@ -75,7 +75,7 @@ Two things change. **Never overwrite an existing `{memory}/cost-model.json`**, w
   "converters_missing": ["pdftotext"],
   "needs_attention": [
     "company-profile.md seeded but every section still UNANSWERED — estimates will default the team profile, stack, QA platform and engagement model",
-    "cost model calibrated against 1 delivered project (n=1) — read calibration_history, never assume"
+    "cost model calibrated against 3 delivered projects at project level and 1 at story level — read calibration_history for which coefficient rests on which, never assume"
   ]
 }
 ```

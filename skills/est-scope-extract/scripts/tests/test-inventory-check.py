@@ -701,11 +701,92 @@ class BoilerplateTags(unittest.TestCase):
         self.assertEqual([f for f in check.check_integrity(inv) if "justification" in f], [])
 
 
+class Granularity(unittest.TestCase):
+    """The check that was missing, and the one the whole rebuild turns on.
+
+    Every downstream figure is linear in the story count, and the story count is a property of
+    whoever wrote the document rather than of the work. Across the three delivered projects the
+    same kind of scope was written at wildly different grain — 9.2, 2.9 and 3.1 hours per
+    delivered story, a 3.2-fold spread — and 2.x had no check for it at all. The two sanity
+    ratios it did have both divided by numbers the extraction itself chooses, so both could be
+    satisfied by re-slicing.
+
+    Surfaces per story cannot be: it is an observation about what each story touches. It
+    separated the three anchors at 2.29 / 1.25 / 1.12 while hours per surface-touch stayed
+    inside 1.74x.
+    """
+
+    BANDS = check.load_bands()[0]
+
+    def stories(self, count, surfaces, epic=None):
+        return [feature(f"F{i}", f"Thing {i}",
+                        **({"epic_id": epic} if epic else {}),
+                        surfaces=list(surfaces))
+                for i in range(count)]
+
+    def warn(self, features):
+        return check.check_granularity(features, self.BANDS)[0]
+
+    def test_an_inventory_at_the_anchors_grain_raises_nothing(self):
+        self.assertEqual(self.warn(self.stories(40, ("backend", "frontend"))
+                                   + self.stories(20, ("backend", "frontend", "data"))), [])
+
+    def test_a_finely_sliced_inventory_is_reported_with_its_direction(self):
+        """The bands are fitted to the anchor's grain, so half the surfaces per story means
+        roughly twice as many stories for the same scope — and the estimate runs HIGH."""
+        warnings = self.warn(self.stories(60, ("backend",)))
+        self.assertTrue(any("sliced" in w and "FINER" in w for w in warnings))
+        self.assertTrue(any("run HIGH" in w for w in warnings))
+
+    def test_a_coarsely_sliced_inventory_is_reported_the_other_way(self):
+        warnings = self.warn(self.stories(60, ("backend", "frontend", "design", "infra", "data")))
+        self.assertTrue(any("COARSER" in w and "run LOW" in w for w in warnings))
+
+    def test_it_never_gates_and_says_so(self):
+        """A genuinely fine-grained backlog is a real thing. This exists so it gets said out
+        loud rather than quietly multiplying — not so it can be refused."""
+        _, report = check.check_granularity(self.stories(60, ("backend",)), self.BANDS)
+        self.assertIn("advisory_only", report)
+        self.assertAlmostEqual(report["ratio_to_anchor"], 1 / 2.29, places=2)
+
+    def test_it_reports_the_ratio_even_when_it_is_quiet(self):
+        """Silence has to be distinguishable from not having looked."""
+        _, report = check.check_granularity(self.stories(60, ("backend", "frontend")), self.BANDS)
+        self.assertEqual(report["surfaces_per_story"], 2.0)
+        self.assertEqual(report["anchor_expects"], 2.29)
+
+    def test_stories_per_epic_travels_with_it_when_the_source_grouped_the_work(self):
+        report = check.check_granularity(self.stories(60, ("backend", "frontend"), epic="E1"),
+                                         self.BANDS)[1]
+        self.assertEqual(report["stories_per_epic"], 60.0)
+
+    def test_a_mostly_untagged_inventory_is_skipped_rather_than_guessed_at(self):
+        """Without surfaces the ratio would measure the tagging rate, not the slicing — and a
+        number that means something else is worse than no number."""
+        features = self.stories(10, ("backend",)) + [feature(f"U{i}", surfaces=None)
+                                                     for i in range(50)]
+        warnings, report = check.check_granularity(features, self.BANDS)
+        self.assertEqual(warnings, [])
+        self.assertIn("would measure the tagging", report["skipped"])
+
+    def test_a_small_inventory_is_left_alone(self):
+        self.assertEqual(self.warn(self.stories(8, ("backend",))), [])
+
+    def test_a_missing_anchor_costs_the_report_not_the_run(self):
+        warnings, report = check.check_granularity(self.stories(60, ("backend",)), None)
+        self.assertEqual(warnings, [])
+        self.assertIn("skipped", report)
+
+
 class Sizing(unittest.TestCase):
     """The band distribution against the delivery anchor.
 
-    None of this blocks. All of it exists because one extraction tagged 37% of its stories `L`
-    against an anchor's 25%, priced three times over, and nothing in the pipeline objected.
+    None of this blocks, and in 3.0 none of it is grounds on its own to re-band a story.
+    Both changes came out of measuring the thing these checks were tuned against. The anchor
+    was recorded as 25% L with no XS and no XL; its own per-story table says 31% L, 2.7% XS
+    and 4.0% XL. And the 2.x bands ran 1 h to 90 h, so a 12-point shift in the L share moved
+    the baseline 17% — against 2% on the measured bands. A threshold tuned to the first is
+    noise against the second.
     """
 
     BANDS = check.load_bands()[0]
@@ -729,21 +810,35 @@ class Sizing(unittest.TestCase):
         return check.check_sizing(features, self.BANDS)[0]
 
     def test_the_anchor_shape_raises_nothing(self):
-        """25% L, 64% M, 11% S over one source line each — the shape that was delivered."""
-        self.assertEqual(self.warn(self.stories({"L": 19, "M": 49, "S": 8})), [])
+        """The measured mix — 31% L, 45% M, 17% S, 3% XS, 4% XL — over one source line each."""
+        self.assertEqual(self.warn(self.stories({"L": 23, "M": 34, "S": 13, "XS": 2, "XL": 3})), [])
 
-    def test_too_many_large_stories_is_reported_with_what_it_is_worth(self):
-        warnings = self.warn(self.stories({"L": 131, "M": 154, "S": 56, "XS": 10, "XL": 1}, lines=3))
-        self.assertTrue(any("37% of stories are L" in w and "25%" in w for w in warnings))
-        self.assertTrue(any("of the whole manual baseline" in w for w in warnings))
+    def test_a_share_the_anchor_cannot_account_for_is_reported_with_what_it_is_worth(self):
+        warnings = self.warn(self.stories({"L": 240, "M": 100, "S": 10}, lines=3))
+        self.assertTrue(any("% of stories are L" in w and "31%" in w for w in warnings))
+        self.assertTrue(any("of the story hours" in w for w in warnings))
 
-    def test_xs_is_reported_because_the_anchor_had_none(self):
-        warnings = self.warn(self.stories({"XS": 6, "M": 45, "L": 18, "S": 7}))
-        self.assertTrue(any("are XS" in w for w in warnings))
+    def test_the_distribution_report_says_it_is_not_a_reason_to_reband(self):
+        """The bias this closes: the classifier was told to expect 64% M before it judged
+        anything, and then flagged for deviating from it. The prior was injected and then
+        enforced, so the distribution stopped carrying information about the project."""
+        warnings = self.warn(self.stories({"L": 240, "M": 100, "S": 10}, lines=3))
+        self.assertTrue(any("NOT on its own a reason to re-band" in w for w in warnings))
 
-    def test_xl_is_reported_as_a_split_signal(self):
-        warnings = self.warn(self.stories({"XL": 1, "M": 49, "L": 19, "S": 8}))
-        self.assertTrue(any("XL" in w and "signal to split" in w for w in warnings))
+    def test_a_handful_of_xs_is_not_reported_because_the_anchor_had_some(self):
+        """2.x warned on the first XS tag, saying none of the anchor's stories was XS. Two of
+        them were — 4.0 pre-Epic-4 hardening and 9.8, the one-line projection fix — and the
+        warning was pushing real work up a band."""
+        self.assertEqual(self.warn(self.stories({"XS": 2, "M": 34, "L": 23, "S": 13, "XL": 3})), [])
+
+    def test_an_inventory_that_is_a_tenth_xs_still_is(self):
+        warnings = self.warn(self.stories({"XS": 20, "M": 45, "L": 18, "S": 7}))
+        self.assertTrue(any("are XS" in w and "2.7%" in w for w in warnings))
+
+    def test_a_few_xl_are_not_reported_but_a_pile_of_them_are(self):
+        self.assertEqual(self.warn(self.stories({"XL": 3, "M": 34, "L": 23, "S": 13, "XS": 2})), [])
+        warnings = self.warn(self.stories({"XL": 20, "M": 45, "L": 18, "S": 7}))
+        self.assertTrue(any("XL" in w and "signal to look for a split" in w for w in warnings))
 
     def test_a_band_that_tracks_risk_is_the_double_count(self):
         """Content held at one source line, so only the review tier varies with the band."""
@@ -764,10 +859,18 @@ class Sizing(unittest.TestCase):
         warnings = check.check_sizing(features, self.BANDS)[0]
         self.assertTrue(any("on a single source line" in w for w in warnings))
 
-    def test_density_against_the_anchor_rate(self):
-        """Every story L over three source rows: 11h per row against the anchor's 2h."""
+    def test_density_against_the_anchor_rate_says_it_can_be_re_sliced_away(self):
+        """It still fires, and it now admits its own weakness: both sides of the ratio are
+        under the extraction's control, so it can always be satisfied by re-slicing."""
         warnings = self.warn(self.stories({"L": 40, "M": 20, "S": 5}, lines=3))
-        self.assertTrue(any("manual baseline per source line" in w for w in warnings))
+        self.assertTrue(any("per source line" in w for w in warnings))
+        self.assertTrue(any("satisfied by re-slicing" in w for w in warnings))
+
+    def test_the_same_inventory_re_sliced_finer_satisfies_the_density_check(self):
+        """Demonstrating the weakness the message admits to. Same L-heavy shape, same rows —
+        band them XS instead and the ratio lands on the anchor with nothing said."""
+        self.assertEqual([w for w in self.warn(self.stories({"XS": 60, "S": 5}, lines=3))
+                          if "per source line" in w], [])
 
     def test_prose_sourced_inventories_skip_the_volume_checks_and_say_so(self):
         """One citation over a PRD section is not one line of stated requirement, so the count

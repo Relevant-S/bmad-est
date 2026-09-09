@@ -4,10 +4,18 @@
 # ///
 """Tests for estimate.py.
 
-The first class is the important one. The module's whole claim is that under BMad,
-effort redistributes rather than shrinking uniformly — and that claim lives or dies on
-`review_h` being a share of `manual_baseline` rather than of the compressed `build_h`.
-If someone "simplifies" that later, these tests fail loudly.
+The first class is the important one, and in 3.0 it says something different from 2.0.
+The 2.x claim was that review dominates a sensitive story because review scales with a
+manual baseline while the build compresses away. Three delivered projects were then
+measured, and the story-level half of that claim did not survive: on the anchor, sensitive
+stories run 1.05x routine ones, and 1.06x once every provider-touching story is excluded.
+What actually makes a story expensive is the PROVIDER behind it — a money rail carries
++0.75 points over what its surface count predicts, an external IdP +0.73 — and that is
+additive console work, not a multiple of anything.
+
+So the first class now pins the measured claims: bands span 4.8x rather than 90x, the
+tier barely moves a total but does move where the hours are reported, and the premium is
+what a payments story actually costs. If someone re-derives the old shape, these fail.
 """
 
 import importlib.util
@@ -16,7 +24,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from fixtures import feature, inventory, model, options  # noqa: E402
+from fixtures import feature, inventory, model, options, tag  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
     "estimate", Path(__file__).resolve().parent.parent / "estimate.py"
@@ -31,53 +39,128 @@ def hours(inv, **opt):
 
 
 class TestTheCentralInsight(unittest.TestCase):
-    """review_h tracks the volume of output produced, not the time taken to produce it."""
+    """What the delivered record says makes a story expensive — and what does not."""
 
     def price(self, **kwargs):
         m = model()
         return est.price_feature(feature(**kwargs), m, m["team_profiles"]["balanced"])
 
-    def test_compression_shrinks_build_and_leaves_review_untouched(self):
-        fast = self.price(compressibility="high", review_tier="sensitive")
-        slow = self.price(compressibility="low", review_tier="sensitive")
-        self.assertLess(est.pert(fast["components"]["build"])[0],
-                        est.pert(slow["components"]["build"])[0])
-        self.assertEqual(est.pert(fast["components"]["review"])[0],
-                         est.pert(slow["components"]["review"])[0])
+    def test_the_band_spread_is_the_one_the_anchor_measured_not_the_2x_one(self):
+        """The single most consequential number in the file. EPP's own per-story record runs
+        1.2 h to 5.8 h of dev time across XS to XL — 4.8x. The 2.x bands ran 1 h to 90 h of
+        manual baseline, and every sizing bias in the module came from that width."""
+        bands = model()["size_bands"]
+        spread = bands["XL"]["likely"] / bands["XS"]["likely"]
+        self.assertLess(spread, 6.0, "the spread is back to something the anchor cannot support")
+        self.assertGreater(spread, 4.0)
 
-    def test_review_scales_with_the_feature_size_not_with_the_build_effort(self):
-        small = self.price(size="S", compressibility="high", review_tier="sensitive")
-        large = self.price(size="L", compressibility="high", review_tier="sensitive")
-        review_ratio = (est.pert(large["components"]["review"])[0]
-                        / est.pert(small["components"]["review"])[0])
-        manual_ratio = (est.pert(large["manual_baseline"])[0]
-                        / est.pert(small["manual_baseline"])[0])
-        self.assertAlmostEqual(review_ratio, manual_ratio, delta=0.35)
+    def test_one_band_of_error_costs_about_a_third_not_three_times(self):
+        """Under 2.x, M -> L multiplied a story by 3.0x, so band assignment carried roughly
+        eight times the weight the delivered record supports. That is what made the review
+        step's pull toward the anchor's mix so consequential."""
+        step = (est.pert(self.price(size="L")["total"])[0]
+                / est.pert(self.price(size="M")["total"])[0])
+        self.assertLess(step, 1.6, "a one-band error is expensive again")
+        self.assertGreater(step, 1.1)
 
-    def test_review_dominates_a_sensitive_feature_but_not_a_routine_one(self):
-        """The whole claim in one assertion: compression moves the bottleneck to review."""
-        sensitive = self.price(size="M", compressibility="high", review_tier="sensitive")
-        routine = self.price(size="M", compressibility="high", review_tier="routine")
-        self.assertEqual(max(sensitive["components"], key=lambda k: est.pert(sensitive["components"][k])[0]),
-                         "review")
-        self.assertNotEqual(max(routine["components"], key=lambda k: est.pert(routine["components"][k])[0]),
-                            "review")
+    def test_review_tier_barely_moves_a_story_because_the_anchor_says_so(self):
+        """MEASURED: sensitive 3.24 points against routine 3.08 — 1.05x. Not 1.9x."""
+        routine = est.pert(self.price(size="M", review_tier="routine")["total"])[0]
+        sensitive = est.pert(self.price(size="M", review_tier="sensitive")["total"])[0]
+        self.assertLess(sensitive / routine, 1.15,
+                        "review_tier is inflating a story again; the anchor measured 1.05x")
+        self.assertGreater(sensitive, routine)
 
-    def test_a_payments_feature_costs_far_more_than_crud_of_the_same_size(self):
-        crud = self.price(size="M", compressibility="high", review_tier="routine")
-        payments = self.price(size="M", compressibility="high", review_tier="sensitive")
-        critical = self.price(size="M", compressibility="high", review_tier="critical")
-        self.assertGreater(est.pert(payments["total"])[0], 1.7 * est.pert(crud["total"])[0])
-        self.assertGreater(est.pert(critical["total"])[0], est.pert(payments["total"])[0])
+    def test_the_tier_still_moves_where_the_hours_are_reported(self):
+        """It costs almost nothing extra and it is still a real difference in kind: a
+        sensitive story is read line by line, so more of the same hours land in review."""
+        routine = self.price(size="M", review_tier="routine")
+        sensitive = self.price(size="M", review_tier="sensitive")
+        self.assertGreater(sensitive["component_shares"]["review"],
+                           routine["component_shares"]["review"])
+        self.assertLess(sensitive["component_shares"]["build"],
+                        routine["component_shares"]["build"])
 
-    def test_compression_barely_helps_a_sensitive_feature(self):
-        """The relative benefit of high compression is much smaller when review dominates."""
-        def gain(tier):
-            fast = est.pert(self.price(compressibility="high", review_tier=tier)["total"])[0]
-            slow = est.pert(self.price(compressibility="low", review_tier=tier)["total"])[0]
-            return (slow - fast) / slow
+    def test_component_shares_always_sum_to_one(self):
+        """They decide where hours are reported, never how many there are. If they stopped
+        summing to 1 the phase table would silently become a second, disagreeing total."""
+        for tier in ("routine", "sensitive", "critical"):
+            for clarity in ("high", "medium", "low"):
+                for novelty in ("standard", "novel"):
+                    p = self.price(review_tier=tier, clarity=clarity, novelty=novelty)
+                    self.assertAlmostEqual(sum(p["component_shares"].values()), 1.0, places=2)
 
-        self.assertGreater(gain("routine"), gain("critical"))
+    def test_a_payments_story_costs_more_than_crud_because_of_the_provider(self):
+        """The 2.x version of this test asserted the tier did it. The measurement says the
+        rail does: 3.2 / 3.3 / 3.4 / 3.5 carry +0.75 points over their surface count."""
+        crud = self.price(size="M", review_tier="routine")
+        payments = self.price(size="M", review_tier="sensitive", manual_effort=["money_rail"])
+        self.assertGreater(est.pert(payments["total"])[0],
+                           1.2 * est.pert(crud["total"])[0])
+        self.assertGreater(payments["manual_effort_hours"], 0.5)
+
+    def test_the_premium_is_additive_so_it_does_not_scale_with_the_band(self):
+        """A payment provider is the same console work behind a small story as a large one.
+        Making it a multiplier would say the opposite."""
+        small = self.price(size="S", manual_effort=["money_rail"])
+        large = self.price(size="L", manual_effort=["money_rail"])
+        self.assertAlmostEqual(small["manual_effort_hours"], large["manual_effort_hours"], places=4)
+
+    def test_premiums_stack_when_a_story_carries_more_than_one(self):
+        one = self.price(manual_effort=["money_rail"])["manual_effort_hours"]
+        two = self.price(manual_effort=["money_rail", "external_idp"])["manual_effort_hours"]
+        self.assertGreater(two, one)
+
+    def test_an_unpriced_premium_is_recorded_and_costs_nothing(self):
+        """`provisioning` is deliberately unpriced: no anchor ever paid for real environments.
+        It has to leave a trace rather than silently costing zero."""
+        p = self.price(manual_effort=["provisioning"])
+        self.assertEqual(p["manual_effort_hours"], 0.0)
+        self.assertEqual([e["key"] for e in p["manual_effort_detail"]], ["provisioning"])
+        self.assertIsNone(p["manual_effort_detail"][0]["hours"])
+
+    def test_an_unknown_premium_is_refused_rather_than_ignored(self):
+        with self.assertRaises(ValueError):
+            self.price(manual_effort=["cryptocurrency"])
+
+    def test_the_premium_is_read_off_the_classification_not_the_inventory(self):
+        """It is a judgement about what the work costs, so it lives with the other five axes in
+        classification.json — the inventory records what the source said and nothing about
+        effort. It is lifted out of the tag block because it is a list of work classes rather
+        than a tag with a value and a why."""
+        inv = inventory([feature("F1", tags=None)])
+        del inv["features"][0]["tags"]
+        classification = {"features": {"F1": {
+            "size_band": tag("M"), "compressibility": tag("high"), "review_tier": tag("sensitive"),
+            "clarity": tag("high"), "novelty": tag("standard"),
+            "manual_effort": ["money_rail"]}}}
+        joined, missing, orphans = est.load_scope(inv, classification)
+        self.assertEqual((missing, orphans), ([], []))
+        self.assertEqual(joined["features"][0]["manual_effort"], ["money_rail"])
+        self.assertNotIn("manual_effort", joined["features"][0]["tags"])
+        priced = est.build_estimate(joined, model(), options())
+        self.assertGreater(priced["features"][0]["manual_effort_hours"], 0)
+
+    def test_the_premium_survives_a_round_trip_through_a_priced_estimate(self):
+        """est-calibrate backtests history and est-agent-estimator re-prices scope, and both
+        go through inventory_from(). A premium that did not come back would make an estimate
+        fail to reproduce its own headline — which is exactly what the parity gate refuses."""
+        inv = inventory([feature("F1", manual_effort=["money_rail"])])
+        e = hours(inv)
+        again = est.inventory_from(e)
+        self.assertEqual(again["features"][0]["manual_effort"], ["money_rail"])
+        self.assertAlmostEqual(est.build_estimate(again, model(), options())["total_hours"]["likely"],
+                               e["total_hours"]["likely"], places=6)
+
+    def test_compressibility_changes_the_reported_equivalent_and_nothing_else(self):
+        """3.0 stopped dividing by it. Nobody measured a manual baseline on any of the three
+        projects, so the division was arithmetic over a construct — it now runs the other way
+        and is consumed by nothing."""
+        fast = self.price(compressibility="high")
+        slow = self.price(compressibility="low")
+        self.assertEqual(est.pert(fast["total"])[0], est.pert(slow["total"])[0])
+        self.assertGreater(est.pert(fast["manual_equivalent"])[0],
+                           est.pert(slow["manual_equivalent"])[0])
 
     def test_low_clarity_raises_both_spec_and_rework(self):
         clear = self.price(clarity="high")
@@ -87,11 +170,13 @@ class TestTheCentralInsight(unittest.TestCase):
         self.assertGreater(est.pert(vague["components"]["rework"])[0],
                            est.pert(clear["components"]["rework"])[0])
 
-    def test_novelty_drives_rework_but_not_build(self):
+    def test_novelty_drives_rework_rather_than_build(self):
         standard = self.price(novelty="standard")
         novel = self.price(novelty="novel")
-        self.assertEqual(est.pert(standard["components"]["build"])[0],
-                         est.pert(novel["components"]["build"])[0])
+        self.assertGreater(novel["component_shares"]["rework"],
+                           standard["component_shares"]["rework"])
+        self.assertLess(novel["component_shares"]["build"],
+                        standard["component_shares"]["build"])
         self.assertGreater(est.pert(novel["components"]["rework"])[0],
                            est.pert(standard["components"]["rework"])[0])
 
@@ -185,8 +270,26 @@ class TestPlanningAnchor(unittest.TestCase):
 
     def test_planning_volume_is_derived_from_the_feature_set(self):
         e = hours(inventory([feature(f"F{i}", size="L") for i in range(1, 11)]))
-        self.assertEqual(e["planning_volume"]["epics"], 2)         # 10 stories / 8 per epic
-        self.assertEqual(e["planning_volume"]["stories"], 20)      # an L splits into 2
+        self.assertEqual(e["planning_volume"]["epics"], 2)         # 10 stories / 7 per epic
+        # 10 inventory stories x the 1.7 split factor. Planning is the one component priced
+        # per artefact written, so a story that gets split into two costs two story files and
+        # two reviews. 2.x keyed this off the size band — claiming big stories split and small
+        # ones do not; all three anchors say splitting is a property of the project.
+        self.assertAlmostEqual(e["planning_volume"]["stories"], 17.0)
+        self.assertEqual(e["planning_volume"]["stories_in_inventory"], 10)
+
+    def test_the_split_factor_touches_planning_and_nothing_else(self):
+        """Splitting is decomposition, not scope growth: the scope is unchanged and so is the
+        build. Applying it anywhere but planning would bill the same work twice."""
+        m = model()
+        inv = inventory([feature(f"F{i}") for i in range(1, 11)])
+        m["planning"]["split_factor"] = {"lo": 1.0, "likely": 1.0, "hi": 1.0}
+        flat = est.build_estimate(inv, m, options())
+        m["planning"]["split_factor"] = {"lo": 2.0, "likely": 2.0, "hi": 2.0}
+        split = est.build_estimate(inv, m, options())
+        self.assertEqual(flat["by_phase"]["build"]["hours"], split["by_phase"]["build"]["hours"])
+        self.assertGreater(split["by_phase"]["planning"]["hours"],
+                           flat["by_phase"]["planning"]["hours"])
 
     def test_planning_scales_sublinearly_with_scope(self):
         small = hours(inventory([feature(f"F{i}") for i in range(1, 6)]))
@@ -591,23 +694,32 @@ class TestModeAndSnapshot(unittest.TestCase):
         # every time anyone calibrates — which trains people to edit it without reading it.
         self.assertEqual(e["cost_model_snapshot"], model())
 
-    def test_build_compression_compares_like_with_like(self):
-        # Standing work is deliberately excluded here: setup and pipeline work barely
-        # compresses, and mixing it in makes this assertion about the delivery mix rather
-        # than about the comparison the assertion names.
+    def test_compression_compares_like_with_like(self):
+        """Story work on both sides. 2.x put a whole-story numerator over a build-only
+        denominator, which inflated the reported multiple by roughly the reciprocal of the
+        build share — on this fixture, from 17x to 32x.
+
+        Standing work is deliberately excluded: setup and pipeline work barely compresses,
+        and mixing it in makes this assertion about the delivery mix rather than about the
+        comparison the assertion names."""
         e = hours(inventory([feature(f"F{i}", compressibility="high", review_tier="routine")
                              for i in range(1, 6)]), no_standing_work=True)
         me = e["manual_equivalent"]
-        self.assertGreater(me["build_hours"], me["bmad_build_hours"])
-        self.assertGreater(me["build_compression"], 4.0)
+        self.assertGreater(me["manual_hours"], me["story_hours"])
+        self.assertAlmostEqual(me["story_hours"],
+                               sum(f["hours"] for f in e["features"]), delta=0.5)
+        # The compression class is `high`, so the multiple must land on it rather than on
+        # some ratio of two differently-scoped numerators.
+        self.assertAlmostEqual(me["story_compression"],
+                               model()["compressibility"]["high"]["likely"], delta=2.0)
 
     def test_standing_work_drags_the_compression_down_rather_than_being_hidden(self):
         """Setup, pipelines and environments do not compress, and an estimate that leaves
         them out reports a project compression it cannot deliver."""
         args = dict(inventory([feature(f"F{i}", compressibility="high", review_tier="routine")
                                for i in range(1, 6)]))
-        with_standing = hours(dict(args))["manual_equivalent"]["build_compression"]
-        without = hours(dict(args), no_standing_work=True)["manual_equivalent"]["build_compression"]
+        with_standing = hours(dict(args))["manual_equivalent"]["story_compression"]
+        without = hours(dict(args), no_standing_work=True)["manual_equivalent"]["story_compression"]
         self.assertLess(with_standing, without)
 
     def test_standing_work_is_declared_rather_than_folded_into_the_total(self):
@@ -624,7 +736,7 @@ class TestModeAndSnapshot(unittest.TestCase):
         self.assertEqual(hours(inv)["planning_volume"],
                          hours(inv, no_standing_work=True)["planning_volume"])
 
-    def test_build_compression_is_not_presented_as_project_compression(self):
+    def test_compression_is_not_presented_as_project_compression(self):
         """Quoting an 8x build compression as though the project were 8x cheaper is the
         overclaim this module exists to avoid: planning, QA, infra and overhead do not compress."""
         e = hours(inventory([feature(f"F{i}", compressibility="high", review_tier="routine")
@@ -637,8 +749,9 @@ class TestModeAndSnapshot(unittest.TestCase):
         # is left, and they dominate. Asserting the total also beats the manual baseline
         # would be a different and weaker claim — on an all-CRUD scope it is simply false,
         # and a test that demanded it would be pushing the module toward the overclaim.
-        self.assertGreater(me["build_compression"], 3.0)
-        self.assertGreater(e["total_hours"]["likely"], 3 * me["bmad_build_hours"])
+        self.assertGreater(me["story_compression"], 3.0)
+        self.assertGreater(e["total_hours"]["likely"], 1.5 * me["story_hours"])
+        self.assertIn("story work only", me["basis"])
 
     def test_an_unknown_tag_value_fails_loudly(self):
         f = feature("F1")
@@ -662,7 +775,13 @@ class CalibrationClaim(unittest.TestCase):
         cost_model = model()
         self.assertTrue(est.is_calibrated(cost_model))
         history = cost_model["calibration_history"]
-        self.assertEqual([h["samples"] for h in history], [1])
+        rebuild = next(h for h in history if h["kind"] == "rebuild")
+        # Three projects at project level, one at story level, and the status has to carry
+        # BOTH — the size bands rest on EPP alone and nobody should read n=3 as covering them.
+        self.assertEqual(rebuild["samples"], 3)
+        self.assertEqual(len(rebuild["projects"]), 3)
+        self.assertEqual(sum(1 for p in rebuild["projects"] if p["per_story_record"]), 1)
+        self.assertIn("n=3", cost_model["calibration_status"])
         self.assertIn("n=1", cost_model["calibration_status"])
 
     def test_rewording_the_prose_status_cannot_flip_the_claim(self):

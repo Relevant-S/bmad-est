@@ -107,12 +107,17 @@ def make_ledger(rng, count, perturbed_model, noise=0.10, shares=None, completene
     entries = []
     for i in range(count):
         share = shares[i % len(shares)] if shares else 0.4
-        # 24 stories per project, not 8. Since the bands moved to story scale, 8 stories is a
-        # fortnight of work whose fixed planning cost dominates the total — so a 20% band
-        # perturbation moved the project total by less than the 8% deadband, and the
-        # calibrator correctly proposed nothing. That made every recovery case a statement
-        # about fixture size rather than about whether the bias is detectable.
-        inv = inventory(f"Project {i+1}", project_mix(rng, 24, share, uniform))
+        # 60 stories per project. This has been raised twice for the same reason and it is
+        # worth stating once: a band bias is only detectable in a project total to the extent
+        # story work IS the total. At 8 stories the fixed planning cost dominated; at 24, under
+        # the 3.0 bands, story work is 57% of the total and a 20% band perturbation moves the
+        # project 7.8% — just under the 8% deadband, so the calibrator correctly proposed
+        # nothing and the case failed for a reason that had nothing to do with the calibrator.
+        # At 60 it is 61% and the same perturbation moves the total 11.7%. That is a fact about
+        # the fixture, not about detection: on a real project this small the honest answer is
+        # that a band bias cannot be separated from the setup cost, which is why analyze.py
+        # has a deadband at all.
+        inv = inventory(f"Project {i+1}", project_mix(rng, 60, share, uniform))
         estimate = price(inv, SEED_MODEL, completeness)
         truth = price(inv, perturbed_model, completeness)
         actual = truth["total_hours"]["likely"] * (1 + rng.gauss(0, noise))
@@ -230,15 +235,21 @@ def case_a_noisy_spread_estimate_does_not_move_the_band():
     change on that, or it spends the company's trust chasing its own sampling error.
 
     The noise level is expressed as a share of the project total, so it has to track the
-    model's own band to keep testing the same thing. It was 0.35 while overhead was priced
-    as a three-point share of an already-three-point subtotal — a compounding that inflated
-    feature variance to roughly 0.28 of the mean. Overhead is now priced against the
-    schedule, feature variance sits near 0.086, and 0.18 is the level that again lands a
-    mild spread just above 1.0. Raising it further would test that the calibrator reacts to
-    a real signal, which is the case above, not this one.
+    model's own band to keep testing the same thing, and it has now moved twice for that
+    reason. It was 0.35 while overhead was priced as a three-point share of an already
+    three-point subtotal — a compounding that inflated feature variance to roughly 0.28 of
+    the mean. Overhead moved to the schedule and 0.18 was the level that again landed a mild
+    spread just above 1.0. Under the 3.0 bands, which span 4.8x rather than 90x, feature
+    variance is smaller again and 0.18 produces a spread of 0.70 — comfortably INSIDE the
+    band, which tests nothing. 0.30 is the level that lands at 1.17.
+
+    That the number keeps falling is itself the finding: each change made the model's own
+    range a better description of real variation, so more real noise is needed before the
+    calibrator sees anything worth reacting to. Raising it past ~0.40 tests that it reacts to
+    a genuine signal, which is the case above, not this one.
     """
     rng = random.Random(41)
-    entries = make_ledger(rng, 8, SEED_MODEL, noise=0.18)
+    entries = make_ledger(rng, 8, SEED_MODEL, noise=0.30)
     for e in entries:
         e["ledger"]["actuals"].pop("by_phase", None)
     a = run(entries)

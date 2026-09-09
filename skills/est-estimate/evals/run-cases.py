@@ -5,9 +5,9 @@
 """Adversarial cases for est-estimate: whole-inventory shapes that break estimators.
 
 These are not unit tests. Each case is a realistic inventory shape whose *emergent*
-behaviour is the claim being checked — that a thin brief cannot look certain, that
-compression does not rescue a sensitive feature, that adding people cannot beat a
-dependency chain. Unit tests protect the arithmetic; these protect the conclusions,
+behaviour is the claim being checked — that a thin brief cannot look certain, that what makes
+a payments story expensive is the provider rather than the tier, that adding people cannot
+beat a dependency chain. Unit tests protect the arithmetic; these protect the conclusions,
 which is where a plausible-looking estimate goes wrong.
 
     uv run evals/run-cases.py                 # run every case
@@ -102,35 +102,62 @@ def case_thin_brief():
     ]
 
 
-def case_compression_does_not_rescue_sensitive_work():
-    """The module's central claim, at inventory scale rather than per feature."""
-    # 24 stories, not 8. The fixture is meant to be a project, and since the bands moved to
-    # story scale, 8 stories is a fortnight's work whose fixed planning cost swamps everything
-    # the case is about. The dilution being measured is real and grows with scope: 1.14x at 8
-    # stories, 1.28x at 24, 1.35x at 40.
-    routine = run(inventory("Routine", [feature(f"F{i}", f"CRUD {i}", tier="routine") for i in range(1, 25)]))
-    sensitive = run(inventory("Sensitive", [feature(f"F{i}", f"Payments {i}", tier="sensitive") for i in range(1, 25)]))
-    # Phase totals include standing work's own review, which is the same on both sides and
-    # would flatten the ratio the claim is about. Compare the extracted scope's review.
-    r_review = sum(f["component_hours"]["review"] for f in extracted(routine))
-    s_review = sum(f["component_hours"]["review"] for f in extracted(sensitive))
-    r_features = sum(f["hours"] for f in extracted(routine))
-    s_features = sum(f["hours"] for f in extracted(sensitive))
-    ratio_features = s_features / r_features
-    ratio_total = sensitive["total_hours"]["likely"] / routine["total_hours"]["likely"]
-    return sensitive, [
-        ("identical build hours despite very different totals",
-         abs(sum(f["component_hours"]["build"] for f in extracted(routine))
-             - sum(f["component_hours"]["build"] for f in extracted(sensitive))) < 0.5),
-        ("review is over four times higher for the sensitive scope", s_review > 4 * r_review),
-        ("review outweighs build once the work is sensitive",
-         s_review > sum(f["component_hours"]["build"] for f in extracted(sensitive))),
-        ("feature work costs far more when the scope is sensitive", ratio_features > 1.7),
-        # Project-level costs do not care about review tier, so a per-feature effect always
-        # arrives diluted at the total. Anyone quoting the feature-level multiple as a project
-        # multiple is making the same mistake as quoting build compression as project compression.
-        ("the effect still moves the total, but arrives diluted",
-         1.25 < ratio_total < ratio_features),
+def case_the_provider_not_the_tier_is_what_costs():
+    """The module's central claim, at inventory scale — and it is not the claim 2.x made.
+
+    2.x asserted that a sensitive scope costs far more than a routine one because review is a
+    share of a manual baseline the compression never touches. Three delivered projects were then
+    measured and that half did not survive: the anchor's sensitive stories average 1.05x its
+    routine ones. What actually separates its expensive stories from its cheap ones is the
+    PROVIDER — a money rail carries +0.75 points over what the story's surface count predicts,
+    and two of its three XL stories are the Stripe ones.
+
+    So the case now pins both halves: the tier is small and real, the premium is large and real,
+    and anyone who re-derives the old shape fails here as well as in the unit tests.
+    """
+    routine = run(inventory("Routine", [feature(f"F{i}", f"CRUD {i}", tier="routine")
+                                        for i in range(1, 25)]))
+    sensitive = run(inventory("Sensitive", [feature(f"F{i}", f"Payments {i}", tier="sensitive")
+                                            for i in range(1, 25)]))
+    rails = run(inventory("Payments with a rail",
+                          [dict(feature(f"F{i}", f"Payments {i}", tier="sensitive"),
+                                manual_effort=["money_rail"]) for i in range(1, 25)]))
+
+    def build(e):
+        return sum(f["component_hours"]["build"] for f in extracted(e))
+
+    def review(e):
+        return sum(f["component_hours"]["review"] for f in extracted(e))
+
+    def features(e):
+        return sum(f["hours"] for f in extracted(e))
+
+    tier_effect = features(sensitive) / features(routine)
+    rail_effect = features(rails) / features(sensitive)
+    return rails, [
+        # Measured at 1.05x on the anchor. A band of tolerance either side, so the assertion is
+        # about the magnitude rather than about a coefficient's third decimal.
+        ("the review tier barely moves the cost, as the anchor measured",
+         1.0 < tier_effect < 1.15),
+        # It is still a real difference in kind: the same hours, read differently.
+        ("the tier still moves review ahead of where a routine story puts it",
+         review(sensitive) / features(sensitive) > review(routine) / features(routine)),
+        ("and it moves build the other way, because the shares sum to one",
+         build(sensitive) / features(sensitive) < build(routine) / features(routine)),
+        # The premium is what a payments estimate actually turns on.
+        ("the money rail costs several times what the tier does",
+         rail_effect - 1 > 3 * (tier_effect - 1)),
+        ("the premium is additive, so it does not scale with the band",
+         abs(extracted(rails)[0]["manual_effort_hours"]
+             - extracted(run(inventory("Big", [dict(feature("F1", "Payments", tier="sensitive",
+                                                            size="XL"),
+                                                    manual_effort=["money_rail"])])))[0]
+             ["manual_effort_hours"]) < 0.01),
+        # Project-level costs care about none of this, so a per-feature effect always arrives
+        # diluted at the total. Anyone quoting the feature-level multiple as a project multiple
+        # is making the same mistake as quoting build compression as project compression.
+        ("the effect arrives diluted at the total",
+         1.0 < rails["total_hours"]["likely"] / sensitive["total_hours"]["likely"] < rail_effect),
     ]
 
 
@@ -232,7 +259,7 @@ def case_single_small_feature():
 
 CASES = {
     "thin-brief": case_thin_brief,
-    "compression-does-not-rescue-sensitive-work": case_compression_does_not_rescue_sensitive_work,
+    "the-provider-not-the-tier-is-what-costs": case_the_provider_not_the_tier_is_what_costs,
     "deep-dependency-chain": case_deep_dependency_chain,
     "mostly-additional-scope": case_mostly_additional_scope,
     "undecomposed-scope": case_undecomposed_scope,

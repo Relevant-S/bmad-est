@@ -4,7 +4,21 @@
 # ///
 """Bring a cost model up to the shipped seed's schema.
 
-Three things changed shape, and none of them can be carried across by arithmetic:
+Several things changed shape, and none of them can be carried across by arithmetic:
+
+  THE FRAME (3.0)  `size_bands` held a manual-equivalent baseline that build hours were
+                 DIVIDED out of. They now hold delivered hours directly, and nothing is
+                 divided by `compressibility` at all — it became a reported multiple. There
+                 is no conversion: a 2.x M band of 11 h of manual baseline and a 3.0 M band
+                 of 4.6 h of delivered time are measurements of different quantities, and the
+                 2.x one was never measured on any delivered project. Carrying a 2.x number
+                 across would silently price a story at more than twice what the anchor says.
+                 `review_rate` is gone with it: the tier is now a small multiplier on the
+                 story total, measured at 1.05x, not a 3.5x swing on a review component.
+  the architect  Had no component: its hours fell out of role weights on planning and
+                 overhead, both of which scale with story count. It is now `setup + a capped
+                 weekly rate`, which all three delivered projects fit exactly. A 2.x model has
+                 nothing that converts into it.
 
   role_weights   Roles are now conditional on a story's surfaces, and the architect has left
                  per-story work entirely. A flat weight table encodes the structure that
@@ -40,20 +54,44 @@ from pathlib import Path
 
 SEED = Path(__file__).resolve().parent.parent / "assets" / "cost-model.seed.json"
 REPLACED = ("role_weights", "overhead_rate", "surfaces", "standing_work", "phase_map",
-            "size_bands", "compressibility", "review_rate", "clarity", "qa")
+            "size_bands", "compressibility", "clarity", "qa", "review_tier",
+            "novelty_rework_multiplier", "component_shares", "manual_effort_premium",
+            "architect")
+
+# Gone in 3.0 rather than replaced: there is no 3.0 key that means what they meant.
+RETIRED = {
+    "review_rate": "the tier is now a multiplier on the story total (measured at 1.05x for "
+                   "sensitive, against the 2.x 0.04/0.17/0.30 of a manual baseline), and it "
+                   "lives in review_tier. A share of a baseline that is no longer computed "
+                   "has nothing to convert into.",
+}
 
 # Sub-keys, because the rest of `planning` is not unit-dependent. `agent_hours` and
 # `review_hours` are hours per document, per epic and per story — real rates an operator may
 # have calibrated, and replacing them wholesale to fix a counting rule would throw that away.
 REPLACED_KEYS = {
-    "planning": ("stories_per_feature", "stories_per_feature_why",
+    "planning": ("split_factor", "split_factor_why",
                  "features_per_epic", "features_per_epic_why"),
+}
+
+# Retired sub-keys, for the same reason as RETIRED: nothing in 3.0 means what they meant.
+RETIRED_KEYS = {
+    "planning": {
+        "stories_per_feature":
+            "splitting is a property of the project, not of the band. 2.x claimed an L splits "
+            "into 2 and an S into 1; all three delivered projects split at roughly 1.7x across "
+            "the whole backlog. Replaced by planning.split_factor.",
+        "stories_per_feature_why": None,
+    },
 }
 
 
 def migrate(model, seed):
     out, notes = {}, []
     for key, value in model.items():
+        if key in RETIRED:
+            notes.append(f"{key} dropped (was {json.dumps(value)[:120]}) — {RETIRED[key]}")
+            continue
         if key == "env_infra":
             notes.append(
                 f"env_infra dropped (was {json.dumps(value.get('standard_saas', value))[:120]}) — "
@@ -67,6 +105,12 @@ def migrate(model, seed):
             notes.append(f"{key} replaced with the shipped seed — its shape or its unit changed, "
                          f"so the old values could not be carried across.")
         out[key] = seed[key]
+    for section, keys in RETIRED_KEYS.items():
+        for key, why in keys.items():
+            if key in out.get(section, {}):
+                out[section].pop(key)
+                if why:
+                    notes.append(f"{section}.{key} dropped — {why}")
     for section, keys in REPLACED_KEYS.items():
         if section not in out:
             continue
@@ -98,13 +142,18 @@ def migrate(model, seed):
         "why": ("These sections were replaced rather than converted, because their shape "
                 "changed. They are UNCALIBRATED again even if the rest of this model is not — "
                 "re-curate them through est-calibrate/scripts/curate.py before quoting from "
-                "them, and read the notes above for what the old values were."),
+                "them, and read the notes above for what the old values were. "
+                "If you are coming from 2.x: your size_bands were manual-equivalent hours and "
+                "the new ones are delivered hours. Any judgement you had recorded about a band "
+                "has to be re-made against the new unit — the numbers are not comparable, and "
+                "a 2.x band carried across by hand would price a story at roughly 2.4x."),
     }
     return out, notes
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Migrate a cost model from schema 1.x to 2.0.")
+    ap = argparse.ArgumentParser(
+        description="Migrate a cost model up to the shipped seed's schema (1.x/2.x -> 3.0).")
     ap.add_argument("model", help="path to cost-model.json")
     ap.add_argument("-o", "--output", help="write here instead of stdout")
     ap.add_argument("--in-place", action="store_true",

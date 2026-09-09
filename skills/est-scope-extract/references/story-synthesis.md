@@ -100,9 +100,27 @@ Size the **story**, not the sum of its rows. Ten rows describing one screen is o
 
 Each story carries `surfaces` — which kinds of work it actually touches. This is the one
 classification-shaped field extraction still sets, because it is an observation rather than a
-judgement about cost: it does not scale the hours, it decides **which roles are billed to the
-story at all**. A role whose surface is absent is dropped from the split and the rest
-renormalise, so the story still costs what it costs and the hours go to the people doing it.
+judgement about cost. It does two jobs, and the second one was only discovered when the cost
+model was rebuilt against three delivered projects.
+
+**It decides which roles are billed to the story at all.** A role whose surface is absent is
+dropped from the split and the rest renormalise, so the story still costs what it costs and the
+hours go to the people doing it.
+
+**And it is the strongest single predictor of a story's SIZE that anything in this pipeline
+records.** Across the delivery anchor's 75 stories, median surfaces per band run **1 / 2 / 3 / 3 /
+4**, while median acceptance-criterion counts run 5 / 7 / 8.5 / 8 / 12 — which cannot tell M from
+L at all. The classifier reads this field before it bands anything, so an untagged inventory costs
+it its best signal.
+
+**It is also the one granularity check the extraction cannot satisfy by re-slicing.** Everything
+downstream is linear in the story count, and the story count is a property of whoever wrote the
+document: the three delivered projects wrote the same kind of scope at 9.2, 2.9 and 3.1 hours per
+story. Both sanity ratios that existed before divided by numbers extraction chooses — the citation
+count and the story count — so both could always be satisfied by slicing differently. Surfaces per
+story cannot be, and `inventory-check.py` now reports it against the anchor's **2.29**: materially
+below and the estimate will run high, above and it will run low. That comparison moves the number
+more than any individual band does.
 
 | Surface | The work |
 | --- | --- |
@@ -134,3 +152,8 @@ stand — then say in the extraction report that surfaces were not classified.
 - If the story count is within a factor of two of the row count, you have almost certainly
   transliterated rather than synthesised. Say so in the extraction report if it is genuinely
   correct — some backlogs really are story-grained — but check first.
+- **Read `inventory-check.py`'s `granularity` block before you finish, and put the figure in the
+  extraction report.** Surfaces per story against the anchor's 2.29 is the check on whether this
+  inventory is sliced the way the cost model's bands assume. A ratio near 0.5 means roughly twice
+  as many stories for the same scope, and the estimate will read roughly twice as high — which is
+  a real finding about the extraction, not a rounding note for the estimator to absorb.

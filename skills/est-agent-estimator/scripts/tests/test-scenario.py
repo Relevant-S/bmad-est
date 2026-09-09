@@ -92,7 +92,7 @@ class Parity(unittest.TestCase):
         estimate = priced()
         model = json.loads(json.dumps(estimate["cost_model_snapshot"]))
         for bound in ("lo", "likely", "hi"):
-            model["review_rate"]["routine"][bound] *= 3
+            model["qa"]["web"][bound] *= 3
         result = run(estimate, retag=["F1:clarity=high"], cost_model=model)
         self.assertFalse(result["baseline"]["reproduced"])
         self.assertIn("model moving, not the scenario", result["model_shift"])
@@ -247,9 +247,15 @@ class Cutline(unittest.TestCase):
     moved to story scale — so each one asked for a budget already met and passed without
     cutting anything, and the restore case failed because there was nothing to restore. A
     cut-line test whose budget exceeds the total is not testing a cut line.
+
+    The shares then had to rise again in 3.0, and for a reason worth stating: the architect's
+    setup is a fixed 33 h and planning pays for its documents once, so a small project has an
+    irreducible core that dropping every story cannot reach. On this four-story fixture the
+    project components are 92 of 110 hours. A budget below the floor is not a harder cut, it
+    is an impossible one — see `test_a_cut_line_has_a_floor_because_setup_is_not_cuttable`.
     """
 
-    def budget(self, estimate, share=0.75):
+    def budget(self, estimate, share=0.9):
         return estimate["total_hours"]["likely"] * share
 
     def test_reaches_a_feasible_budget(self):
@@ -259,9 +265,20 @@ class Cutline(unittest.TestCase):
         self.assertTrue(cut["under_target"])
         self.assertLessEqual(cut["achieved_likely"], target)
 
+    def test_a_cut_line_has_a_floor_because_setup_is_not_cuttable(self):
+        """New in 3.0, and it is the architect block showing through. Setup does not scale with
+        the backlog, so cutting scope buys less support and the same setup. A client asking for
+        half of a small project has to be told what the floor is, not handed a plan that drops
+        everything and still misses."""
+        estimate = priced(chain_features())
+        cut = run(estimate, to_budget=estimate["total_hours"]["likely"] * 0.5)["cutline"]
+        self.assertFalse(cut["under_target"])
+        self.assertEqual(sorted(cut["proposed_drop"]), ["F1", "F3", "F4"])
+        self.assertGreater(cut["achieved_likely"], estimate["total_hours"]["likely"] * 0.5)
+
     def test_restores_cuts_the_budget_did_not_need(self):
         estimate = priced(chain_features())
-        cut = run(estimate, to_budget=self.budget(estimate))["cutline"]
+        cut = run(estimate, to_budget=self.budget(estimate, 0.85))["cutline"]
         self.assertIn("F4", cut["restored_as_unnecessary"])
         self.assertNotIn("F4", cut["proposed_drop"])
 
@@ -348,17 +365,29 @@ class CutlineOrdering(unittest.TestCase):
     """A budget is reached by disturbing as little as possible, not by taking the biggest cut."""
 
     def big_and_small(self):
-        return [fx.feature("BIG", size="XL", review_tier="critical", compressibility="low"),
-                fx.feature("S1", size="S"), fx.feature("S2", size="S"), fx.feature("S3", size="S")]
+        """BIG has to be genuinely drastic, and in 3.0 a band alone no longer makes it so: the
+        measured spread is 4.8x XS-to-XL, not 90x, so an XL is under three times an S. What
+        makes a story expensive now is the provider behind it, so BIG carries all three
+        premiums — which is exactly the shape the anchor's own XL stories had."""
+        return [fx.feature("BIG", size="XL", review_tier="critical", compressibility="low",
+                           manual_effort=["money_rail", "external_idp", "native_release"]),
+                fx.feature("S1", size="XS"), fx.feature("S2", size="XS"),
+                fx.feature("S3", size="XS"), fx.feature("S4", size="XS")]
 
     def test_small_cuts_are_preferred_over_one_drastic_one(self):
+        """The budget is derived from a real re-price rather than a fraction of the total, so
+        the test says what it means: a gap ONE small cut covers must not be met by the drastic
+        one. A magic fraction only held while the bands ran 90x, and quietly stopped testing
+        anything when they narrowed to the measured 4.8x."""
         features = self.big_and_small()
         estimate = priced(features)
-        smalls = [f for f in estimate["features"] if f["id"] != "BIG"]
-        target = estimate["total_hours"]["likely"] - sum(f["hours"] for f in smalls) * 0.5
+        one_small = (estimate["total_hours"]["likely"]
+                     - run(estimate, drop=["S1"])["scenario_estimate"]["total_hours"]["likely"])
+        target = estimate["total_hours"]["likely"] - one_small * 0.9
         cut = run(estimate, to_budget=target)["cutline"]
         self.assertTrue(cut["under_target"])
         self.assertNotIn("BIG", cut["proposed_drop"])
+        self.assertEqual(len(cut["proposed_drop"]), 1)
 
     def test_the_drastic_cut_is_taken_when_nothing_else_reaches(self):
         features = self.big_and_small()
@@ -388,7 +417,7 @@ class CutlineOrdering(unittest.TestCase):
         """
         features = chain_features() + [fx.feature("F5", size="M"), fx.feature("F6", size="S")]
         estimate = priced(features)
-        target = estimate["total_hours"]["likely"] * 0.6
+        target = estimate["total_hours"]["likely"] * 0.8
         cut = run(estimate, to_budget=target)["cutline"]
         self.assertTrue(cut["under_target"])
         for restored in cut["proposed_drop"]:

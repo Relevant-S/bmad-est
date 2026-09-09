@@ -1,126 +1,294 @@
 {
-  "schema_version": "2.1",
-  "seeded_from": "estimation-module-plan.md — Cost Model Specification",
-  "calibration_status": "SINGLE-ANCHOR CALIBRATION (n=1). The coefficients below are fitted to ONE delivered BMad project — EPP Phase 1: 76 stories across 9 epics, 540 h actual, split dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30. That is far better than the reasoned hypothesis it replaces and far weaker than a trend: one project cannot separate what is true of BMad delivery from what is true of EPP. Say n=1 whenever a client asks how these numbers were arrived at. est-calibrate replaces them as more projects close.",
+  "schema_version": "3.0",
+  "seeded_from": "Three delivered BMad projects, re-derived 2026-09-09. EPP carries the only per-story measured record — docs/reference/phase-1-per-feature-estimate.csv — and it is what the size bands are fitted to. memorial-healthcare and easyterms carry per-role totals only, and are used to check the fit rather than to make it.",
+  "calibration_status": "THREE ANCHORS AT PROJECT LEVEL, ONE AT STORY LEVEL (n=3 / n=1). Per-role actuals: EPP epics 1-9 = 690 h (dev 300 / architect 110 / BA 100 / UX 100 / QA 40 / DevOps 40) over 7 weeks; memorial-healthcare epics 1-9.7 = 360 h (dev 140 / architect 60 / BA 80 / UX 80, no QA, no DevOps) over 3.5 weeks; easyterms epics 1-5+8 = 240 h (dev 160 / architect 80, no other role staffed) over 5 weeks. ONLY EPP recorded effort per story, so the size bands rest on it alone; the other two can falsify the fit at project level and do not contribute to it. Say n=3 for the shape and n=1 for the bands whenever a client asks how these numbers were arrived at. SUPERSEDES the 540 h EPP figure the 2.x model was fitted to: the same scope is now recorded at 690 h (architect +80, BA +60, dev +20, DevOps +10, UX -20), so every 2.x coefficient carrying '540 h actual' was fitted 22% low against its own anchor.",
   "calibration_history": [
     {
-      "date": "2026-09-08",
-      "kind": "anchor",
-      "samples": 1,
+      "date": "2026-09-09",
+      "kind": "rebuild",
+      "samples": 3,
       "approved_by": "Ostap Dribniuk, delivery lead",
-      "project": "EPP Phase 1 (epics 1-9)",
+      "projects": [
+        {
+          "name": "EPP (myEPP) epics 1-9",
+          "stories_planned": 50,
+          "stories_delivered": 76,
+          "epics_planned": 8,
+          "weeks": 7,
+          "hours": {
+            "dev": 300,
+            "architect": 110,
+            "ba": 100,
+            "ux": 100,
+            "qa": 40,
+            "devops": 40
+          },
+          "total_h": 690,
+          "per_story_record": "docs/reference/phase-1-per-feature-estimate.csv — every story weighted XS=1..XL=5; epics 1-7 measured at 206 points / 240 dev h = 1.165 h per point, re-checked independently on Phase 2.1 at 75 points / 88 dev h = 1.173 h per point (0.7% apart)."
+        },
+        {
+          "name": "memorial-healthcare epics 1-9.7",
+          "stories_planned": 63,
+          "stories_delivered": 125,
+          "epics_planned": 9,
+          "weeks": 3.5,
+          "hours": {
+            "dev": 140,
+            "architect": 60,
+            "ba": 80,
+            "ux": 80,
+            "qa": 0,
+            "devops": 0
+          },
+          "total_h": 360,
+          "per_story_record": null
+        },
+        {
+          "name": "easyterms epics 1-5 + 8",
+          "stories_planned": 50,
+          "stories_delivered": 78,
+          "epics_planned": 6,
+          "weeks": 5,
+          "hours": {
+            "dev": 160,
+            "architect": 80,
+            "ba": 0,
+            "ux": 0,
+            "qa": 0,
+            "devops": 0
+          },
+          "total_h": 240,
+          "per_story_record": null
+        }
+      ],
       "coefficients": [
         "size_bands",
-        "compressibility",
-        "review_rate",
+        "manual_effort_premium",
+        "review_tier",
         "clarity",
+        "novelty_rework_multiplier",
+        "component_shares",
+        "compressibility",
         "qa",
-        "planning.stories_per_feature",
         "planning.features_per_epic",
-        "role_weights.build",
-        "role_weights.spec",
-        "role_weights.planning_agent",
-        "role_weights.planning_review",
-        "role_weights.overhead",
-        "standing_work"
+        "planning.split_factor",
+        "role_weights",
+        "architect",
+        "phase_map"
       ],
-      "why": "The seeded model priced EPP at 3,147.5 h against 540 h actual — 5.83x. Two errors multiplied. The bands described a feature while the module prices a story, worth about 3x; and review, spec and QA rates assumed a human reading human-written output, while EPP ran an agent review pass per story, worth about 2x. Both were fitted against EPP's per-role actuals rather than loaded onto one coefficient, because a single scale that reproduces the total leaves every individual number indefensible. Re-priced: 569 h against 540 h actual, 1.05x, with every role within 1.2x except UX (0.74x, EPP included building a design system) and architect (1.89x, whose recorded 30 h explicitly excludes ongoing support the source notes would add 30-60 h)."
+      "why": "The 2.x model priced a manual-equivalent baseline divided by a compressibility factor. NEITHER QUANTITY WAS RECORDED ON ANY OF THE THREE PROJECTS — what every one of them recorded is delivered hours. The frame therefore moves: size_bands now hold delivered hours, and the manual-equivalent is derived from them for the client narrative and consumed by nothing. Three measured results drove the rebuild. (1) The band spread is 4.8x, not 90x: EPP's own 1-5 point scale runs 1.2 h to 5.8 h of dev time per story, where the 2.x bands ran 1 h to 90 h of manual baseline. (2) review_tier does not move a story's delivered hours: sensitive stories average 3.24 points against routine 3.08 — 1.05x — and 1.06x once provider-touching stories are excluded, where 2.x priced the tier at a 3.5x swing on the review component. (3) What DOES move them is the provider: a money rail carries +0.75 points over what its surface count predicts, an external IdP +0.73, native/device +0.41, and a pure in-app story -0.07. That is the console work, the credentials and the provider round-trips, and it does not scale with how big the story is — so it is priced as an additive premium, not as a band."
+    },
+    {
+      "date": "2026-09-08",
+      "kind": "superseded",
+      "samples": 1,
+      "project": "EPP Phase 1 (epics 1-9), recorded at 540 h",
+      "why": "Retained so a reader can tell which coefficients were fitted to which figure. The 2.x model fitted size_bands, review_rate, clarity, qa and role_weights against 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). The same scope is now recorded at 690 h. Nothing in the 2.x fit survives into 3.0 unchanged."
     }
   ],
   "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
   "size_bands": {
-    "_what": "manual_baseline in hours: what this STORY would have cost a human team writing it by hand. NOT the BMad effort — the model derives that; conflating the two double-counts the compression. The unit is a story, not a feature: the priced item is one coherent unit of delivery, and these bands were three times too large while they still described a feature. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
+    "_what": "Delivered hours for one STORY, across every role billed to story work (dev, UX, BA's specification share, DevOps). NOT a manual-equivalent baseline, and NOT divided by anything: the 2.x model priced manual_baseline / compressibility, and neither of those was ever measured on a delivered project. These are. `measured_dev_h` on each band is EPP's own recorded figure — its 1-5 complexity scale at 1.165 h of DEV time per point — and `likely` is that figure grossed up by 1.32 to cover the other roles that are billed to a story. The gross-up is the one fitted number here; the shape is measured. THE SPREAD IS 4.8x, XS to XL. The 2.x bands ran 1 h to 90 h, an 18-fold wider spread, and that is where the sizing bias came from: a one-band error moved a story's cost 3.0x under 2.x against the 1.34x the delivered record shows.",
     "_anchor": {
       "samples": 1,
-      "source": "One delivered multi-surface SaaS platform: 76 stories over 9 epics, 609 acceptance criteria, reconciled against 540 h of recorded actuals across six roles.",
+      "source": "EPP epics 1-9: docs/reference/phase-1-per-feature-estimate.csv weights all 75 stories on a 1-5 scale and reconciles to the measured total. Epics 1-7: 63 stories, 206 points, 240 dev h = 1.165 h/point. Re-run independently on Phase 2.1 (23 stories, 75 points, 88 dev h): 1.173 h/point, 0.7% apart, with mean points/story 3.27 vs 3.26. Applying the scale across epics 1-9 gives 237 points -> 276 h against the 300 h actual.",
+      "h_per_point_dev": 1.165,
+      "h_per_point_dev_cross_project": "EPP 1.165 (measured). memorial-healthcare 0.866 and easyterms 0.623 (BRIDGED, not measured: their stories were mapped onto this scale by files-touched using EPP's own files->points mapping, which carries a 1.09-point mean error per story and lands within 4% in aggregate). The 1.9x spread is granularity: the bridged mix puts 88 of memorial-healthcare's stories at 1 point and 27 of easyterms' at 5. This model is fitted to the EPP end of that range and will therefore run HIGH against a finely-sliced inventory. check_granularity is what catches that.",
       "distribution": {
-        "XS": 0.0,
-        "S": 0.11,
-        "M": 0.64,
-        "L": 0.25,
-        "XL": 0.0
+        "XS": 0.027,
+        "S": 0.173,
+        "M": 0.453,
+        "L": 0.307,
+        "XL": 0.04
       },
-      "baseline_per_requirement_h": 2.0,
-      "baseline_per_story_h": 15.8,
-      "why": "The shape a band assignment is compared against, not a rule it must obey. M is the median story; L is a quarter of the work and it is the first-of-its-kind quarter; nothing in 76 delivered stories was small enough to be XS, and nothing was left XL. Read it as a reference class to argue with — n=1, and a data-migration or design-led engagement will legitimately sit elsewhere. What it is for: an inventory claiming 37% L is claiming that a third of the product is a capability the codebase has never had, and that claim should be made out loud rather than by accident.",
-      "not_the_discriminator": "Acceptance-criterion count does not separate the bands. In the anchor the first-OIDC story carries 4 acceptance criteria and is L; a routine configuration screen carries 7 and is M. Volume of stated requirement holds at the level of a whole inventory and fails story by story."
+      "distribution_measured_epics_1_7": {
+        "XS": 0.016,
+        "S": 0.143,
+        "M": 0.444,
+        "L": 0.349,
+        "XL": 0.048
+      },
+      "points_per_story": 3.16,
+      "surfaces_per_story": 2.29,
+      "surfaces_per_story_why": "MEASURED on EPP's 75 delivered stories, using this module's five-surface taxonomy. It is the one sizing signal an extraction cannot satisfy by re-slicing, and it separates the three anchors where nothing else does: EPP 2.29, memorial-healthcare 1.25, easyterms 1.12 — while hours per surface-touch stay inside 1.74x (4.01 / 2.31 / 2.76) against a 3.2x spread on hours per story. check_granularity compares an inventory against it and reports which way the estimate will be wrong.",
+      "baseline_per_story_h": 4.6,
+      "baseline_per_story_h_why": "The M band, i.e. what a median story costs. Kept because inventory-check's older ratio reads it — but note it divides by the story count, which the extraction itself chooses, so it can always be satisfied by re-slicing. surfaces_per_story is the check that cannot.",
+      "baseline_per_source_line_h": 0.58,
+      "baseline_per_source_line_h_why": "For a row-shaped source, where each story absorbs several rows of the client's own document. Derived, not measured directly: the anchor's median story is M at 4.6 h and carries 8 acceptance criteria, so 0.58 h per stated requirement. The weakest of the three ratios and the one to trust least — the denominator is the extraction's own citation policy, so it can be moved at will. It is kept because a wildly different figure still means something; surfaces_per_story is the check that cannot be gamed.",
+      "why": "The shape a band assignment is compared against, never a rule it must obey — and NOT a target to move toward. The 2.x model claimed XS 0%, S 11%, M 64%, L 25%, XL 0%, and the classification guide told the classifier to expect 64% M before it judged anything. The measured record is above: M is 45%, L is 31%, and BOTH XS AND XL EXIST. An inventory at 37% L is inside a band-and-a-half of the anchor, not three times over it. Read this to notice a shape you did not intend, then argue with it.",
+      "not_the_discriminator": "Acceptance-criterion count does not separate the bands. Median ACs by band across EPP's 75 stories run 5 / 7 / 8.5 / 8 / 12 — M and L are indistinguishable. What does separate them is the number of distinct surfaces the story touches (median 1 / 2 / 3 / 3 / 4) plus whether it introduces a capability the codebase does not have.",
+      "review_tier_is_not_size": "MEASURED, and it is the finding that most changes how these bands should be read: EPP's sensitive stories average 3.24 points against routine 3.08 — 1.05x — and 1.06x with every provider-touching story excluded. Criticality does not make a story bigger. It is priced in review_tier, at a multiplier that now reflects that.",
+      "gross_up": 1.32,
+      "gross_up_why": "1.32. The measured 1.165 h/point is DEV time; a story also carries UX, the BA's specification share and DevOps. Fitted — the only fitted number in this block — by minimising relative error across EPP's five staffed non-DevOps role totals (dev 300 / UX 100 / BA 100 / QA 40 / architect 110), which lands them at 1.05x / 1.01x / 0.97x / 0.98x / 0.77x. n=1: EPP is the only anchor that staffed all six roles. DevOps is outside the fit on purpose — its 40 h went on pipelines and environments, which are standing_work and are in no story list."
     },
     "XS": {
-      "lo": 0.5,
-      "likely": 1,
-      "hi": 2,
-      "why": "A config change, a copy edit, one field on an existing form — usually a task, not a story",
+      "points": 1,
+      "lo": 1.1,
+      "likely": 1.6,
+      "hi": 2.2,
+      "measured_dev_h": 1.2,
+      "why": "A cleanup batch, a one-line projection fix, one field on a form that already exists",
       "exemplars": [
-        "A config value, a copy fix, one field on a form that already exists",
-        "None of the anchor's 76 delivered stories was XS. Something this small is normally a task inside a story, not a story — if a whole inventory carries XS rows, the unit is probably wrong"
+        "EPP 4.0 'Pre-Epic-4 hardening' — small carry-over cleanup batch; no feature surface (1 pt)",
+        "EPP 9.8 'Public card buyable ticket availability' — one-line projection fix (1 pt)",
+        "2.7% of the anchor's delivered stories. The 2.x model asserted that none of them was XS and warned on every XS tag; two of them were, and the warning was pushing real work up a band."
       ]
     },
     "S": {
-      "lo": 2,
-      "likely": 4,
-      "hi": 7,
-      "why": "A single endpoint, a simple form, one static page, one report column",
+      "points": 2,
+      "lo": 2.1,
+      "likely": 3.0,
+      "hi": 4.2,
+      "measured_dev_h": 2.3,
+      "why": "A read-only projection over data that exists, a second terminal state on a gate already built, a thin late add-on reusing a path that already runs",
       "exemplars": [
-        "A language pack against an i18n framework that already exists",
-        "A microcopy or tone pass over screens already built",
-        "A placeholder route behind a feature flag",
-        "One report column, one export, one static page"
+        "EPP 1.14 'Suspended / deactivated member state' — two terminal states reusing the existing gate (2 pts)",
+        "EPP 2.11 'Member registration status & history' — read-only projection over existing data (2 pts)",
+        "EPP 4.6 'Event hub' — composition over already-built modules, little net-new backend (2 pts)",
+        "EPP 2.16 'Admin invite / non-member registration' — reuses the registration path, no net-new schema (2 pts)"
       ]
     },
     "M": {
-      "lo": 6,
-      "likely": 11,
-      "hi": 20,
-      "why": "One story: an endpoint plus its screen, a documented integration point, a single multi-step flow",
+      "points": 3,
+      "lo": 3.2,
+      "likely": 4.6,
+      "hi": 6.4,
+      "measured_dev_h": 3.5,
+      "why": "The median story: two or three surfaces, real rules of its own, nothing the codebase has not done before",
       "exemplars": [
-        "A second entity's CRUD plus its configuration screen",
-        "A list and its detail view over one resource",
-        "Another path through a flow that already exists — a manual override beside the automated one",
-        "Profile create-and-edit over an account model already in place",
-        "A documented third-party API called for the first time, where the transport is already there"
+        "EPP 1.1 'Monorepo scaffold & shared contracts' — multi-surface, no domain logic (3 pts)",
+        "EPP 2.7 'Event catalog — browse, search, filter' — query/filter/pagination projection (3 pts)",
+        "EPP 1.11 'Member approval / rejection & role administration' — workflow, role transitions, notification side-effects (3 pts)",
+        "EPP 7.2 'German language pack' — high translation volume, low structural risk (3 pts)"
       ],
       "not_exemplars": [
-        "Not S because a second entity still needs its own rules, its own screens and its own tests — the pattern is free, the specifics are not"
+        "Not S because a second entity still needs its own rules, its own screens and its own tests",
+        "Not L for being central: EPP 2.1 'Staff event create/edit', the largest entity in the model, is L because it is the epic's spine — but 2.8 'Event detail page', a composed read over five sub-entities, is M. Reach is review_tier's business."
       ]
     },
     "L": {
-      "lo": 20,
-      "likely": 33,
-      "hi": 55,
-      "why": "The first of its kind in this codebase: a protocol, a transport, an external system, a framework, or a foundation everything after it is built on. The second story that uses that capability is M",
+      "points": 4,
+      "lo": 4.3,
+      "likely": 6.2,
+      "hi": 8.7,
+      "measured_dev_h": 4.7,
+      "why": "Four surfaces, or the first of its kind in this codebase: a protocol, a transport, an external system, or a foundation everything after it is built on",
       "exemplars": [
-        "The first OIDC/SAML integration in the codebase — a new protocol, and both clients",
-        "An append-only ledger behind a hosted checkout, credited only on the verified webhook",
-        "The first real-time transport: sockets plus a broker",
-        "The first native device capability — camera scanning on a staff app",
-        "The i18n framework itself, before any language pack rides on it",
-        "The first outbound sync to an external system, with its retry and dead-letter path",
-        "The repository scaffold, or the design system, that everything after it is built on"
+        "EPP 1.5 'Login / logout & persistent session' — DB, API, Redis and Member Web; refresh-token rotation in Redis Lua (4 pts)",
+        "EPP 1.7 'Microsoft Entra SSO' — external IdP, OIDC round-trip, account linking (4 pts)",
+        "EPP 4.3 '1-to-1 event chat' — the first realtime transport: Socket.IO gateway plus Redis adapter (4 pts)",
+        "EPP 2.6 'Per-event custom registration fields' — a schema-driven form builder rendering and validating on both sides (4 pts)",
+        "EPP 5.2 'QR scan check-in (staff, native)' — native camera behind a capability check (4 pts)"
       ],
       "not_exemplars": [
-        "Not CRUD over one entity, however central the entity is to the product",
-        "Not a list plus its detail view, however many other features read from it",
-        "Not a derived read the whole product depends on — size it as the query it is; its reach is review_tier's business, and charging for reach here bills it twice"
+        "Not CRUD over one entity, however central the entity is",
+        "Not a list plus its detail view, however many features read from it",
+        "Not a derived read the whole product depends on — size it as the query it is"
       ]
     },
     "XL": {
-      "lo": 55,
-      "likely": 90,
-      "hi": 150,
-      "why": "A story that should have been split — a subsystem tracked as one row. The band is wide because an XL tag means the scope was never decomposed, and the estimate says so rather than pretending otherwise",
+      "points": 5,
+      "lo": 5.4,
+      "likely": 7.7,
+      "hi": 10.8,
+      "measured_dev_h": 5.8,
+      "why": "A subsystem tracked as one row. Rare and real: 4% of the anchor, and every one of them was a third-party lifecycle the app had to hold state against",
       "exemplars": [
-        "A catalogue of ~60 rules evaluated as one mechanism, where the source genuinely gives nothing to split on",
-        "Nothing in the anchor was left XL. est-estimate prices a narrowing question for every XL rather than treating the band as an answer"
+        "EPP 3.3 'Paid recurring membership' — Stripe Subscriptions, invoice.paid webhook lifecycle, credit grant per invoice (5 pts)",
+        "EPP 3.4 'Paid event checkout, credits as discount' — credit debit and access grant as ONE atomic operation; its epic retro records four CRITICAL money/race bugs found in this story alone (5 pts)",
+        "EPP 6.1 'One-way Zoho CRM sync' — largest spec in Phase 1: field mapping across four objects, queue and worker (5 pts)",
+        "XL is still a signal to look for a split, and est-estimate prices a narrowing question for each one — but it is NOT an error. The 2.x model asserted the anchor left none XL; three of them were."
       ]
     }
   },
+  "manual_effort_premium": {
+    "_what": "Additive hours for work whose cost is NOT the code. Console clicking, credentials, provider dashboards, store review, back-and-forth with someone else's support desk, and verification an agent cannot perform. It is added to the story AFTER the band and BEFORE the multipliers, because it does not scale with how big the story is — a Stripe account is the same amount of console work whether it backs one checkout or three. MEASURED as the residual over what a story's surface count alone predicts, across EPP's 75 weighted stories. Several premiums can apply to one story; they sum. Tag a story with the `manual_effort` array in classification.json; an absent or empty array is zero.",
+    "_how_it_was_measured": "For each of EPP's 75 stories, the expected point weight was taken as the mean weight of every story with the same surface count, and the residual is the story's actual weight minus that. Grouping the residuals: money rail +0.75 (n=4), external IdP +0.73 (n=1), native/device +0.41 (n=4), any third-party provider +0.18 (n=24), pure in-app with no provider -0.07 (n=49). The last row is the control: stories that touch nothing external sit on the line.",
+    "money_rail": {
+      "points_over_prediction": 0.75,
+      "lo": 0.7,
+      "likely": 1.2,
+      "hi": 1.9,
+      "triggers": [
+        "stripe",
+        "payment provider",
+        "billing provider",
+        "card rail",
+        "checkout session",
+        "payout",
+        "invoice rail"
+      ],
+      "why": "A payment or billing provider is integrated: account and product setup, webhook endpoints and signing secrets, test-mode reconciliation, and the idempotency work that money forces. Two of the anchor's three XL stories are the Stripe ones, and epic 3's retro records four CRITICAL money/race bugs found in story 3.4 alone.",
+      "evidence": "EPP 3.2 / 3.3 / 3.4 / 3.5, mean residual +0.75 pts (n=4)",
+      "confidence": 6
+    },
+    "external_idp": {
+      "points_over_prediction": 0.7,
+      "lo": 0.7,
+      "likely": 1.1,
+      "hi": 1.8,
+      "triggers": [
+        "sso",
+        "oidc",
+        "saml",
+        "entra",
+        "okta",
+        "auth0",
+        "identity provider",
+        "social sign-in"
+      ],
+      "why": "An external identity provider is configured: app registration, redirect URIs, client secrets, tenant consent, and a round-trip that can only be proven against the real provider.",
+      "evidence": "EPP 1.7 Microsoft Entra SSO, residual +0.73 pts (n=1) — the weakest cell in this block",
+      "confidence": 3
+    },
+    "native_release": {
+      "points_over_prediction": 0.4,
+      "lo": 0.4,
+      "likely": 0.6,
+      "hi": 1.0,
+      "triggers": [
+        "capacitor",
+        "react native",
+        "ios",
+        "android",
+        "app store",
+        "testflight",
+        "play console",
+        "device camera",
+        "keychain"
+      ],
+      "why": "A device build or a store channel: signing identities, provisioning profiles, native toolchain linkage, and verification that only runs on real hardware. EPP's epic-5 retro names the mechanism outright — 'native-build verification is invisible to the planning loop' — after an iOS SPM-to-CocoaPods linkage could not be resolved headlessly.",
+      "evidence": "EPP 5.1.5 and 5.2, mean residual +0.41 pts (n=4). Both sit at 4 points on only TWO surfaces — the highest points-per-surface ratio in the project.",
+      "confidence": 5
+    },
+    "provisioning": {
+      "points_over_prediction": null,
+      "lo": null,
+      "likely": null,
+      "hi": null,
+      "triggers": [
+        "terraform",
+        "cloudformation",
+        "dns",
+        "tls certificate",
+        "secret rotation",
+        "production access",
+        "ses production",
+        "vpc",
+        "load balancer"
+      ],
+      "why": "Real environments, credentials, DNS and TLS against a live cloud account. UNPRICED, DELIBERATELY, AND FLAGGED: none of the three anchors paid for it. EPP's Infra-tagged stories score 0.51 points BELOW prediction because 7.5 is marked 'seams only, IaC deferred'; its epic-6 and epic-7 retros say 'no AWS resource was provisioned' and that SES was 'still in sandbox'; memorial-healthcare 1.4 ships CI with 'placeholder steps for EC2 deployment'. A story carrying this trigger gets an open question, not a number, until one project that actually reached production reports actuals.",
+      "evidence": "Negative: EPP Infra residual -0.51 pts (n=2), and all three projects deferred IaC",
+      "confidence": 2
+    }
+  },
   "compressibility": {
-    "_what": "How many times faster BMad builds this than a human team would. Divides manual_baseline to give build_h. This is the axis that separates an AI-delivery estimate from a conventional one. CALIBRATION NOTE: roughly double the seeded figures. EPP Phase 1 delivered 76 stories against a manual-equivalent baseline of about 1,200 h in 540 h all-in — a whole-project compression of 6.9x, which only reconciles with a build compression well above it, since review, QA and planning compress far less. n=1.",
+    "_what": "REPORTED ONLY — nothing is divided by this any more. In 2.x it was the divisor that turned a manual-equivalent baseline into build hours; the baseline was never measured on any delivered project, so the division was arithmetic over a construct. It now runs the other way: manual_equivalent = delivered_hours x compressibility, computed so the client narrative survives, and consumed by no downstream figure. If it is wrong, the estimate is unaffected and only the 'this would have cost X by hand' sentence moves. EVIDENCE IS ONE SENTENCE: EPP's own effort assessment states its delivered velocity is 'AI-assisted (BMAD + Claude Code) ... roughly 8-10x traditional hand-coding' and that its first-pass sizes assuming traditional velocity 'were ~8x too high'. Nobody estimated any of these three projects manually, so the level is an assertion and the consistency across the three is inferred. Confidence 3/10 on the level, 6/10 on the order.",
     "high": {
       "lo": 10,
       "likely": 16,
       "hi": 24,
-      "why": "CRUD, greenfield screens, scaffolding, well-documented APIs, tests, docs, config — thoroughly represented in the model's world, so generation is near-free"
+      "why": "CRUD, greenfield screens, scaffolding, well-documented APIs, tests, docs, config"
     },
     "medium": {
       "lo": 6,
@@ -138,66 +306,79 @@
       "lo": 1,
       "likely": 1,
       "hi": 1.2,
-      "why": "Workshops, approvals, compliance sign-off, third-party lead times, experimental ML iteration — work where no code is the deliverable"
+      "why": "Workshops, approvals, compliance sign-off, third-party lead times — no code is the deliverable"
     }
   },
-  "review_rate": {
-    "_what": "review_h as a share of manual_baseline — deliberately NOT of build_h. Review effort scales with the volume of output produced, not the time taken to produce it, so compression shrinks the build and leaves the review untouched. This single choice is why a payments feature stays expensive while CRUD collapses, with no special-casing anywhere. CALIBRATION NOTE: these rates are roughly half the manual-era figures because this company runs a fresh-context agent review pass per story before a human reads it. The STRUCTURE is unchanged — review is still a share of manual_baseline, so sensitive work still stays expensive relative to CRUD — but the level now reflects a human reading already-reviewed output. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
+  "review_tier": {
+    "_what": "A multiplier on the story's delivered hours, and it is SMALL — this is the coefficient the rebuild changed most. MEASURED on EPP: sensitive stories average 3.24 points against routine 3.08, a ratio of 1.05x, and 1.06x once every provider-touching story is excluded so the money premium cannot flatter it. The 2.x model priced the tier at 0.04 / 0.17 / 0.30 of a manual baseline — a 3.5x swing on the review component and roughly 1.9x on a story's total. Criticality is real and it is expensive in consequences; under this delivery model, with a fresh-context agent review pass per story, it is NOT expensive in hours. What IS expensive is the provider behind the sensitive work, and that is priced in manual_effort_premium. The tier still decides WHO reviews (see role_weights.review) and still shifts the phase decomposition toward review; it barely moves the total. `critical` is the exception and it is a JUDGEMENT, not a measurement: none of the three anchors carried an external compliance sign-off, so the 1.25 below is a hypothesis about work they did not contain. Confidence: sensitive 7/10 (measured, n=75 stories), critical 2/10.",
     "routine": {
-      "lo": 0.025,
-      "likely": 0.04,
-      "hi": 0.06,
-      "why": "Feature delegated whole; a spot-review of the blast-radius surfaces only — DB migrations, tests, CI/CD"
+      "multiplier": 1.0,
+      "review_share_adjust": 1.0,
+      "why": "Delegate the feature whole; spot-review DB migrations, tests, CI/CD"
     },
     "sensitive": {
-      "lo": 0.12,
-      "likely": 0.17,
-      "hi": 0.25,
-      "why": "Money, personal data, authentication and authorization: read line by line before anyone signs their name to it"
+      "multiplier": 1.05,
+      "review_share_adjust": 2.2,
+      "why": "Money, personal data, authentication and authorization: read line by line before anyone signs their name to it. MEASURED at 1.05x of a routine story's hours — the reading is more careful, not longer."
     },
     "critical": {
-      "lo": 0.22,
-      "likely": 0.3,
-      "hi": 0.42,
-      "why": "Regulated data, irreversible financial effects, safety: line-by-line plus an external or compliance sign-off that runs on someone else's calendar"
+      "multiplier": 1.25,
+      "review_share_adjust": 3.5,
+      "why": "Regulated data, irreversible financial effects, safety: line-by-line plus an external or compliance sign-off that runs on someone else's calendar. UNMEASURED — no anchor had one."
     }
   },
   "clarity": {
-    "_what": "spec_rate and rework_rate as shares of manual_baseline and of (build+review) respectively, plus band_multiplier, which widens the story's own interval. Under BMad, ambiguity is no longer resolved by a developer stopping to ask — it gets confidently implemented, reviewed, and rebuilt. Vagueness costs MORE than it did in manual delivery, which inverts the usual assumption. Rates are about half the manual-era figures for the same reason review is: the agent drafts the specification and catches its own first-pass mistakes. The ordering is untouched — vagueness still costs more under BMad, not less. BAND: without band_multiplier the spread ran BACKWARDS — holding size at M, a real inventory produced hi/lo of 6.32 at high clarity and 5.52 at low, because spec and rework are scalar multiples of an interval and therefore proportionally tight, so adding more of them pulled the ratio down. A vague story read as more certain than a specified one, which is the opposite of the signal the range exists to carry. The multiplier widens the total around its likely value, the same way uncertainty.completeness_multiplier does at project level — correlated risk, not independent noise. DOUBLE COUNT, measured: clarity is also 18% of input_completeness, which widens the PROJECT band, so the same signal is read twice. The overlap turns out to be immaterial — per-story sds combine in quadrature, so the aggregate barely moves: a project of uniformly high-clarity stories is unchanged to the decimal, a realistic mix moves 0.0pp, and one of entirely low-clarity stories widens 0.8pp. Nothing was removed from the completeness path, because there was nothing material to remove. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
+    "_what": "How precisely the source specifies the story. Three separate effects, kept separate on purpose: `multiplier` moves the story's hours, `spec_share_adjust`/`rework_share_adjust` move where those hours are reported in the phase table, and `band_multiplier` widens the story's own interval around its likely value. UNMEASURED: none of the three anchors recorded hours by phase, only by role, so there is nothing to fit the level against — the ORDERING is the claim, and it is the one the module argues for. Under BMad, ambiguity is not resolved by a developer stopping to ask; it gets confidently implemented, reviewed, and rebuilt. The multipliers are deliberately modest against 2.x, whose spec and rework rates could add more to a story than its own build. Confidence 2/10 on the level, 6/10 on the ordering. BAND: without band_multiplier the spread ran BACKWARDS — a real inventory produced hi/lo of 6.32 at high clarity against 5.52 at low, because scalar multiples of an interval are proportionally tight and adding more of them pulled the ratio down. A vague story read as the more certain one.",
     "high": {
-      "spec_rate": 0.04,
-      "rework_rate": 0.05,
+      "multiplier": 1.0,
+      "spec_share_adjust": 1.0,
+      "rework_share_adjust": 1.0,
       "band_multiplier": 1.0,
-      "band_multiplier_why": "Acceptance criteria present, data model implied, edge cases named — the interval the size band and compressibility already imply needs no widening",
+      "band_multiplier_why": "Acceptance criteria present, data model implied, edge cases named — the interval the band already implies needs no widening",
       "why": "Acceptance criteria present, data model implied, edge cases named"
     },
     "medium": {
-      "spec_rate": 0.075,
-      "rework_rate": 0.1,
+      "multiplier": 1.1,
+      "spec_share_adjust": 1.6,
+      "rework_share_adjust": 1.8,
       "band_multiplier": 1.15,
       "band_multiplier_why": "Clear in prose, intent unambiguous, details absent. The details are where the hours hide, so the spread widens by an exponent on hi/lo",
       "why": "Clear in prose, intent unambiguous, details absent"
     },
     "low": {
-      "spec_rate": 0.125,
-      "rework_rate": 0.2,
+      "multiplier": 1.25,
+      "spec_share_adjust": 2.6,
+      "rework_share_adjust": 3.2,
       "band_multiplier": 1.35,
       "band_multiplier_why": "A line in a transcript, or inferred from context. What is being built is genuinely not yet known, and a narrow band here would be false precision",
-      "why": "A line in a transcript, or inferred from context. The rework rate is the dominant term here and it is real, not padding"
+      "why": "A line in a transcript, or inferred from context"
     }
   },
   "novelty_rework_multiplier": {
+    "_what": "New to the team, or genuinely uncommon. In 2.x this multiplied the rework component only, at 1.5x; with rework now a share of the story rather than an addition to it, the same 1.5 would have been a 50% uplift on the whole story, which no anchor supports. Set at 1.15 on the total and 1.6 on the rework share. UNMEASURED — none of the three projects recorded which stories were novel to the team.",
     "standard": {
-      "factor": 1.0,
+      "multiplier": 1.0,
+      "rework_share_adjust": 1.0,
       "why": "The team has built something of this shape before"
     },
     "novel": {
-      "factor": 1.5,
+      "multiplier": 1.15,
+      "rework_share_adjust": 1.6,
       "why": "New to the team or genuinely uncommon. Novelty drives loops rather than build effort — the first attempt at an unfamiliar shape rarely converges in one pass"
     }
   },
+  "component_shares": {
+    "_what": "How a story's delivered hours DIVIDE across the four phases. A decomposition, not a computation: the story total is set by the band, the premium and the multipliers, and these shares only decide where those hours are reported and which role_weights table splits them. They always sum to 1, so moving a share can never change a story's cost. EXPLICITLY A HYPOTHESIS. All three anchors recorded hours by ROLE and never by PHASE, so there is nothing here to fit against. It is stated as numbers rather than left implicit so that a reader can see the claim and a future project can falsify it. Confidence 2/10. Adjustments from review_tier, clarity and novelty are applied multiplicatively to the base and then renormalised: a vague sensitive story reports roughly 37% build against a routine specified one's 60%.",
+    "base": {
+      "build": 0.6,
+      "spec": 0.12,
+      "review": 0.18,
+      "rework": 0.1
+    },
+    "_raise_confidence_by": "One project that time-tracks a story to build / specify / review / rework rather than to a role."
+  },
   "team_profiles": {
-    "_what": "Modifiers on human-effort components only. build_h is left alone because the agent writes the code either way — the seniority gap lands entirely in the judgement-heavy work, and under BMad that gap widens rather than narrows.",
+    "_what": "Modifiers on the judgement-heavy components only — spec, review and rework. build is left alone because the agent writes the code either way. UNMEASURED: all three anchors ran the same team shape and none of them recorded seniority against hours, so these are the 2.x values carried forward as assertions. Confidence 2/10. Raise it by delivering one project with a materially different team.",
     "senior-heavy": {
       "spec": 0.8,
       "review": 0.8,
@@ -224,17 +405,15 @@
     }
   },
   "planning": {
-    "_what": "The BMad planning pipeline. planning_review_h is the estimate's high-confidence anchor because this company reviews 100% of planning artefacts without exception — it is a predictable function of scope volume rather than a guess, and its bands are correspondingly tight.",
-    "features_per_epic": 8,
-    "features_per_epic_why": "Fallback only, for an inventory whose stories carry no epic. EPP ran 76 stories across 9 epics — 8.4 per epic. The seeded 5 over-counted epics by 1.7x wherever it was reached.",
-    "stories_per_feature": {
-      "XS": 1,
-      "S": 1,
-      "M": 1,
-      "L": 2,
-      "XL": 3
+    "_what": "The BMad planning pipeline. Priced per artefact written, so it is the ONE place where slicing a story in two genuinely costs more: two stories get two story files and two reviews. Everything else in this model is invariant to slicing, and split_factor exists to keep that distinction honest.",
+    "features_per_epic": 7,
+    "features_per_epic_why": "Fallback only, for an inventory whose stories carry no epic. Keyed to PLANNED granularity, which is what an inventory holds: EPP planned 50 stories over 8 epics (6.3), memorial-healthcare 63 over 9 (7.0), easyterms 50 over 6 (8.3). The delivered figures are higher (8.4 / 8.3 / 13.4) because stories were split during delivery, and using them here would count epics against a story total that has not been split yet. The 2.x value of 8 sat between the two.",
+    "split_factor": {
+      "lo": 1.5,
+      "likely": 1.7,
+      "hi": 2.0
     },
-    "stories_per_feature_why": "The priced item is a story, so it counts as one; only a genuinely under-decomposed row splits further. The seeded 1/1/2/4/8 dated from when a feature was the unit and turned EPP's 76 real stories into 178 modelled ones, inflating every planning figure derived from the count.",
+    "split_factor_why": "How many story artefacts get written per story in the inventory. MEASURED on all three: EPP 50 planned stories were delivered as 76 (1.52x), memorial-healthcare 63 as 125 (1.98x), easyterms 50 as 78 (1.56x). This is DECOMPOSITION, NOT SCOPE GROWTH — a story that turned out too big was split, the scope did not change, and the delivered hours above already include the result. It is applied to planning ONLY, because planning is the only component priced per artefact. Applying it to build would bill the same work twice. It replaces 2.x's stories_per_feature, which keyed the same idea off the size band and so claimed that big stories split and small ones do not; the record shows splitting is a property of the project, not of the band. Worth 1.5% of EPP's total and 7% of memorial-healthcare's. Confidence 6/10.",
     "agent_hours": {
       "_what": "Human time steering the BMad workflow that authors each artefact — already compressed, since the agent drafts.",
       "product_brief": {
@@ -317,8 +496,25 @@
       "why": "A whole project pays the full planning pipeline once. An epic inside a running project inherits the brief and UX and pays only for its own requirements and technical design. A sprint or single feature pays neither — the planning artefacts already exist."
     }
   },
+  "architect": {
+    "_what": "The architect is priced as SETUP PLUS A WEEKLY RATE, not as a share of anything. This is the best-evidenced coefficient in the model: all three delivered projects fit the same formula exactly, and it was stated independently of the totals rather than fitted to them. EPP 40 h setup + 7 weeks x 10 = 110. memorial-healthcare 30 + 3 x 10 = 60. easyterms 30 + 5 x 10 = 80. The 2.x model had no architect component at all: the hours fell out of role_weights on planning_agent (0.35), planning_review (0.35) and overhead (0.40), every one of which scales with story and epic count. On a 371-story inventory that produced 3x the anchored setup; on a 76-story one it would have produced far less. Setup does not scale with the backlog, and support scales with the calendar. Confidence 9/10.",
+    "setup_h": {
+      "lo": 28,
+      "likely": 33,
+      "hi": 42
+    },
+    "setup_h_why": "Standing the project up: repository and environment decisions, the architecture artefact, the conventions every later story inherits. Recorded at 30 h on two projects and 40 h on EPP, which stood up three applications plus native shells. The band spans the observed 30-40.",
+    "weekly_h": {
+      "lo": 8,
+      "likely": 10,
+      "hi": 10
+    },
+    "weekly_cap": 10,
+    "weekly_h_why": "Ongoing support while the project runs. ALL THREE recorded it at exactly 10 h/week, so the cap IS the observation and `likely` sits on it; the band is one-sided downward because nothing was ever seen above it. `weekly_cap` is enforced, so a long project does not buy proportionally more architect.",
+    "_disagreement": "easyterms' architect figure implies 5 weeks; its retrospectives span 2026-07-21 to 2026-09-06, which is 6.9 weeks. Either roughly two weeks went unsupported or the recorded window excludes something. The fit above uses the stated 5 weeks."
+  },
   "standing_work": {
-    "_what": "Work every project pays and no client document describes. It used to be one opaque `env_infra` lookup — 13.7 hours for a multi-tenant SaaS with payments, calendar sync and bulk imports, which nobody could defend because there was nothing inside it to point at. Each item below is priced through the same engine as any story, so it carries a band, a role split and a line in the feature table, and a client can argue with it item by item instead of being handed a number. Items are selected by the `stacks` list against the --stack profile; `all` means every project pays it. Suppress the whole section with --no-standing-work when the client is bringing an existing platform. Each item's tags carry their own per-axis reason, like any other classification: a single sentence repeated across five axes is the boilerplate pattern inventory-check.py reports, and shipping it in the catalogue would be holding the module to a standard the model itself did not meet. Items carry absolute `hours` rather than a size band: a pipeline costs what it costs however the product backlog is sliced, and while these resolved through the band table a re-scale of that table silently re-priced the whole catalogue with it.",
+    "_what": "Work every project pays and no client document describes. THE LEAST-EVIDENCED BLOCK IN THIS MODEL, and the anchors actively exclude the work it prices: ALL THREE deferred real infrastructure. EPP's Infra-tagged stories score 0.51 points BELOW what their surface count predicts because 7.5 is marked 'seams only, IaC deferred'; its epic-6 and epic-7 retrospectives record 'no AWS resource was provisioned' and SES 'still in sandbox'; memorial-healthcare 1.4 ships CI with 'placeholder steps for EC2 deployment'. So the hours below are NOT fitted to any delivered project — they are the 2.x reasoned figures carried forward unchanged, and they are the first thing to check against a project that actually reached production. Confidence 2/10. Each item is priced through the same engine as any story, so it carries a band, a role split and a line in the feature table, and a client can argue with it item by item. Items are selected by the `stacks` list against the --stack profile; `all` means every project pays it. Suppress the section with --no-standing-work when the client is bringing an existing platform. Items carry absolute `hours` rather than a size band: a pipeline costs what it costs however the product backlog is sliced.",
     "items": {
       "repo_scaffold": {
         "name": "Repository scaffold and shared configuration",
@@ -522,34 +718,34 @@
     }
   },
   "qa": {
-    "_what": "qa_h as a share of total manual_baseline. Test generation compresses well; running, triaging and re-running does not. Rates are a quarter of the industry defaults: generated suites plus AI-assisted triage. EPP spent 40 h of QA against a manual baseline of roughly 1,200 h at story scale. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
+    "_what": "qa_h as a share of the STORY-WORK TOTAL — the delivered hours of every story in the estimate. In 2.x it was a share of the manual-equivalent baseline, which is no longer computed. Re-fitted: EPP spent 40 h of QA against roughly 420 h of story work, so 0.095. n=1 AND THE OTHER TWO ANCHORS STAFFED NO QA AT ALL — memorial-healthcare and easyterms both booked zero QA hours, and memorial-healthcare is the HIPAA project. This model bills QA on every estimate because the six-role split is fixed, so on a project staffed like those two it will report hours nobody will book. Say that rather than letting it be assumed away. Confidence 4/10.",
     "web": {
-      "lo": 0.02,
-      "likely": 0.03,
-      "hi": 0.05,
-      "why": "Generated E2E suites run through the bmad-qat module (https://github.com/Relevant-S/bmad-qat), plus exploratory testing and release verification. ANCHOR: EPP Phase 1 epics 1-9 spent 40 h of QA in total running the suite through bmad-qat, against a manual baseline of roughly 1,200 h — 3.3%. An estimate that assumes the tooling without naming it cannot be checked against the project that produced the rate"
+      "lo": 0.066,
+      "likely": 0.095,
+      "hi": 0.133,
+      "why": "Generated E2E suites run through the bmad-qat module (https://github.com/Relevant-S/bmad-qat), plus exploratory testing and release verification. ANCHOR: EPP epics 1-9 spent 40 h of QA in total running the suite through bmad-qat, against roughly 420 h of story work — 9.5%. An estimate that assumes the tooling without naming it cannot be checked against the project that produced the rate"
     },
     "mobile_manual": {
-      "lo": 0.05,
-      "likely": 0.075,
-      "hi": 0.11,
-      "why": "Device matrix, store review cycles, and manual regression — the industry default"
+      "lo": 0.167,
+      "likely": 0.238,
+      "hi": 0.333,
+      "why": "Device matrix, store review cycles, and manual regression — the industry default. The 2.5x ratio to web is carried from 2.x and is not itself measured"
     },
     "mobile_mcp_automated": {
-      "lo": 0.015,
-      "likely": 0.025,
-      "hi": 0.04,
-      "why": "This company runs mobile QA through the mobile MCP server, which covers most test cases automatically. Materially cheaper than the industry default, and an estimate that ignores it is wrong in the company's own disfavour"
+      "lo": 0.055,
+      "likely": 0.079,
+      "hi": 0.111,
+      "why": "This company runs mobile QA through the mobile MCP server, which covers most test cases automatically. Materially cheaper than the industry default, and an estimate that ignores it is wrong in the company's disfavour"
     },
     "data_ml": {
-      "lo": 0.04,
-      "likely": 0.06,
-      "hi": 0.1,
+      "lo": 0.133,
+      "likely": 0.19,
+      "hi": 0.266,
       "why": "Validation is empirical and iterative; correctness is statistical rather than binary"
     }
   },
   "overhead_rate": {
-    "_what": "Ceremony, demos, client communication and coordination — priced per person per week, NOT as a share of scope. A status call recurs on the calendar, not on the backlog. Charged as a percentage it inherited every scope error the estimate made: a backlog counted ten times over billed ten times the meetings, which turns a granularity mistake into a commercial one. Hours are weeks x people x the rate below; the estimate still reports the implied percentage, as a cross-check rather than as the basis.",
+    "_what": "Ceremony, demos, client communication and coordination — priced per person per week, NOT as a share of scope. UNDERIVABLE FROM THE ANCHORS: none of the three separated ceremony from delivery, so the hours below are assertions and are labelled as such. Confidence 2/10; raise it with one time-tracking export that splits meetings from build. What IS defensible is the BASIS. A status call recurs on the calendar, not on the backlog, and charged as a percentage it inherited every scope error the estimate made: a backlog counted ten times over billed ten times the meetings, which turns a granularity mistake into a commercial one. Hours are weeks x people x the rate below; the estimate still reports the implied percentage, as a cross-check rather than as the basis.",
     "basis": "hours_per_person_week",
     "low_touch": {
       "lo": 1.5,
@@ -584,7 +780,7 @@
     "model_risk_why": "Systematic model uncertainty, as a share of the central estimate, combined in quadrature with the feature-level variance. Summing feature variances in quadrature assumes the errors are independent, and they are not: if the size-band or compression calibration is off, it is off for every feature at once. Quadrature therefore understates the real band, and understates it worst on large scopes — a hundred features would otherwise report a suspiciously tight interval. This floor represents systematic model error, which does not shrink however many features are counted. While the model is UNCALIBRATED it is set high, at 15%; est-calibrate should lower it once backtesting shows how far the model actually lands from actuals."
   },
   "role_weights": {
-    "_what": "How each component's hours divide across roles, and which roles are on the work at all. Each entry carries 'w' and optionally 'requires' — a surface the story must have before that role counts. Roles whose surface is absent are dropped and the survivors renormalise, so the split stays an allocation of the total rather than an adjustment to it. No PM: the Architect absorbs PM responsibilities. The Architect appears ONLY in project-level components — the tech lead does not review individual stories, the developer does, and EPP Phase 1 (480 h delivered across dev/QA/UX/BA) records no architect hours against story work at all. Spreading a fixed architect share over every story was inventing a quarter of the project out of a weight table. A weight may name `requires` (one surface) or `requires_any` (several). `dev` itself is conditional: while it was unconditional it survived renormalisation on an infra-only story and billed a CI pipeline 91% developer. EPP Phase 1: 76 stories, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
+    "_what": "How each component's hours divide across roles, and which roles are on the work at all. Each entry carries 'w' and optionally 'requires' (one surface) or 'requires_any' (several); a role whose surface is absent is dropped and the survivors renormalise, so the split stays an allocation of the total rather than an adjustment to it. No PM: the Architect absorbs PM responsibilities. THE ARCHITECT IS NO LONGER IN THIS TABLE except as its own component. In 2.x its hours fell out of planning_agent (0.35), planning_review (0.35) and overhead (0.40), every one of which scales with story and epic count — so a bigger backlog bought a bigger architect, which no delivered project shows. It is now `architect`, priced as setup + a capped weekly rate. The three weights it vacated were renormalised across the roles that remained. KNOWN OVER-STATEMENT, recorded rather than fixed: the six-role split is fixed by decision, and only ONE of the three anchors staffed all six. memorial-healthcare booked no QA and no DevOps; easyterms booked no BA, no UX, no QA and no DevOps, and still built a chat design system (4.1) and a WCAG-AA conformance story (4.9) with zero UX hours. On a project staffed like those two this model will report a QA and a DevOps line nobody will book. Say so rather than letting it be assumed away.",
     "spec": {
       "ba": {
         "w": 0.42,
@@ -610,7 +806,7 @@
     },
     "build": {
       "dev": {
-        "w": 0.52,
+        "w": 0.6,
         "requires_any": [
           "backend",
           "frontend",
@@ -619,8 +815,8 @@
         "why": "Steering, correcting and integrating what the agent generates"
       },
       "ux": {
-        "w": 0.38,
-        "why": "Design runs through build on anything with a visual surface, not only where a new design is being drawn. Keying this on `design` alone put UX at 1.6% of EPP against a measured 22%, because 70 of its 76 stories were frontend and only 15 were tagged design",
+        "w": 0.3,
+        "why": "Design runs through build on anything with a visual surface, not only where a new design is being drawn. Keying this on `design` alone put UX at 1.6% of EPP against a measured 22%. Lowered from 0.38 to 0.30 in the 3.0 fit: at 0.38 the model reported 141 h of UX against EPP's recorded 100.",
         "requires_any": [
           "frontend",
           "design"
@@ -641,7 +837,7 @@
           "data",
           "design"
         ],
-        "why": "Story review is developer work, at every tier. The architect/tech lead does not review stories"
+        "why": "Story review is developer work, at every tier. The architect does not review stories — it is one role, not two, and it is priced on the calendar rather than on the backlog."
       },
       "devops": {
         "w": 0.15,
@@ -667,12 +863,9 @@
       }
     },
     "planning_agent": {
-      "architect": {
-        "w": 0.35,
-        "why": "Steering the BMad planning workflow, and the PM responsibilities folded into that role"
-      },
+      "_what": "Architect removed in 3.0 — it is its own component now. BA and UX refitted against EPP's role totals from the 0.30/0.35 they held under 2.x.",
       "ba": {
-        "w": 0.3,
+        "w": 0.65,
         "why": "Requirements and acceptance criteria across the artefacts"
       },
       "ux": {
@@ -681,12 +874,9 @@
       }
     },
     "planning_review": {
-      "architect": {
-        "w": 0.35,
-        "why": "The architecture and epics are read end to end by the person accountable for them"
-      },
+      "_what": "Architect removed in 3.0 — it is its own component now. BA and UX refitted against EPP's role totals from the 0.30/0.35 they held under 2.x.",
       "ba": {
-        "w": 0.3,
+        "w": 0.65,
         "why": "Requirements review against what the client actually asked for"
       },
       "ux": {
@@ -711,17 +901,20 @@
       }
     },
     "overhead": {
-      "architect": {
-        "w": 0.4,
-        "why": "Demos, technical client conversations and coordination"
-      },
+      "_what": "Architect removed in 3.0 — it is its own component now. BA and dev refitted against EPP's role totals from the 0.30/0.30 they held under 2.x.",
       "ba": {
-        "w": 0.3,
+        "w": 0.6,
         "why": "Ceremony, status and the client communication around scope"
       },
       "dev": {
-        "w": 0.3,
+        "w": 0.4,
         "why": "Standups and demos are not free for the people delivering. Charging ceremony only to the architect and BA put both roughly double their measured share of EPP"
+      }
+    },
+    "architect": {
+      "architect": {
+        "w": 1.0,
+        "why": "Setup and ongoing technical support, priced on the calendar rather than on the backlog. See the `architect` block for the formula and the three projects it fits."
       }
     }
   },
@@ -734,17 +927,18 @@
     "review": "review",
     "rework": "rework",
     "qa": "qa",
-    "overhead": "overhead"
+    "overhead": "overhead",
+    "architect": "architecture"
   },
   "calendar": {
     "_what": "Derived, secondary output. Hours are the deliverable; duration depends on a team shape nobody knows at presale.",
     "hours_per_person_week": 30,
-    "hours_per_person_week_why": "Six hours of focused delivery a day, five days a week. The remainder is the overhead already priced separately, plus the ordinary friction of a working week.",
+    "hours_per_person_week_why": "Six hours of focused delivery a day, five days a week. CHECKS OUT against two of the three anchors: EPP ran 690 h over 7 weeks = 98.6 h/week, and memorial-healthcare 360 h over 3.5 weeks = 102.9 h/week — both about 3.3 people at this rate. easyterms ran 240 h over 5 weeks = 48 h/week, a one-to-two person project. Confidence 6/10.",
     "max_useful_parallelism": 6,
     "max_useful_parallelism_why": "Beyond roughly six people on one workstream, coordination cost grows faster than throughput. The critical path, not the headcount, sets the floor on duration."
   },
   "surfaces": {
-    "_what": "Which kinds of work a story touches. This is what decides which roles are on it: a role whose 'requires' surface is absent from the story is dropped from that story's split entirely, so a background job bills no UX and a screen bills no devops. Tagged per story at extraction and confirmable like any other tag. A story with no surfaces tag at all is treated as unknown, and unknown keeps every role in — silence must not quietly discount.",
+    "_what": "Which kinds of work a story touches. Two jobs. It decides WHICH ROLES are on the story: a role whose `requires` surface is absent is dropped from that story's split, so a background job bills no UX and a screen bills no devops. And it is the strongest single PREDICTOR OF SIZE in the anchor — median surfaces per band across EPP's 75 stories run 1 / 2 / 3 / 3 / 4, where median acceptance-criterion count runs 5 / 7 / 8.5 / 8 / 12 and cannot tell M from L. Tagged per story at extraction. A story with no surfaces tag is treated as unknown, and unknown keeps every role in — silence must not quietly discount.",
     "backend": "Server-side logic, data model, APIs, background jobs, third-party integrations",
     "frontend": "Screens, client state, forms, tables — implementing a design that already exists",
     "design": "Visual or interaction design: new screens, a design-system component, an accessibility or microcopy pass",

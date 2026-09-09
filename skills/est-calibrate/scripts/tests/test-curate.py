@@ -60,8 +60,8 @@ def run(args, tty=True):
 
 class Parsing(unittest.TestCase):
     def test_a_three_point_value(self):
-        self.assertEqual(cu.parse_change("review_rate.sensitive=0.3/0.42/0.6"),
-                         ("review_rate.sensitive", {"lo": 0.3, "likely": 0.42, "hi": 0.6}))
+        self.assertEqual(cu.parse_change("qa.web=0.3/0.42/0.6"),
+                         ("qa.web", {"lo": 0.3, "likely": 0.42, "hi": 0.6}))
 
     def test_a_scalar(self):
         self.assertEqual(cu.parse_change("uncertainty.z=1.28"), ("uncertainty.z", 1.28))
@@ -73,30 +73,30 @@ class Parsing(unittest.TestCase):
 
     def test_a_two_point_value_is_refused(self):
         with self.assertRaises(cu.Refused):
-            cu.parse_change("review_rate.sensitive=0.3/0.6")
+            cu.parse_change("qa.web=0.3/0.6")
 
     def test_a_path_that_does_not_exist_is_refused(self):
         with self.assertRaises(cu.Refused) as ctx:
-            cu.resolve(fx.model(), "review_rate.paranoid")
+            cu.resolve(fx.model(), "qa.paranoid")
         self.assertIn("not in the cost model", str(ctx.exception))
 
     def test_it_never_creates_a_coefficient(self):
         model = fx.model()
         with self.assertRaises(cu.Refused):
-            cu.set_one(model, "review_rate.brand_new", 0.4, "why", "me", "2026-09-07")
-        self.assertNotIn("brand_new", model["review_rate"])
+            cu.set_one(model, "qa.brand_new", 0.4, "why", "me", "2026-09-07")
+        self.assertNotIn("brand_new", model["qa"])
 
 
 class Sanity(unittest.TestCase):
     def test_an_inverted_range_is_refused(self):
         with self.assertRaises(cu.Refused) as ctx:
-            cu.set_one(fx.model(), "review_rate.sensitive", {"lo": 0.9, "likely": 0.3, "hi": 0.4},
+            cu.set_one(fx.model(), "qa.web", {"lo": 0.9, "likely": 0.3, "hi": 0.4},
                        "w", "me", "2026-09-07")
         self.assertIn("band collapses silently", str(ctx.exception))
 
     def test_one_bound_that_inverts_the_row_is_refused(self):
         with self.assertRaises(cu.Refused):
-            cu.set_one(fx.model(), "review_rate.routine.lo", 0.9, "w", "me", "2026-09-07")
+            cu.set_one(fx.model(), "qa.mobile_manual.lo", 0.9, "w", "me", "2026-09-07")
 
     def test_a_negative_coefficient_is_refused(self):
         with self.assertRaises(cu.Refused) as ctx:
@@ -111,22 +111,22 @@ class Sanity(unittest.TestCase):
 
     def test_an_ordered_change_is_allowed(self):
         model = fx.model()
-        cu.set_one(model, "review_rate.sensitive", {"lo": 0.3, "likely": 0.45, "hi": 0.7},
+        cu.set_one(model, "qa.web", {"lo": 0.3, "likely": 0.45, "hi": 0.7},
                    "w", "me", "2026-09-07")
-        self.assertEqual(model["review_rate"]["sensitive"]["likely"], 0.45)
+        self.assertEqual(model["qa"]["web"]["likely"], 0.45)
 
     def test_a_three_point_range_set_as_a_scalar_is_refused(self):
         with self.assertRaises(cu.Refused) as ctx:
-            cu.set_one(fx.model(), "review_rate.sensitive", 0.4, "w", "me", "2026-09-07")
+            cu.set_one(fx.model(), "qa.web", 0.4, "w", "me", "2026-09-07")
         self.assertIn("name one bound", str(ctx.exception))
 
 
 class Provenance(unittest.TestCase):
     def test_the_reason_lands_in_the_coefficients_own_why(self):
         model = fx.model()
-        cu.set_one(model, "review_rate.sensitive", {"lo": 0.3, "likely": 0.45, "hi": 0.7},
+        cu.set_one(model, "qa.web", {"lo": 0.3, "likely": 0.45, "hi": 0.7},
                    "money features get read line by line", "Ostap", "2026-09-07")
-        why = model["review_rate"]["sensitive"]["why"]
+        why = model["qa"]["web"]["why"]
         self.assertIn("money features get read line by line", why)
         self.assertIn("NOT calibrated", why)
 
@@ -138,12 +138,12 @@ class Provenance(unittest.TestCase):
 
     def test_overriding_a_calibrated_coefficient_warns(self):
         model = fx.model()
-        model["review_rate"]["sensitive"]["why"] = "Calibrated 2026-08-01 from 6 delivered projects."
+        model["qa"]["web"]["why"] = "Calibrated 2026-08-01 from 6 delivered projects."
         self.assertIn("replaces evidence with an opinion",
-                      cu.overrides_evidence(model, "review_rate.sensitive"))
+                      cu.overrides_evidence(model, "qa.web"))
 
     def test_an_uncalibrated_coefficient_does_not_warn(self):
-        self.assertIsNone(cu.overrides_evidence(fx.model(), "review_rate.sensitive"))
+        self.assertIsNone(cu.overrides_evidence(fx.model(), "qa.web"))
 
 
 class Gates(unittest.TestCase):
@@ -249,7 +249,7 @@ class Impact(unittest.TestCase):
             ledger = self.entry(tmp)
             after = fx.model()
             for bound in ("lo", "likely", "hi"):
-                after["review_rate"]["sensitive"][bound] *= 2
+                after["qa"]["web"][bound] *= 2
             report = cu.impact(fx.model(), after, ledger)
             self.assertEqual(report["entries"], 1)
             self.assertGreater(report["largest_move_pct"], 0)
@@ -266,7 +266,7 @@ class Impact(unittest.TestCase):
             ledger = self.entry(tmp, status="delivered", actuals={"delivery_hours": 1_000_000})
             after = fx.model()
             for bound in ("lo", "likely", "hi"):
-                after["review_rate"]["sensitive"][bound] *= 2
+                after["qa"]["web"][bound] *= 2
             report = cu.impact(fx.model(), after, ledger)
             self.assertEqual(report["against_actuals"]["compared"], 1)
             self.assertEqual(report["against_actuals"]["closer"], 1)

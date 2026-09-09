@@ -1,0 +1,3647 @@
+{
+ "schema_version": "1.0",
+ "generated": "2026-09-09T00:00:00Z",
+ "project": "easyterms epics 1-5 + 8",
+ "granularity": "project",
+ "working_language": "en",
+ "_provenance": "NO per-story effort record exists. Bands are bridged onto EPP's measured 1-5 scale by files-touched. Epic 8 is included per the delivery lead: its 11 stories are inside the 160 dev h. Actuals: dev 160 / architect 80, no other role staffed = 240 h over 5 weeks, 6 planned epics.",
+ "sources": [
+  {
+   "id": "S1",
+   "path": "easyterms/epics.md",
+   "doc_type": "backlog",
+   "language": "en"
+  }
+ ],
+ "features": [
+  {
+   "id": "F1",
+   "name": "Story 1.1: Framework selection spike — survey the landscape, then bake off the finalists on Phase-1 RAG *and* Phase-2 agentic (SPIKE-02)",
+   "epic_id": "E1",
+   "description": "Story 1.1: Framework selection spike — survey the landscape, then bake off the finalists on Phase-1 RAG *and* Phase-2 agentic (SPIKE-02)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-1-framework-selection-spike-survey-the-landscape-then-bake-off-the-finalists-spike",
+     "quote": "Story 1.1: Framework selection spike — survey the landscape, then bake off the finalists on Phase-1 RAG *and* Phase-2 agentic (SPIKE-02)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F2",
+   "name": "Story 1.2: Bootstrap the deployable `easypayday-assistant` service shell",
+   "epic_id": "E1",
+   "description": "Story 1.2: Bootstrap the deployable `easypayday-assistant` service shell",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-2-bootstrap-the-deployable-easypayday-assistant-service",
+     "quote": "Story 1.2: Bootstrap the deployable `easypayday-assistant` service shell"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 25 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F3",
+   "name": "Story 1.3: Route traffic through api-gateway `/chat` with validated SSE passthrough",
+   "epic_id": "E1",
+   "description": "Story 1.3: Route traffic through api-gateway `/chat` with validated SSE passthrough",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-3-route-traffic-through-api-gateway-chat-with-validated-sse",
+     "quote": "Story 1.3: Route traffic through api-gateway `/chat` with validated SSE passthrough"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F4",
+   "name": "Story 1.4: Establish the two-database + dual Prisma-client foundation",
+   "epic_id": "E1",
+   "description": "Story 1.4: Establish the two-database + dual Prisma-client foundation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-4-establish-the-two-database-dual-prisma-client",
+     "quote": "Story 1.4: Establish the two-database + dual Prisma-client foundation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 19 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F5",
+   "name": "Story 1.5: Auth guards, Redis, and parsed-config substrate",
+   "epic_id": "E1",
+   "description": "Story 1.5: Auth guards, Redis, and parsed-config substrate",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-5-auth-guards-redis-and-parsed-config",
+     "quote": "Story 1.5: Auth guards, Redis, and parsed-config substrate"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 31 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F6",
+   "name": "Story 1.6: Corpus recovery feasibility (SPIKE-08)",
+   "epic_id": "E1",
+   "description": "Story 1.6: Corpus recovery feasibility (SPIKE-08)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-6-corpus-recovery-feasibility-spike",
+     "quote": "Story 1.6: Corpus recovery feasibility (SPIKE-08)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 8 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F7",
+   "name": "Story 1.7: Golden eval set + metric harness (SPIKE-06)",
+   "epic_id": "E1",
+   "description": "Story 1.7: Golden eval set + metric harness (SPIKE-06)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-7-golden-eval-set-metric-harness-spike",
+     "quote": "Story 1.7: Golden eval set + metric harness (SPIKE-06)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 44 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F8",
+   "name": "Story 1.8: CI regression gate + published thresholds (FR-24)",
+   "epic_id": "E1",
+   "description": "Story 1.8: CI regression gate + published thresholds (FR-24)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 1-8-ci-regression-gate-published-thresholds-fr",
+     "quote": "Story 1.8: CI regression gate + published thresholds (FR-24)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 33 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F9",
+   "name": "Story 2.1: Establish the corpus module contract — retrieval ports + versioned schema",
+   "epic_id": "E2",
+   "description": "Story 2.1: Establish the corpus module contract — retrieval ports + versioned schema",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-1-establish-the-corpus-module-contract-retrieval-ports-versioned",
+     "quote": "Story 2.1: Establish the corpus module contract — retrieval ports + versioned schema"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 17 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F10",
+   "name": "Story 2.10a: Fusion + reranker measurement and decision (SPIKE-05)",
+   "epic_id": "E2",
+   "description": "Story 2.10a: Fusion + reranker measurement and decision (SPIKE-05)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-10a-fusion-reranker-measurement-and-decision-spike",
+     "quote": "Story 2.10a: Fusion + reranker measurement and decision (SPIKE-05)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 12 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F11",
+   "name": "10",
+   "epic_id": "E2",
+   "description": "10",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-10b-hybrid-retrieval-pipeline-rrf-fuse-rerank-assemble-fr",
+     "quote": "10"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F12",
+   "name": "Story 2.2: Define the corpus content contract — article schema, audience taxonomy & code provenance",
+   "epic_id": "E2",
+   "description": "Story 2.2: Define the corpus content contract — article schema, audience taxonomy & code provenance",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-2-define-the-corpus-content-contract-article-schema-audience-taxonomy-code",
+     "quote": "Story 2.2: Define the corpus content contract — article schema, audience taxonomy & code provenance"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 22 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F13",
+   "name": "Story 2.3a: Pipeline foundation — toolchain seams, configurable paths & article schema v2",
+   "epic_id": "E2",
+   "description": "Story 2.3a: Pipeline foundation — toolchain seams, configurable paths & article schema v2",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-3a-pipeline-foundation-toolchain-seams-article-schema",
+     "quote": "Story 2.3a: Pipeline foundation — toolchain seams, configurable paths & article schema v2"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 37 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F14",
+   "name": "Story 2.3b: Code-route extraction — invocation, generation, verification & resumable runs",
+   "epic_id": "E2",
+   "description": "Story 2.3b: Code-route extraction — invocation, generation, verification & resumable runs",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-3b-code-route-extraction-invocation-generation",
+     "quote": "Story 2.3b: Code-route extraction — invocation, generation, verification & resumable runs"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 59 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F15",
+   "name": "Story 2.3c: Web route — full-site crawl, contradiction & content gates, pilot completion",
+   "epic_id": "E2",
+   "description": "Story 2.3c: Web route — full-site crawl, contradiction & content gates, pilot completion",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-3c-web-crawl-contradiction-gates-pilot",
+     "quote": "Story 2.3c: Web route — full-site crawl, contradiction & content gates, pilot completion"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 46 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F16",
+   "name": "Story 2.4: Generate the v1 customer-facing article library",
+   "epic_id": "E2",
+   "description": "Story 2.4: Generate the v1 customer-facing article library",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4-generate-the",
+     "quote": "Story 2.4: Generate the v1 customer-facing article library"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 30 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F17",
+   "name": "Story 2.4a: Pipeline gates, run-record integrity & content-plan decisions",
+   "epic_id": "E2",
+   "description": "Story 2.4a: Pipeline gates, run-record integrity & content-plan decisions",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4a-pipeline-gates-run-record-integrity-and-content-plan",
+     "quote": "Story 2.4a: Pipeline gates, run-record integrity & content-plan decisions"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 46 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F18",
+   "name": "Story 2.4b: Complete the v1 customer-facing article library",
+   "epic_id": "E2",
+   "description": "Story 2.4b: Complete the v1 customer-facing article library",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4b-complete-the",
+     "quote": "Story 2.4b: Complete the v1 customer-facing article library"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 4 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F19",
+   "name": "Story 2.4c-bis: Attempt-scoped run records",
+   "epic_id": "E2",
+   "description": "Story 2.4c-bis: Attempt-scoped run records",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4c-bis-attempt-scoped-run",
+     "quote": "Story 2.4c-bis: Attempt-scoped run records"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 26 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F20",
+   "name": "Story 2.4c: Client-first feature map rebuild",
+   "epic_id": "E2",
+   "description": "Story 2.4c: Client-first feature map rebuild",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4c-client-first-feature-map",
+     "quote": "Story 2.4c: Client-first feature map rebuild"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 21 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F21",
+   "name": "Story 2.4d: Regenerate the core loan lifecycle band",
+   "epic_id": "E2",
+   "description": "Story 2.4d: Regenerate the core loan lifecycle band",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4d-regenerate-the-core-loan-lifecycle",
+     "quote": "Story 2.4d: Regenerate the core loan lifecycle band"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 18 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F22",
+   "name": "Story 2.4e: Regenerate the money movement and servicing band",
+   "epic_id": "E2",
+   "description": "Story 2.4e: Regenerate the money movement and servicing band",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4e-regenerate-the-money-movement-and-servicing",
+     "quote": "Story 2.4e: Regenerate the money movement and servicing band"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 2 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F23",
+   "name": "Story 2.4f: Regenerate the account, loyalty and referrals band",
+   "epic_id": "E2",
+   "description": "Story 2.4f: Regenerate the account, loyalty and referrals band",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4f-regenerate-the-account-loyalty-and-referrals",
+     "quote": "Story 2.4f: Regenerate the account, loyalty and referrals band"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 6 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F24",
+   "name": "Story 2.4g: Regenerate the pre-login and onboarding band",
+   "epic_id": "E2",
+   "description": "Story 2.4g: Regenerate the pre-login and onboarding band",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-4g-regenerate-the-pre-login-and-onboarding",
+     "quote": "Story 2.4g: Regenerate the pre-login and onboarding band"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 8 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F25",
+   "name": "Story 2.5: Ingest the corpus from two seed sources",
+   "epic_id": "E2",
+   "description": "Story 2.5: Ingest the corpus from two seed sources",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-5-ingest-the-corpus-from-two-seed",
+     "quote": "Story 2.5: Ingest the corpus from two seed sources"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 40 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F26",
+   "name": "Story 2.6: Corpus versioning, freshness & append-only guarantees",
+   "epic_id": "E2",
+   "description": "Story 2.6: Corpus versioning, freshness & append-only guarantees",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-6-corpus-versioning-freshness-append-only",
+     "quote": "Story 2.6: Corpus versioning, freshness & append-only guarantees"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 24 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F27",
+   "name": "Story 2.7a: Article-grounded retrieval eval set + the article route through the harness",
+   "epic_id": "E2",
+   "description": "Story 2.7a: Article-grounded retrieval eval set + the article route through the harness",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-7a-article-grounded-retrieval-eval-set-harness-article",
+     "quote": "Story 2.7a: Article-grounded retrieval eval set + the article route through the harness"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 29 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F28",
+   "name": "Story 2.7a-bis: Apply the CH2 verdicts and mint `articles-v2`",
+   "epic_id": "E2",
+   "description": "Story 2.7a-bis: Apply the CH2 verdicts and mint `articles-v2`",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-7a-bis-apply",
+     "quote": "Story 2.7a-bis: Apply the CH2 verdicts and mint `articles-v2`"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 32 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F29",
+   "name": "Story 2.7b: Chunking pipeline — run SPIKE-03 and choose the config",
+   "epic_id": "E2",
+   "description": "Story 2.7b: Chunking pipeline — run SPIKE-03 and choose the config",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-7b-chunking-pipeline-config-from-spike",
+     "quote": "Story 2.7b: Chunking pipeline — run SPIKE-03 and choose the config"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 38 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F30",
+   "name": "Story 2.7c: Ship the chunking filter (FR-08)",
+   "epic_id": "E2",
+   "description": "Story 2.7c: Ship the chunking filter (FR-08)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-7c-ship-the-chunking-filter-fr",
+     "quote": "Story 2.7c: Ship the chunking filter (FR-08)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 29 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F31",
+   "name": "Story 2.8a: Embedding model selection (SPIKE-04)",
+   "epic_id": "E2",
+   "description": "Story 2.8a: Embedding model selection (SPIKE-04)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-8a-embedding-model-selection-spike",
+     "quote": "Story 2.8a: Embedding model selection (SPIKE-04)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 28 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F32",
+   "name": "Story 2.8b: pgvector store — `Embedder` adapter, `EMBEDDING` rows, HNSW index (FR-09)",
+   "epic_id": "E2",
+   "description": "Story 2.8b: pgvector store — `Embedder` adapter, `EMBEDDING` rows, HNSW index (FR-09)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-8b-pgvector-embedder-adapter-hnsw-store-fr",
+     "quote": "Story 2.8b: pgvector store — `Embedder` adapter, `EMBEDDING` rows, HNSW index (FR-09)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 45 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F33",
+   "name": "Story 2.9: Sparse engine + Postgres topology decision (SPIKE-09)",
+   "epic_id": "E2",
+   "description": "Story 2.9: Sparse engine + Postgres topology decision (SPIKE-09)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 2-9-sparse-engine-postgres-topology-decision-spike",
+     "quote": "Story 2.9: Sparse engine + Postgres topology decision (SPIKE-09)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 39 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F34",
+   "name": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "epic_id": "E3",
+   "description": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-10-conversation-data-governance-ar",
+     "quote": "── from easypayday-assistant/ ──────────────────────────────────────────────"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 44 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F35",
+   "name": "adapter",
+   "epic_id": "E3",
+   "description": "adapter",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-1a-modelrouter-port-direct-to-provider",
+     "quote": "adapter"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F36",
+   "name": "06",
+   "epic_id": "E3",
+   "description": "06",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-1b-pii-minimization-before-egress-fr",
+     "quote": "06"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "no File List; defaulted to M",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F37",
+   "name": "01",
+   "epic_id": "E3",
+   "description": "01",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-1c-model-tier-selection-spike",
+     "quote": "01"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 34 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F38",
+   "name": "2-slots",
+   "epic_id": "E3",
+   "description": "2-slots",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-2-conversation-system-of-record-sole-writer-phase",
+     "quote": "2-slots"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 28 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F39",
+   "name": "contract",
+   "epic_id": "E3",
+   "description": "contract",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-3-pure-answer-core-first-class-citation",
+     "quote": "contract"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 44 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F40",
+   "name": "query",
+   "epic_id": "E3",
+   "description": "query",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-4-condense-multi-turn-into-a-standalone",
+     "quote": "query"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 35 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F41",
+   "name": "human",
+   "epic_id": "E3",
+   "description": "human",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-5a-ladder-chain-retrieve-cheap-strong",
+     "quote": "human"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 51 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F42",
+   "name": "⚠️ NODE_OPTIONS IS NOT OPTIONAL. `package.json`'s test script is",
+   "epic_id": "E3",
+   "description": "⚠️ NODE_OPTIONS IS NOT OPTIONAL. `package.json`'s test script is",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-5b-pre-retrieval-rungs-classify-cache",
+     "quote": "⚠️ NODE_OPTIONS IS NOT OPTIONAL. `package.json`'s test script is"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 43 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F43",
+   "name": "⚠️ NODE_OPTIONS IS NOT OPTIONAL. `package.json`'s test script is",
+   "epic_id": "E3",
+   "description": "⚠️ NODE_OPTIONS IS NOT OPTIONAL. `package.json`'s test script is",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-6a-escalation-system-of-record-structural-fail-closed",
+     "quote": "⚠️ NODE_OPTIONS IS NOT OPTIONAL. `package.json`'s test script is"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 24 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F44",
+   "name": "── TypeScript side (from easypayday-assistant/) ────────────────────────────",
+   "epic_id": "E3",
+   "description": "── TypeScript side (from easypayday-assistant/) ────────────────────────────",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-6b",
+     "quote": "── TypeScript side (from easypayday-assistant/) ────────────────────────────"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 68 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F45",
+   "name": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "epic_id": "E3",
+   "description": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-6b",
+     "quote": "── from easypayday-assistant/ ──────────────────────────────────────────────"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 49 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F46",
+   "name": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "epic_id": "E3",
+   "description": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-7a-diagnose-citation-emission-and-ship-answer-prompt",
+     "quote": "── from easypayday-assistant/ ──────────────────────────────────────────────"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 47 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F47",
+   "name": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "epic_id": "E3",
+   "description": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-7b-constrain-the-citation-contract-with-a-response",
+     "quote": "── from easypayday-assistant/ ──────────────────────────────────────────────"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 26 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F48",
+   "name": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "epic_id": "E3",
+   "description": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-8-per-answer-trace-fr",
+     "quote": "── from easypayday-assistant/ ──────────────────────────────────────────────"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 37 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F49",
+   "name": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "epic_id": "E3",
+   "description": "── from easypayday-assistant/ ──────────────────────────────────────────────",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 3-9-unanswered-question-flywheel-fr",
+     "quote": "── from easypayday-assistant/ ──────────────────────────────────────────────"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 29 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F50",
+   "name": "foundation",
+   "epic_id": "E4",
+   "description": "foundation",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-1-chat-design-system",
+     "quote": "foundation"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 15 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F51",
+   "name": "contract",
+   "epic_id": "E4",
+   "description": "contract",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-2-standalone-chat-client-app-iframe-embed",
+     "quote": "contract"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 38 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F52",
+   "name": "Delta gate — set-diff, never a count.",
+   "epic_id": "E4",
+   "description": "Delta gate — set-diff, never a count.",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-3-launcher-floating-panel-shell-responsive-split",
+     "quote": "Delta gate — set-diff, never a count."
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 37 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F53",
+   "name": "Delta gate — set-diff, never a count.",
+   "epic_id": "E4",
+   "description": "Delta gate — set-diff, never a count.",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-4-message-list-bubbles",
+     "quote": "Delta gate — set-diff, never a count."
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 40 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F54",
+   "name": "From easypayday-client/",
+   "epic_id": "E4",
+   "description": "From easypayday-client/",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-5-streaming-cited-answers-over",
+     "quote": "From easypayday-client/"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "M",
+     "why": "bridged from 32 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F55",
+   "name": "From easypayday-client/",
+   "epic_id": "E4",
+   "description": "From easypayday-client/",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-6-citation-chips-prompt-chips-source",
+     "quote": "From easypayday-client/"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend",
+    "infra"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 50 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F56",
+   "name": "Story 4.7: Fail-closed handoff UX, conversation states & voice",
+   "epic_id": "E4",
+   "description": "Story 4.7: Fail-closed handoff UX, conversation states & voice",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-7-fail-closed-handoff-ux-conversation-states",
+     "quote": "Story 4.7: Fail-closed handoff UX, conversation states & voice"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 62 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F57",
+   "name": "Story 4.8: Authenticated host embed, identity handshake & flag-gated cutover",
+   "epic_id": "E4",
+   "description": "Story 4.8: Authenticated host embed, identity handshake & flag-gated cutover",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-8-authenticated-host-embed-identity-handshake-flag-gated",
+     "quote": "Story 4.8: Authenticated host embed, identity handshake & flag-gated cutover"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 59 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": [],
+   "manual_effort": [
+    "external_idp"
+   ]
+  },
+  {
+   "id": "F58",
+   "name": "Story 4.9: Accessibility floor conformance + composition reference mock",
+   "epic_id": "E4",
+   "description": "Story 4.9: Accessibility floor conformance + composition reference mock",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 4-9-accessibility-floor-conformance-composition-reference",
+     "quote": "Story 4.9: Accessibility floor conformance + composition reference mock"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 21 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F59",
+   "name": "Story 5.1: Enumerate the Tidio-parity checklist (FR-21)",
+   "epic_id": "E5",
+   "description": "Story 5.1: Enumerate the Tidio-parity checklist (FR-21)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-1-enumerate-the-tidio-parity-checklist-fr",
+     "quote": "Story 5.1: Enumerate the Tidio-parity checklist (FR-21)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 3 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F60",
+   "name": "Story 5.2: Escalation domain-event backbone + cross-instance @Sse fan-out (AR-15)",
+   "epic_id": "E5",
+   "description": "Story 5.2: Escalation domain-event backbone + cross-instance @Sse fan-out (AR-15)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-2-escalation-domain-event-backbone-cross-instance-sse-fan-out-ar",
+     "quote": "Story 5.2: Escalation domain-event backbone + cross-instance @Sse fan-out (AR-15)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 45 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F61",
+   "name": "Story 5.2a: Shared UI floor — the primitives and repairs the console stands on",
+   "epic_id": "E5",
+   "description": "Story 5.2a: Shared UI floor — the primitives and repairs the console stands on",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-2a-shared-ui",
+     "quote": "Story 5.2a: Shared UI floor — the primitives and repairs the console stands on"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 25 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F62",
+   "name": "Story 5.3: Real-time officer inbox (FR-17)",
+   "epic_id": "E5",
+   "description": "Story 5.3: Real-time officer inbox (FR-17)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-3-real-time-officer-inbox-fr",
+     "quote": "Story 5.3: Real-time officer inbox (FR-17)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 108 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F63",
+   "name": "Story 5.4a: Live-takeover machinery — the customer channel, the officer turn and the state machine's first callers (FR-18)",
+   "epic_id": "E5",
+   "description": "Story 5.4a: Live-takeover machinery — the customer channel, the officer turn and the state machine's first callers (FR-18)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-4a-live-takeover-machinery-and-the-customer-channel-fr",
+     "quote": "Story 5.4a: Live-takeover machinery — the customer channel, the officer turn and the state machine's first callers (FR-18)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 112 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F64",
+   "name": "Story 5.4b: The conversation view and the officer turn — both surfaces (FR-18)",
+   "epic_id": "E5",
+   "description": "Story 5.4b: The conversation view and the officer turn — both surfaces (FR-18)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-4b-conversation-view-and-officer-turn-surface-fr",
+     "quote": "Story 5.4b: The conversation view and the officer turn — both surfaces (FR-18)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "frontend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 94 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F65",
+   "name": "Story 5.5: AI copilot draft (FR-19)",
+   "epic_id": "E5",
+   "description": "Story 5.5: AI copilot draft (FR-19)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-5-ai-copilot-draft-fr",
+     "quote": "Story 5.5: AI copilot draft (FR-19)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 81 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F66",
+   "name": "Story 5.6: Semantic search over the corpus (FR-20)",
+   "epic_id": "E5",
+   "description": "Story 5.6: Semantic search over the corpus (FR-20)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-6-semantic-search-over-the-corpus-fr",
+     "quote": "Story 5.6: Semantic search over the corpus (FR-20)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "data"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 78 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F67",
+   "name": "Story 5.7a: Canned responses, transfer/assignment and history (FR-21)",
+   "epic_id": "E5",
+   "description": "Story 5.7a: Canned responses, transfer/assignment and history (FR-21)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 5-7a-canned-responses-transfer-and-history-fr",
+     "quote": "Story 5.7a: Canned responses, transfer/assignment and history (FR-21)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 101 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F68",
+   "name": "Story 8.1: The typed act union",
+   "epic_id": "E8",
+   "description": "Story 8.1: The typed act union",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-1-the-typed-act",
+     "quote": "Story 8.1: The typed act union"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 27 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F69",
+   "name": "Story 8.10: Multi-document turns — merge the documents, never falsely hand off",
+   "epic_id": "E8",
+   "description": "Story 8.10: Multi-document turns — merge the documents, never falsely hand off",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-10-multi-document-turns-merge-not",
+     "quote": "Story 8.10: Multi-document turns — merge the documents, never falsely hand off"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 51 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F70",
+   "name": "Story 8.2: The SSE act contract",
+   "epic_id": "E8",
+   "description": "Story 8.2: The SSE act contract",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-2-the-sse-act",
+     "quote": "Story 8.2: The SSE act contract"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XS",
+     "why": "bridged from 14 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F71",
+   "name": "Story 8.3: The third eval verdict",
+   "epic_id": "E8",
+   "description": "Story 8.3: The third eval verdict",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-3-the-third-eval",
+     "quote": "Story 8.3: The third eval verdict"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 37 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F72",
+   "name": "Story 8.4: Flywheel eligibility + the deterministic small-talk tier",
+   "epic_id": "E8",
+   "description": "Story 8.4: Flywheel eligibility + the deterministic small-talk tier",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-4-flywheel-eligibility-deterministic-small-talk",
+     "quote": "Story 8.4: Flywheel eligibility + the deterministic small-talk tier"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 48 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F73",
+   "name": "Story 8.5: Retrieval as a tool",
+   "epic_id": "E8",
+   "description": "Story 8.5: Retrieval as a tool",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-5-retrieval-as-a",
+     "quote": "Story 8.5: Retrieval as a tool"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 23 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F74",
+   "name": "Story 8.6a: The agent core (invocable, unrouted)",
+   "epic_id": "E8",
+   "description": "Story 8.6a: The agent core (invocable, unrouted)",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-6a-the-agent-core-invocable",
+     "quote": "Story 8.6a: The agent core (invocable, unrouted)"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 74 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F75",
+   "name": "Story 8.6b: Routing the turn through the agent",
+   "epic_id": "E8",
+   "description": "Story 8.6b: Routing the turn through the agent",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-6b-routing-the-turn-through-the",
+     "quote": "Story 8.6b: Routing the turn through the agent"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 75 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F76",
+   "name": "Story 8.7: Voice and tone",
+   "epic_id": "E8",
+   "description": "Story 8.7: Voice and tone",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-7-voice-and",
+     "quote": "Story 8.7: Voice and tone"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "S",
+     "why": "bridged from 24 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F77",
+   "name": "Story 8.8: Cost, latency and trace",
+   "epic_id": "E8",
+   "description": "Story 8.8: Cost, latency and trace",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-8-cost-latency-and",
+     "quote": "Story 8.8: Cost, latency and trace"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "XL",
+     "why": "bridged from 59 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "routine",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  },
+  {
+   "id": "F78",
+   "name": "Story 8.9: Remove name-based PII minimization from the egress path",
+   "epic_id": "E8",
+   "description": "Story 8.9: Remove name-based PII minimization from the egress path",
+   "citations": [
+    {
+     "source_id": "S1",
+     "location": "story 8-9-remove-name-based-pii",
+     "quote": "Story 8.9: Remove name-based PII minimization from the egress path"
+    }
+   ],
+   "commitment": "committed",
+   "surfaces": [
+    "backend"
+   ],
+   "tags": {
+    "size_band": {
+     "value": "L",
+     "why": "bridged from 38 files touched",
+     "status": "confirmed"
+    },
+    "compressibility": {
+     "value": "high",
+     "why": "conventional web/SaaS delivery",
+     "status": "confirmed"
+    },
+    "review_tier": {
+     "value": "sensitive",
+     "why": "inferred from the story's own subject matter",
+     "status": "confirmed"
+    },
+    "clarity": {
+     "value": "high",
+     "why": "delivered against written acceptance criteria",
+     "status": "confirmed"
+    },
+    "novelty": {
+     "value": "standard",
+     "why": "the team had built this shape before",
+     "status": "confirmed"
+    }
+   },
+   "depends_on": [],
+   "open_questions": []
+  }
+ ],
+ "not_scope": [],
+ "conflicts": [],
+ "assumptions": [],
+ "completeness_signals": {
+  "acceptance_criteria": {
+   "value": "most",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "stack_specified": {
+   "value": "full",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "integrations_named": {
+   "value": "all",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "nfrs_stated": {
+   "value": "most",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "data_model_described": {
+   "value": "detailed",
+   "why": "a delivered project's own epics, read after the fact"
+  },
+  "ui_defined": {
+   "value": "designed",
+   "why": "a delivered project's own epics, read after the fact"
+  }
+ }
+}

@@ -42,8 +42,11 @@ What you build most, and what a typical project's architecture looks like.
 
 ## QA capability
 
-> **UNANSWERED** — selects the `qa` profile: a share of the manual baseline.
-> web 3% · mobile manual 7.5% · **mobile through the MCP server 2.5%**.
+> **UNANSWERED** — selects the `qa` profile: a share of the story-work total.
+> web 9.5% · mobile manual 23.8% · **mobile through the MCP server 7.9%**.
+> (These moved in cost-model 3.0. They are a share of delivered story hours now, not of a
+> manual-equivalent baseline — the same 40 h of QA, measured against a real number instead
+> of a constructed one.)
 
 **Is the mobile MCP server doing the testing?** Nobody volunteers this and it is a threefold
 difference on the same mobile scope. The industry default overstates your mobile QA badly, so
@@ -58,14 +61,29 @@ never true.
 How you work with clients: ceremony, demos, who reviews, how often. Overhead follows the
 calendar, so on a long project this is not a rounding difference.
 
+## Architect setup and support
+
+> Not a question — a recorded fact, and the best-evidenced coefficient in the model. All three
+> delivered projects fit `setup + a capped weekly rate` exactly: EPP 40 h setup + 7 weeks x 10;
+> memorial-healthcare 30 + 3 x 10; easyterms 30 + 5 x 10. Setup does not scale with the backlog
+> and support scales with the calendar, so a bigger backlog does not buy a bigger architect.
+> Say here if your engagements run differently — a different setup figure or a different weekly
+> ceiling is exactly the kind of thing this file is for.
+
 ## House rules
 
-Anything else true of how this company works that an estimate should respect. Two worth
-confirming explicitly, because both read as omissions otherwise:
+Anything else true of how this company works that an estimate should respect. Three worth
+confirming explicitly, because all three read as omissions otherwise:
 
 - **The Architect absorbs PM responsibilities during planning.** There is no PM in the role
   split, deliberately.
-- Roles are `architect, dev, devops, qa, ba, ux` — the `est_roles` setting.
+- Roles are `architect, dev, devops, qa, ba, ux` — the `est_roles` setting. Every estimate bills
+  all six. **Only one of the three calibration projects staffed all six**: memorial-healthcare
+  booked no QA and no DevOps, easyterms booked no BA, no UX, no QA and no DevOps. If your
+  projects are staffed like those, say so — the estimate will report hours nobody will book.
+- **Splitting a story is decomposition, not scope growth.** All three projects delivered roughly
+  1.7x the story count they planned, at unchanged scope and unchanged hours. It is priced into
+  planning, which pays per artefact written, and nowhere else.
 
 ## Rates and commercials
 

@@ -14,17 +14,18 @@
       ]
     },
     {
-      "id": "band-assignment",
+      "id": "synthesis-and-surfaces",
       "fixture": "sizing-backlog.xlsx",
       "asks": "Extract scope from this workbook.",
       "must_hold": [
         "the six Depots CRUD rows collapse into a single story, not six features",
-        "that depot story is tagged size_band M — CRUD over one entity, however central the entity is, is not L",
-        "'Sign in with Microsoft Entra' is tagged L despite being a single row: it is the first authentication protocol in the codebase",
-        "'Derive depot capacity from its bays' is NOT tagged L — being read by every other feature raises its review_tier, not its size_band",
         "the 40 alert-rule rows are one story whose size why names the count, not 40 features",
-        "no story is tagged XS"
-      ]
+        "that depot story carries surfaces — it is the strongest single predictor of size in the delivery anchor (median surfaces per band 1/2/3/3/4, against acceptance-criterion counts of 5/7/8.5/8/12 that cannot tell M from L), so an untagged inventory costs the classifier its best signal",
+        "'Sign in with Microsoft Entra' carries a backend surface and reads as a protocol the codebase does not have — the extraction records that, the classification prices it",
+        "the extraction report states the story count and the surfaces per story, because inventory-check.py compares the latter against the anchor's 2.29 and that comparison moves the estimate more than any single band does",
+        "no size_band is set anywhere in the inventory — bands are a judgement about cost and live in classification.json, written by est-estimate"
+      ],
+      "note": "Renamed from `band-assignment` in the 3.0 rebuild. Four of its assertions were about size_band, which est-scope-extract has not set since extraction and classification were separated — and one of them ('no story is tagged XS') was measured false: the delivery anchor's own record has 2.7% XS and 4.0% XL. The band assertions now live in est-estimate's own tests and its anchor backtest."
     },
     {
       "id": "row-text-not-row-label",

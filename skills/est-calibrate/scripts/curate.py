@@ -297,7 +297,7 @@ def main():
     ap.add_argument("--cost-model", required=True, help="cost-model.json to update in place")
     ap.add_argument("--calibration-log", required=True, help="calibration-log.md to append to")
     ap.add_argument("--set", nargs="+", required=True, metavar="PATH=VALUE",
-                    help="e.g. review_rate.sensitive=0.30/0.42/0.60 or uncertainty.model_risk=0.10")
+                    help="e.g. qa.web=0.07/0.095/0.14 or uncertainty.model_risk=0.10")
     ap.add_argument("--why", required=True, help="the reasoning; recorded in the coefficient itself")
     ap.add_argument("--approved-by", help="who decided this; required to apply, not to preview")
     ap.add_argument("--ledger", help="ledger directory, to re-price what this would change")

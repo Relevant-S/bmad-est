@@ -64,7 +64,7 @@ est_show_manual_baseline:
   prompt: "Include the human-only comparison in client-facing renders?"
   default: false
   type: confirm
-  example: "internal sanity check against pre-BMad intuition; usually off for client output"
+  example: "internal sanity check against pre-BMad intuition; usually off for client output. It is a REPORTED figure — delivered story hours times the compressibility class — and the multiple behind it rests on one sentence in a delivered project's own effort assessment, so it is the weakest number in any render"
 
 est_report_calendar_duration:
   prompt: "Include derived calendar duration alongside hours?"

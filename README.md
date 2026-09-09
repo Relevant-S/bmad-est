@@ -16,28 +16,34 @@ Three properties make it different from a spreadsheet:
 
 **Nothing is invented and nothing is silently dropped.** Every extracted feature carries a verbatim quote from its source. Every substantive passage that *didn't* become a feature is listed with a reason. Both directions are checked mechanically by re-opening the documents — not asserted.
 
-**Every task is priced per role, and only the roles actually on it.** Each story declares the surfaces it touches — backend, frontend, design, infra, data — and roles whose surface is absent are dropped from that story entirely. A nightly reconciliation job bills no designer. The shares renormalise, so the story still costs what it costs; the hours just land on the people doing the work. The architect — who is the tech lead; there is one such role, not two — appears only in project-level components, because a tech lead does not review individual stories.
+**Every task is priced per role, and only the roles actually on it.** Each story declares the surfaces it touches — backend, frontend, design, infra, data — and roles whose surface is absent are dropped from that story entirely. A nightly reconciliation job bills no designer. The shares renormalise, so the story still costs what it costs; the hours just land on the people doing the work. The architect — who is the tech lead; there is one such role, not two — is priced separately from all of this, as **setup plus a capped weekly rate**: 30–40 hours to stand a project up, then up to 10 hours a week while it runs. All three delivered projects fit that formula exactly. It does not appear on stories at all, because an architect does not review individual stories and a bigger backlog does not buy a bigger architect.
 
 **There is no project total.** A single summed number is meaningless when the work splits across roles, and it could not be reconciled anyway: adding up the story rows of a real estimate gave 1,752 h against a 2,414 h headline, because planning, QA and overhead touch no story. Every output leads with the role table instead, each role a range, showing how much of it traces to a story and how much the project pays regardless. **Nothing is a point value**: every story and every role carries low/likely/high, and the width says how well-specified the work is — a vague story reads wider than a detailed one.
 
-**The coefficients are fitted to a delivered project, and it says so.** The shipped model is calibrated against EPP Phase 1 — 76 stories, 540 hours, split across six roles — which re-prices to 569h, within 5%. That is one project, `calibration_history` records `n=1`, and every rendered estimate carries the sample size. One project is far better than a reasoned guess and is not a trend; the module never lets you confuse the two.
+**The coefficients are fitted to three delivered projects, and it says exactly how far each one goes.** 690 hours over 7 weeks, 360 over 3.5, 240 over 5 — all with per-role actuals. One of them also recorded effort **per story**, and that is what the size bands rest on: 206 complexity points to 240 developer hours, re-checked independently on a later slice and landing 0.7% apart. A shipped test re-prices all three from their own delivered story lists and holds the first to ±25%.
+
+It also records where they disagree instead of averaging it away. The same kind of scope was written as 9.2, 2.9 and 3.1 hours per delivered story across the three — a threefold spread that no unit available before a project starts resolves to better than about 1.7×. The model is fitted to the expensive end, the checker reports which end a given inventory sits at, and every coefficient carries a confidence score from 9/10 down to 2/10 with what would raise it.
 
 **It learns from what you actually delivered.** When a project closes, you record the real hours. The calibrator backtests any proposed coefficient change against your delivery history and shows you "this would have improved 7 of your last 9 estimates" before you approve it. Nothing changes the model without a named human agreeing to it. **One delivered BMad project is enough to start** — it reads that project's own epics and stories for its shape, and stamps the resulting change `n=1` so nobody mistakes it for a trend.
 
 ### The one modelling idea worth understanding
 
-**Review effort scales with the volume of code produced, not the time taken to produce it.**
+**What makes a story expensive is the work an agent cannot do at all.**
 
-Under BMad, the agent writes roughly the code a human would have written, in a fraction of the time. So compression collapses the *build* and leaves the *review* untouched. That single choice reproduces what teams actually experience — no special-casing needed.
+The obvious answer is "the risky ones get read line by line", and it turns out to be worth almost nothing. Measured across a delivered project's 75 stories, the sensitive ones — money, personal data, authentication — average **1.05×** the routine ones. With a fresh-context agent review pass before a human reads anything, careful reading is cheap.
 
-Two stories, both sized M, both an 11.7-hour manual baseline:
+What is expensive is the console. Setting up a payment provider, configuring an external identity provider, standing up a device build: account creation, credentials, webhook secrets, store review, verification that only runs against the real thing. On the same delivered record, a money rail carries **+0.75 complexity points** over what the story's surface count predicts, an external IdP **+0.73**, native/device work **+0.41** — and a story touching nothing external carries **−0.07**, which is the control that makes the other three believable.
 
-| | Build | Review | **Total** |
-|---|---|---|---|
-| CRUD screen — compresses well, routine review | 0.8h | 0.5h | **2.4h** |
-| Payments flow — compresses badly, line-by-line review | 2.7h | 3.8h | **8.1h** |
+Two stories, both sized M:
 
-Same size. 3.4× the cost. On the payments story review now *exceeds* build, and BMad's speed advantage has mostly evaporated — which is exactly the deal you want to know about before you win it.
+| | Build | Review | Console work | **Total** |
+|---|---|---|---|---|
+| CRUD screen — routine, compresses well | 2.7h | 0.8h | — | **5.2h** |
+| Payments flow — sensitive, compresses badly, integrates a rail | 3.0h | 2.0h | 1.2h | **6.9h** |
+
+Same size, 1.33× the cost — and the premium is **additive**, so it is the same 1.2 hours behind a small story as a large one. Two of that project's three largest stories were its Stripe ones.
+
+This matters commercially because it is checkable. "Payments are risky" is an adjective. "This story integrates a payment provider, and the last four times we did that it cost an extra 1.2 hours of work no agent can do" is a line a client can argue with.
 
 ---
 
@@ -174,7 +180,7 @@ It records what your documents *say* and nothing about what any of it costs. A b
 estimate it
 ```
 
-First it classifies: how big each story is, how much BMad compresses it, how hard it has to be reviewed, how clearly the source specified it, and whether the team has built its shape before. Those five judgements land in `classification.json` keyed by story, made against worked exemplars from a delivered project rather than against adjectives — and a run of them is checked for drift before anything is priced. They live apart from the inventory so that re-reading the client's documents can never quietly overwrite a call you made.
+First it classifies: how big each story is, how much BMad compresses it, how hard it has to be reviewed, how clearly the source specified it, whether the team has built its shape before, and whether it carries work an agent cannot do — a payment rail, an identity provider, a device build. Those judgements land in `classification.json` keyed by story, made against worked exemplars quoted from a delivered project rather than against adjectives — and a run of them is checked for drift before anything is priced. They live apart from the inventory so that re-reading the client's documents can never quietly overwrite a call you made.
 
 Then it produces the range, split by BMad phase (`planning`, `planning-review`, `spec`, `build`, `review`, `rework`, `qa`, `overhead`), by role (`dev`, `devops`, `qa`, `ba`, `ux`, `architect`) **and by role per story**, plus a ledger entry that snapshots the exact coefficients used.
 
@@ -281,7 +287,7 @@ Ten settings above, and then one file that matters more than all of them: `_bmad
 | **Team shape and seniority** | Specification, review and rework: `senior-heavy` ×0.8 / ×0.8 / ×0.7 against `junior-heavy` ×1.3 / ×1.4 / ×1.6. Build hours are untouched — the agent writes the code either way, so the whole seniority gap lands in the judgement work |
 | **BMad adoption depth, per team** | A `new-to-bmad` modifier: ×1.2 spec, ×1.2 review, ×1.5 rework. Recorded per team because it is **meant to decay** — once a team's actuals stop showing the penalty, calibration retires it for that team |
 | **Dominant stacks** | Which standing work applies. `mobile_plus_backend` adds ~30 h of release process; `multi_service` adds ~32 h of integration environment. Wrong stack and work every project of that shape pays is simply absent |
-| **QA capability** | A share of the manual baseline: web 3%, mobile manual 7.5%, **mobile through the MCP server 2.5%** |
+| **QA capability** | A share of the story-work total: web 9.5%, mobile manual 23.8%, **mobile through the MCP server 7.9%** |
 | **Engagement model** | Overhead, in hours per person per week rather than a share of scope: `low_touch` 2.0, `standard` 3.5, `high_touch` 5.0+. It follows the calendar, so on a six-month build it is not a rounding difference |
 
 **The defaults are not neutral.** The industry default for mobile QA is 7.5% of baseline. If your mobile testing runs through the MCP server the real figure is 2.5% — so an unanswered profile overstates your own mobile estimates threefold, and you lose work on a number that was never true. That is the case for filling it in that has nothing to do with tidiness.

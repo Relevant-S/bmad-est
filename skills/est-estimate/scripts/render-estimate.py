@@ -238,8 +238,9 @@ def markdown(est, show_manual_baseline=False):
     if show_manual_baseline:
         me = est["manual_equivalent"]
         out += ["", "## Build compression (internal only)", "",
-                f"Manual build effort {me['build_hours']:,.0f}h → BMad build effort "
-                f"{me['bmad_build_hours']:,.0f}h, a **{me['build_compression']}× compression on build**.",
+                f"Story work by hand {me['manual_hours']:,.0f}h → this estimate's story work "
+                f"{me['story_hours']:,.0f}h, a **{me['story_compression']}× compression on story "
+                f"work**. Project components are outside both figures.",
                 "", me["why"]]
 
     findings = est["traceability"]["findings"]

@@ -41,7 +41,7 @@ This is not timidity. A model that lurches to a point estimate on one quarter's 
 | `uncertainty.model_risk` | Project totals | — the easiest to earn |
 | `size_bands.*` | Project totals | Anything finer is better, but totals suffice |
 | `planning.review_hours`, `planning.agent_hours`, `env_infra`, `qa`, `overhead_rate` | Phase-level hours | Project totals — the phases are not separable from a single number |
-| `review_rate` per tier, `compressibility` per class | Per-feature hours, or projects of genuinely different shape | Totals from similar projects, at any sample size |
+| `review_tier` per tier, `compressibility` per class | Per-feature hours, or projects of genuinely different shape | Totals from similar projects, at any sample size |
 
 That last row is the one people expect and cannot have cheaply. Review tier and compressibility are the module's core IP, and separating them from project totals needs projects that differ — a payments-heavy one and a CRUD-heavy one — not simply more of the same. Ten identical projects carry the information of one. The analysis says whether the delivered projects vary enough, and refuses the fit when they do not.
 

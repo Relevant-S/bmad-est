@@ -67,12 +67,29 @@ class MatchesTheModel(unittest.TestCase):
             self.assertIn(value, TEXT)
 
     def test_the_qa_spread_is_the_models_own(self):
+        """Read off the model rather than pinned, so the seed cannot quote a stale rate. The
+        levels moved in 3.0 because the basis did: a share of delivered story hours, not of a
+        manual-equivalent baseline nobody ever measured."""
         qa = MODEL_JSON["qa"]
-        self.assertEqual(qa["web"]["likely"], 0.03)
-        self.assertEqual(qa["mobile_manual"]["likely"], 0.075)
-        self.assertEqual(qa["mobile_mcp_automated"]["likely"], 0.025)
-        for pct in ("3%", "7.5%", "2.5%"):
-            self.assertIn(pct, TEXT)
+        for key in ("web", "mobile_manual", "mobile_mcp_automated"):
+            self.assertIn(f"{qa[key]['likely'] * 100:.1f}%".replace(".0%", "%"), TEXT)
+        self.assertGreater(qa["mobile_manual"]["likely"], qa["web"]["likely"])
+        self.assertLess(qa["mobile_mcp_automated"]["likely"], qa["mobile_manual"]["likely"])
+
+    def test_the_architect_formula_is_the_models_own(self):
+        """The best-evidenced coefficient in the file — three projects, exact fit — and the one
+        a reader is most likely to want to change for their own shop."""
+        arch = MODEL_JSON["architect"]
+        self.assertIn("setup", TEXT.lower())
+        self.assertIn(str(int(arch["weekly_cap"])), TEXT)
+        self.assertRegex(TEXT, r"(?i)architect setup and support")
+
+    def test_it_says_only_one_anchor_staffed_all_six_roles(self):
+        """The fixed six-role split is a decision, and it over-states two of the three
+        calibration projects. A profile that let that be assumed away would be teaching the
+        estimate to invent a QA line."""
+        self.assertRegex(TEXT, r"(?i)no QA and no DevOps")
+        self.assertRegex(TEXT, r"(?i)report hours nobody will book")
 
     def test_the_overhead_rates_are_the_models_own(self):
         rates = MODEL_JSON["overhead_rate"]
