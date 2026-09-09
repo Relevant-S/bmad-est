@@ -27,6 +27,18 @@
       ]
     },
     {
+      "id": "row-text-not-row-label",
+      "fixture": "sizing-backlog.xlsx",
+      "asks": "Extract scope from this workbook.",
+      "must_hold": [
+        "every task's citation quote is the row's Detail text, never a copy of the row's Feature title — a run that quoted 912 titles back passed every check because the title is genuinely in the document, one column over",
+        "the quote for 'Derive depot capacity from its bays' carries the whole Detail cell including 'the public availability API read this', not the first clause of it",
+        "no quote stops mid-sentence while the cell it cites continues",
+        "the six Depots rows survive as six tasks under one story, each with its own text, so a reviewer can check the story against the workbook without opening it",
+        "inventory-check.py --normalized reports no truncated or self-quoting citations"
+      ]
+    },
+    {
       "id": "multiline-quoted-field",
       "fixture": "requirements.csv",
       "asks": "Extract scope from this requirements file.",

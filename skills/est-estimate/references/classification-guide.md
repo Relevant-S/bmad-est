@@ -9,6 +9,14 @@ it is the reading that makes a band defensible.
 Tag the **story**, not the source rows under it. A story built from ten workbook lines
 describing one screen is one screen: size it as the screen, not as the sum of the lines.
 
+**Read the rows before you size.** A story's `tasks` carry the client's own sentences for
+every line it was assembled from, and that is the evidence a band rests on — the story's
+`description` is the extractor's summary of them. An earlier run had rows whose quote was
+nothing but the row's title, and sizing against six-word labels is how a routine settings
+screen and the first authorisation layer in a codebase come back in the same band. If the
+rows under a story say no more than its name does, the inventory is defective: say so and
+send it back rather than banding it anyway.
+
 **A `why` is about this story or it is not a `why`.** The same sentence on two hundred tags is
 a default rule with a justification stapled to it, and it is what turned a workbook into a
 project — `inventory-check.py --classification` reports any justification shared across more than a

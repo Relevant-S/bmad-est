@@ -129,6 +129,27 @@ def _comparable(text):
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+def iter_citations(inv, tasks=True, implicit=True):
+    """Every citation in the inventory, with the label that locates it and what owns it.
+
+    The walk used to stop at `feature.citations`. That is why an extraction could give all 912
+    of its tasks a citation quoting the task's own title and pass every gate in this file: no
+    check ever descended into a task. A task's citation is the only place a source row's text
+    survives, so it is held to exactly what a feature's citation is held to.
+
+    Yields (label, citation, feature, task) — task is None for a feature's own citation.
+    """
+    for feature in list(inv.get("features") or []) + (list(inv.get("implicit_scope") or []) if implicit else []):
+        fid = feature.get("id", "?")
+        for i, cit in enumerate(feature.get("citations") or []):
+            yield f"{fid}.citations[{i}]", cit, feature, None
+        if not tasks:
+            continue
+        for j, task in enumerate(feature.get("tasks") or []):
+            for i, cit in enumerate(task.get("citations") or []):
+                yield f"{fid}.tasks[{j}].citations[{i}]", cit, feature, task
+
+
 def verify_citations(inv, normalized_dir):
     """Confirm every quote actually appears in the source it cites.
 
@@ -148,35 +169,32 @@ def verify_citations(inv, normalized_dir):
     working = (inv.get("working_language") or "en").lower()
     langs = {s.get("id"): (s.get("language") or "").lower() for s in inv.get("sources", [])}
 
-    for feature in inv.get("features", []):
-        fid = feature.get("id", "?")
-        for i, cit in enumerate(feature.get("citations", [])):
-            sid = cit.get("source_id")
-            if sid not in texts:
-                findings.append(
-                    f"{fid}.citations[{i}]: no normalized text found for {sid} in {normalized_dir} — "
-                    f"the quote could not be verified"
-                )
-                continue
-            # A translated quote will never appear verbatim; check the original instead.
-            foreign = langs.get(sid) and langs[sid] != working
-            quote = cit.get("quote_original") if foreign and cit.get("quote_original") else cit.get("quote")
-            needle = _comparable(quote or "")
-            if not needle or needle in texts[sid]:
-                continue
-            ratio = max(
-                (SequenceMatcher(None, needle, texts[sid][pos:pos + len(needle)]).ratio()
-                 for pos in range(0, max(len(texts[sid]) - len(needle), 0) + 1,
-                                  max(len(needle) // 4, 1))),
-                default=0.0,
-            )
-            verdict = ("close to source text; likely paraphrased or lightly edited — quote it verbatim"
-                       if ratio >= 0.75 else
-                       "no similar passage in the source — this may be invented scope")
+    for label, cit, _feature, _task in iter_citations(inv):
+        sid = cit.get("source_id")
+        if sid not in texts:
             findings.append(
-                f"{fid}.citations[{i}]: quote not found in {sid} "
-                f"(closest match {ratio:.0%}) — {verdict}"
+                f"{label}: no normalized text found for {sid} in {normalized_dir} — "
+                f"the quote could not be verified"
             )
+            continue
+        # A translated quote will never appear verbatim; check the original instead.
+        foreign = langs.get(sid) and langs[sid] != working
+        quote = cit.get("quote_original") if foreign and cit.get("quote_original") else cit.get("quote")
+        needle = _comparable(quote or "")
+        if not needle or needle in texts[sid]:
+            continue
+        ratio = max(
+            (SequenceMatcher(None, needle, texts[sid][pos:pos + len(needle)]).ratio()
+             for pos in range(0, max(len(texts[sid]) - len(needle), 0) + 1,
+                              max(len(needle) // 4, 1))),
+            default=0.0,
+        )
+        verdict = ("close to source text; likely paraphrased or lightly edited — quote it verbatim"
+                   if ratio >= 0.75 else
+                   "no similar passage in the source — this may be invented scope")
+        findings.append(
+            f"{label}: quote not found in {sid} (closest match {ratio:.0%}) — {verdict}"
+        )
     return findings
 
 
@@ -203,16 +221,33 @@ def _normalized_files(inv, normalized_dir):
     return files
 
 
+def _line_of(text, pos):
+    return text.count("\n", 0, pos) + 1
+
+
 def index_anchors(text):
-    """Every citable position the converter emitted for one source."""
+    """Every citable position the converter emitted for one source, and the line it sits on.
+
+    Anchors map position -> line number rather than being a bare set of positions. The line
+    is what lets a rendered citation link *into* the converted source at the row it cites,
+    instead of printing a location the reader then has to go and find. Every existing caller
+    reads these as membership tests and min/max, which a dict answers over its keys exactly
+    as a set did.
+    """
     sheets = {}
     for match in SHEET_RE.finditer(text):
         end = text.find("\n## sheet:", match.end())
-        block = text[match.end():end if end != -1 else len(text)]
-        sheets[match.group(1)] = {int(r) for r in ROW_RE.findall(block)}
+        rows = {}
+        for row in ROW_RE.finditer(text, match.end(), end if end != -1 else len(text)):
+            rows[int(row.group(1))] = _line_of(text, row.start())
+        sheets[match.group(1)] = rows
+    pages, slides = {}, {}
+    for match in PAGE_RE.finditer(text):
+        target = pages if match.group(1) == "page" else slides
+        target[int(match.group(2))] = _line_of(text, match.start())
     return {
-        "pages": {int(n) for kind, n in PAGE_RE.findall(text) if kind == "page"},
-        "slides": {int(n) for kind, n in PAGE_RE.findall(text) if kind == "slide"},
+        "pages": pages,
+        "slides": slides,
         "sheets": sheets,
         "headings": [h.strip() for _, h in HEADING_RE.findall(text)],
     }
@@ -250,14 +285,14 @@ def check_anchors(inv, normalized_dir):
     findings = []
     for sid, path in _normalized_files(inv, normalized_dir).items():
         anchors = index_anchors(path.read_text(encoding="utf-8", errors="replace"))
-        entries = [(f.get("id"), i, c) for f in inv.get("features", [])
-                   for i, c in enumerate(f.get("citations", [])) if c.get("source_id") == sid]
-        entries += [("not_scope", i, n) for i, n in enumerate(inv.get("not_scope", []))
+        entries = [(label, c) for label, c, _f, _t in iter_citations(inv)
+                   if c.get("source_id") == sid]
+        entries += [(f"not_scope[{i}]", n) for i, n in enumerate(inv.get("not_scope", []))
                     if n.get("source_id") == sid]
-        for owner, i, entry in entries:
+        for label, entry in entries:
             problem = resolve_location(entry.get("location"), anchors)
             if problem:
-                findings.append(f"{owner}[{i}]: location '{entry.get('location')}' — {problem}")
+                findings.append(f"{label}: location '{entry.get('location')}' — {problem}")
     return findings
 
 
@@ -268,9 +303,11 @@ def coverage_regions(inv, normalized_dir, limit=40):
     exercise into a short list the model only has to judge for substance.
     """
     referenced = {}
-    for feature in inv.get("features", []):
-        for cit in feature.get("citations", []):
-            referenced.setdefault(cit.get("source_id"), []).append(cit.get("location") or "")
+    # Task citations count. A row cited only under its story used to report as an unreferenced
+    # region, so the coverage pass was wrong in the one direction that matters: it manufactured
+    # gaps where the source had in fact been read.
+    for _label, cit, _f, _t in iter_citations(inv):
+        referenced.setdefault(cit.get("source_id"), []).append(cit.get("location") or "")
     for entry in inv.get("not_scope", []):
         referenced.setdefault(entry.get("source_id"), []).append(entry.get("location") or "")
 
@@ -286,11 +323,120 @@ def coverage_regions(inv, normalized_dir, limit=40):
         for sheet, rows in anchors["sheets"].items():
             hit = {int(m.group(2)) for loc in locations
                    for m in [LOC_SHEET_ROW.search(loc)] if m and m.group(1) == sheet}
-            missing = sorted(rows - hit)
+            missing = sorted(set(rows) - hit)
             if missing:
                 unreferenced.append({"source_id": sid, "region": f"sheet '{sheet}'",
                                      "rows": missing[:limit], "row_count": len(missing)})
     return unreferenced[:limit]
+
+
+# --- quote completeness ---
+
+CELL_SPLIT = re.compile(r"(?<!\\)\|")
+ENDS_CLEANLY = re.compile(r"""[.!?\u2026:;)\]}"'\u00bb\u201d]\s*$""")
+
+TRUNCATION_TAIL = 25      # characters left over before a clipped quote is worth reporting
+PARTIAL_CHARS = 80        # a cleanly-ended quote that still leaves this much of the cell unread
+PARTIAL_SHARE = 0.4       # ...and this share of it
+
+
+def _row_cells(text_lines, line_no):
+    """The cells of one converted table row, in order, unescaped."""
+    if not 1 <= line_no <= len(text_lines):
+        return []
+    parts = [c.strip() for c in CELL_SPLIT.split(text_lines[line_no - 1])]
+    return [c.replace("\\|", "|") for c in parts if c]
+
+
+def check_quote_completeness(inv, normalized_dir):
+    """Whether each quote carries the passage or merely gestures at it.
+
+    Two failures, both found in a real 365-story run and neither visible to any other check
+    because both quotes are genuinely present in the source:
+
+    - **The clipped quote.** 565 of 917 citations stopped at the same ~240-character ceiling,
+      mid-sentence, because nothing said how much to quote. The cited cell is right there, so
+      how much was dropped is arithmetic rather than judgement.
+    - **The self-citation.** All 912 task citations quoted the task's own title. That proves
+      the title exists. The paragraph beside it in the same row — the thing an estimator would
+      size against and a reviewer would read — went nowhere.
+
+    Returns (findings, warnings): clipped and self-citing quotes block, a quote that ends
+    cleanly but still leaves most of its cell unread is advisory.
+    """
+    findings, warnings = [], []
+    lines, anchors = {}, {}
+    for sid, path in _normalized_files(inv, normalized_dir).items():
+        text = path.read_text(encoding="utf-8", errors="replace")
+        lines[sid] = text.splitlines()
+        anchors[sid] = index_anchors(text)
+
+    for label, cit, _feature, task in iter_citations(inv):
+        sid = cit.get("source_id")
+        quote = (cit.get("quote") or "").strip()
+        if not quote or sid not in lines:
+            continue
+        needle = _comparable(quote)
+
+        match = LOC_SHEET_ROW.search(cit.get("location") or "")
+        cells = []
+        if match:
+            sheet, row = match.group(1), int(match.group(2))
+            line_no = anchors[sid]["sheets"].get(sheet, {}).get(row)
+            if line_no:
+                cells = _row_cells(lines[sid], line_no)
+
+        # The cell the quote came from, and the longest cell the row has to offer.
+        holding = max((c for c in cells if needle and needle in _comparable(c)),
+                      key=len, default=None)
+        longest = max(cells, key=len, default=None)
+
+        if task is not None and needle == _comparable(task.get("name") or ""):
+            if longest and len(longest) > len(quote) + TRUNCATION_TAIL:
+                findings.append(
+                    f"{label}: the quote is the task's own name — it records that the label "
+                    f"exists and nothing else. The cited row carries a {len(longest)}-character "
+                    f"column the quote skips; that is the text this task is, and what the "
+                    f"estimator would otherwise have to size against six words"
+                )
+            elif cells:
+                warnings.append(
+                    f"{label}: the quote is the task's own name, reproducing one of the "
+                    f"{len(cells)} columns on the cited row. Nothing on that row is long enough "
+                    f"to be its substance, so there may be no paragraph to quote — but what a "
+                    f"reader gets back is the label and none of the rest of the row"
+                )
+            else:
+                warnings.append(
+                    f"{label}: the quote is the task's own name, and the location does not "
+                    f"resolve to a row this can check it against. If the source says more than "
+                    f"the title, quote that instead"
+                )
+            continue
+
+        if holding is None:
+            continue    # not located in a cell — verify_citations owns that finding
+        left = len(holding) - len(needle)
+        if left > TRUNCATION_TAIL and not ENDS_CLEANLY.search(quote):
+            tail = " ".join(quote.split()[-6:])
+            findings.append(
+                f"{label}: truncated quote — the cited cell continues for {left} more "
+                f'characters and the quote stops mid-sentence ("...{tail}"). Quote the '
+                f"passage in full; a reader is meant to use it instead of opening the source"
+            )
+        elif left >= PARTIAL_CHARS and left / len(holding) >= PARTIAL_SHARE:
+            warnings.append(
+                f"{label}: the quote ends cleanly but leaves {left} of the cell's "
+                f"{len(holding)} characters unquoted — check nothing that changes the scope "
+                f"is in the part that was dropped"
+            )
+        elif longest and holding is not longest and len(longest) >= 2 * len(holding) and len(longest) >= 120:
+            warnings.append(
+                f"{label}: the quote is from a {len(holding)}-character column while the same "
+                f"row carries a {len(longest)}-character one. Confirm the substance of the row "
+                f"is the part quoted"
+            )
+    return findings, warnings
 
 
 def check_staleness(inv, inventory_path, normalized_dir):
@@ -361,24 +507,24 @@ def check_integrity(inv, classified=False):
             findings.append(f"{fid}: duplicate feature id — renumber so every id is unique")
         seen.add(fid)
 
+    for label, cit, _feature, _task in iter_citations(inv):
+        sid = cit.get("source_id")
+        if sid not in source_ids:
+            findings.append(
+                f"{label}: source_id '{sid}' is not in sources — "
+                f"known ids: {sorted(source_ids) or 'none'}"
+            )
+        lang = source_lang.get(sid, "")
+        if lang and lang != working and not cit.get("quote_original"):
+            findings.append(
+                f"{label}: source {sid} is in '{lang}' but quote_original is missing — "
+                f"keep the untranslated text so a native reader can verify the extraction"
+            )
+        if not (cit.get("quote") or "").strip():
+            findings.append(f"{label}: quote is empty — a citation without source text proves nothing")
+
     for f in features:
         fid = f.get("id", "?")
-
-        for i, cit in enumerate(f.get("citations", [])):
-            sid = cit.get("source_id")
-            if sid not in source_ids:
-                findings.append(
-                    f"{fid}.citations[{i}]: source_id '{sid}' is not in sources — "
-                    f"known ids: {sorted(source_ids) or 'none'}"
-                )
-            lang = source_lang.get(sid, "")
-            if lang and lang != working and not cit.get("quote_original"):
-                findings.append(
-                    f"{fid}.citations[{i}]: source {sid} is in '{lang}' but quote_original is missing — "
-                    f"keep the untranslated text so a native reader can verify the extraction"
-                )
-            if not (cit.get("quote") or "").strip():
-                findings.append(f"{fid}.citations[{i}]: quote is empty — a citation without source text proves nothing")
 
         tags = f.get("tags", {})
         for axis, allowed in TAG_VOCABULARY.items():
@@ -413,6 +559,12 @@ def check_integrity(inv, classified=False):
                 findings.append(
                     f"{fid}.depends_on[{i}]: a stated dependency needs 'evidence'; "
                     f"set inferred=true if it was deduced instead"
+                )
+            if dep.get("inferred") and not (dep.get("why") or "").strip():
+                findings.append(
+                    f"{fid}.depends_on[{i}]: an inferred dependency needs 'why' — a human is "
+                    f"being asked to confirm it, and '{target}' on its own is one bare id "
+                    f"pointing at another"
                 )
 
     signals = inv.get("completeness_signals", {})
@@ -968,6 +1120,9 @@ def main():
         result["warnings"] += sizing_warnings
     if args.normalized:
         findings += verify_citations(inv, args.normalized) + check_anchors(inv, args.normalized)
+        clipped, partial = check_quote_completeness(inv, args.normalized)
+        findings += clipped
+        result["warnings"] += partial
         result["unreferenced_regions"] = coverage_regions(inv, args.normalized)
         result["stale"] = check_staleness(inv, path, args.normalized)
     if args.manifest:

@@ -105,7 +105,8 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "What this story commits to, in the working language, standing on its own. A reader who has never seen the source should finish it knowing what gets built and how it behaves. It is your prose, not a quote: where several source rows were grouped into one story, this is what they add up to, and the rows themselves stay in tasks with their text."
           },
           "citations": {
             "type": "array",
@@ -129,7 +130,7 @@
                 },
                 "quote": {
                   "type": "string",
-                  "description": "Verbatim source text, translated into the working language when the source is not in it"
+                  "description": "The source passage, verbatim and COMPLETE — the whole sentence or cell, to its natural end. A quote is what a reviewer reads instead of opening the client's document, so a passage clipped part-way is a pointer wearing a quote's clothes; inventory-check.py compares the quote against the rest of the cell it came from and reports one that stops mid-sentence while the source continues. Translated into the working language when the source is not in it, with quote_original carrying the untranslated text."
                 },
                 "quote_original": {
                   "type": "string",
@@ -174,7 +175,11 @@
                 },
                 "evidence": {
                   "type": "string",
-                  "description": "The source text stating the dependency. Omit when inferred is true."
+                  "description": "The source text stating the dependency, verbatim. Required when inferred is false, and rendered beside the dependency so a reviewer can see why it is there without opening the source."
+                },
+                "why": {
+                  "type": "string",
+                  "description": "Required when inferred is true. What made you deduce it — the reasoning a human is being asked to confirm. A dependency with neither evidence nor why is a bare id pointing at another bare id."
                 },
                 "inferred": {
                   "type": "boolean",
@@ -229,7 +234,7 @@
                 "citations": {
                   "type": "array",
                   "minItems": 1,
-                  "description": "At least one. A feature with no citation is invented scope.",
+                  "description": "The row's own text, in full. This is the task's description: there is no separate field for it, because a quote is checked against the document and a paraphrase is not. Quoting the row's title back — a citation whose quote is the task's own name — records that the title exists and nothing else, and it is what the estimator would then have to size against.",
                   "items": {
                     "type": "object",
                     "required": [
@@ -248,7 +253,7 @@
                       },
                       "quote": {
                         "type": "string",
-                        "description": "Verbatim source text, translated into the working language when the source is not in it"
+                        "description": "The source passage, verbatim and COMPLETE — the whole sentence or cell, to its natural end. A quote is what a reviewer reads instead of opening the client's document, so a passage clipped part-way is a pointer wearing a quote's clothes; inventory-check.py compares the quote against the rest of the cell it came from and reports one that stops mid-sentence while the source continues. Translated into the working language when the source is not in it, with quote_original carrying the untranslated text."
                       },
                       "quote_original": {
                         "type": "string",
@@ -425,7 +430,7 @@
                 },
                 "quote": {
                   "type": "string",
-                  "description": "Verbatim source text, translated into the working language when the source is not in it"
+                  "description": "The source passage, verbatim and COMPLETE — the whole sentence or cell, to its natural end. A quote is what a reviewer reads instead of opening the client's document, so a passage clipped part-way is a pointer wearing a quote's clothes; inventory-check.py compares the quote against the rest of the cell it came from and reports one that stops mid-sentence while the source continues. Translated into the working language when the source is not in it, with quote_original carrying the untranslated text."
                 },
                 "quote_original": {
                   "type": "string",
@@ -461,7 +466,8 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "What this story commits to, in the working language, standing on its own. A reader who has never seen the source should finish it knowing what gets built and how it behaves. It is your prose, not a quote: where several source rows were grouped into one story, this is what they add up to, and the rows themselves stay in tasks with their text."
           },
           "scope_status": {
             "type": "string",
@@ -496,7 +502,11 @@
                 },
                 "evidence": {
                   "type": "string",
-                  "description": "The source text stating the dependency. Omit when inferred is true."
+                  "description": "The source text stating the dependency, verbatim. Required when inferred is false, and rendered beside the dependency so a reviewer can see why it is there without opening the source."
+                },
+                "why": {
+                  "type": "string",
+                  "description": "Required when inferred is true. What made you deduce it — the reasoning a human is being asked to confirm. A dependency with neither evidence nor why is a bare id pointing at another bare id."
                 },
                 "inferred": {
                   "type": "boolean",
@@ -551,7 +561,7 @@
                 "citations": {
                   "type": "array",
                   "minItems": 1,
-                  "description": "At least one. A feature with no citation is invented scope.",
+                  "description": "The row's own text, in full. This is the task's description: there is no separate field for it, because a quote is checked against the document and a paraphrase is not. Quoting the row's title back — a citation whose quote is the task's own name — records that the title exists and nothing else, and it is what the estimator would then have to size against.",
                   "items": {
                     "type": "object",
                     "required": [
@@ -570,7 +580,7 @@
                       },
                       "quote": {
                         "type": "string",
-                        "description": "Verbatim source text, translated into the working language when the source is not in it"
+                        "description": "The source passage, verbatim and COMPLETE — the whole sentence or cell, to its natural end. A quote is what a reviewer reads instead of opening the client's document, so a passage clipped part-way is a pointer wearing a quote's clothes; inventory-check.py compares the quote against the rest of the cell it came from and reports one that stops mid-sentence while the source continues. Translated into the working language when the source is not in it, with quote_original carrying the untranslated text."
                       },
                       "quote_original": {
                         "type": "string",

@@ -222,11 +222,22 @@ _bmad/memory/est/               ← shared by all five skills
 
 {est_output_folder}/{project}/        ← defaults to {output_folder}/estimates
 ├── feature-inventory.json      ← epics → stories → the source rows behind each
+├── feature-inventory.md        ← index; links to one page per epic
+├── inventory/                  ← a page per epic: each story with its rows quoted in full
+├── feature-inventory.xlsx      ← Stories and Tasks on two tabs, hyperlinked both ways
+├── feature-inventory.csv       ← the same two tables in plain text, joined on story id
+│   + .tasks.csv
 ├── classification.json         ← what each story costs to build, keyed by story id
 ├── estimate.json               ← the full estimate, with per-story role splits
 ├── estimate.md / .csv / .html  ← the shareable renders
 └── normalized/                 ← converted sources, so citations stay verifiable
 ```
+
+**Every reference in those renders resolves.** A story links to its rows, a row to the exact
+line of the converted source it was read from, a dependency to the story it depends on with
+the sentence that stated it. The inventory is meant to be read *instead of* the client's
+document, not as an index into it — so a row carries the client's own sentence, not a
+pointer to where the sentence lives.
 
 **The set of output files is declared, not emergent.** `skills/est-setup/assets/module-outputs.yaml` names every path each skill writes and the condition under which the optional ones appear; `check-outputs.py` reports anything missing or undeclared. A folder nobody can read as a set of *current* artefacts is how a leftover from an interrupted run ends up quoted at a client.
 
@@ -243,7 +254,7 @@ Ten settings, written by `est-setup` to `_bmad/custom/config.toml`:
 | `est_output_folder` | `{project-root}/_bmad-output/estimates` | The root of every project workspace — move it and the skills follow |
 | `est_default_fidelity` | `presale` | `quick` for a go/no-go, `delivery` for scope inside a running project |
 | `est_default_team_profile` | `balanced` | Assumed when nobody knows who'll do the work |
-| `est_output_formats` | `md,csv,html,brief` | What gets rendered — a comma string, because arrays concatenate across config layers |
+| `est_output_formats` | `md,csv,xlsx,html,brief` | What gets rendered — a comma string, because arrays concatenate across config layers. `xlsx` needs openpyxl, which `uv run` provisions; without it the workbook is skipped with a note |
 | `est_show_manual_baseline` | `false` | Internal pre-BMad comparison; usually off for client output |
 | `est_report_calendar_duration` | `true` | Derived elapsed weeks, always secondary to hours |
 | `est_roles` | `architect, dev, devops, qa, ba, ux` | No PM — the Architect absorbs it during planning, and appears only on project-level work |

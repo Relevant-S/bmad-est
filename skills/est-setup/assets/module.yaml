@@ -45,10 +45,15 @@ est_default_team_profile:
 
 est_output_formats:
   prompt: "Which formats should estimates render by default? (comma-separated)"
-  default: "md,csv,html,brief"
+  default: "md,csv,xlsx,html,brief"
   example: >
-    md — the written estimate with its assumptions and exclusions.
-    csv — line items for sales.
+    md — the written estimate with its assumptions and exclusions, and the feature inventory
+    as an index plus one page per epic.
+    csv — line items for sales; the inventory also writes feature-inventory.tasks.csv, so
+    every task id a story names resolves to a row of its own.
+    xlsx — feature-inventory.xlsx, Stories and Tasks on two tabs with hyperlinks in both
+    directions and out to the cited row of the converted source. Needs openpyxl, which
+    `uv run` provisions; without it the workbook is skipped and the render says so.
     html — the interactive report where unticking a feature recomputes the range live.
     brief — estimate-brief.json, which is what Nadia loads to answer questions about a number.
     A comma string rather than a list on purpose: the config resolver appends arrays across

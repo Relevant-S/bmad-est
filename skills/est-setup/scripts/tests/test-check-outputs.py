@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml"]
+# ///
 """Tests for check-outputs.py.
 
 The two ways this goes wrong are opposite and both silent: reporting a neighbour skill's

@@ -445,6 +445,176 @@ class TestCoverage(unittest.TestCase):
         self.assertEqual(check.coverage(inventory(features=[a, b]))["inferred_dependencies"], 1)
 
 
+class QuoteCompleteness(unittest.TestCase):
+    """The two failures a 365-story run shipped, both of which passed every other check
+    because both quotes were genuinely present in the document."""
+
+    ROW9 = ("Every data-access path applies the acting user's view state for the record's "
+            "domain — Full, Context only or None — at the data layer, not by hiding UI. "
+            "Full serves navigation, lists, search, filters, KPI cards and exports, and "
+            "Context only permits a record solely through the linked-record path.")
+    SHORT = "Company or trading name"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        (self.dir / "S1-book.md").write_text(
+            "## sheet: Backlog\n\n| row | epic | name | description |\n"
+            "| --- | --- | --- | --- |\n"
+            f"| 9 | System | Enforce domain access | {self.ROW9} |\n"
+            f"| 12 | Config | {self.SHORT} | Yes |\n", encoding="utf-8")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def inv(self, task_name, task_quote, row=9, story_quote=None):
+        f = feature()
+        f["citations"] = [{"source_id": "S1", "location": f"sheet 'Backlog' row {row}",
+                           "quote": story_quote or self.ROW9}]
+        f["tasks"] = [{"id": "F1-T1", "name": task_name,
+                       "citations": [{"source_id": "S1",
+                                      "location": f"sheet 'Backlog' row {row}",
+                                      "quote": task_quote}]}]
+        inv = inventory(features=[f], not_scope=[])
+        inv["sources"][0]["doc_type"] = "backlog"
+        return inv
+
+    def run_check(self, inv):
+        return check.check_quote_completeness(inv, self.dir)
+
+    def test_a_row_quoted_in_full_is_clean(self):
+        findings, warnings = self.run_check(
+            self.inv("Enforce domain access", self.ROW9))
+        self.assertEqual((findings, warnings), ([], []))
+
+    def test_a_task_quoting_its_own_name_is_an_error(self):
+        """All 912 task citations in the real run did this. The quote is in the source — it is
+        the title column — so the substring check could never have caught it."""
+        findings, _ = self.run_check(
+            self.inv("Enforce domain access", "Enforce domain access"))
+        self.assertEqual(len(findings), 1)
+        self.assertIn("the quote is the task's own name", findings[0])
+        self.assertIn(str(len(self.ROW9)), findings[0], "it should name what was skipped")
+
+    def test_a_self_quote_on_a_row_with_nothing_longer_is_only_a_warning(self):
+        """A catalogue row of short attributes has no paragraph being skipped. Reporting it as
+        an error would train people to ignore the check."""
+        findings, warnings = self.run_check(
+            self.inv(self.SHORT, self.SHORT, row=12, story_quote=self.SHORT))
+        self.assertEqual(findings, [])
+        self.assertTrue(any("columns on the cited row" in w for w in warnings))
+
+    def test_a_quote_clipped_mid_sentence_is_an_error(self):
+        """No quote in 917 exceeded 239 characters and 565 sat at that ceiling, because
+        nothing said how much to quote."""
+        clipped = self.ROW9[:120]
+        findings, _ = self.run_check(
+            self.inv("Enforce domain access", self.ROW9, story_quote=clipped))
+        self.assertTrue(any("truncated quote" in f for f in findings))
+        self.assertTrue(any(f"continues for {len(self.ROW9) - len(clipped)} more" in f
+                            for f in findings))
+
+    def test_the_finding_names_the_words_it_stopped_on(self):
+        findings, _ = self.run_check(
+            self.inv("Enforce domain access", self.ROW9,
+                     story_quote=self.ROW9[:self.ROW9.index("at the data layer")]))
+        self.assertTrue(any("Context only or None" in f for f in findings), findings)
+
+    def test_a_quote_ending_on_a_full_stop_is_not_called_truncated(self):
+        """A complete sentence is a legitimate partial quote; it is reported as leaving text
+        unread, not as a defect."""
+        upto = self.ROW9.index("Full serves")
+        findings, warnings = self.run_check(
+            self.inv("Enforce domain access", self.ROW9, story_quote=self.ROW9[:upto].strip()))
+        self.assertEqual(findings, [])
+        self.assertTrue(any("ends cleanly but leaves" in w for w in warnings))
+
+    def test_an_unresolvable_location_is_not_second_guessed(self):
+        """Same rule resolve_location already follows: a reference with no anchor produces
+        noise rather than a finding."""
+        inv = self.inv("Enforce domain access", "Enforce domain access")
+        for cit in (inv["features"][0]["citations"][0],
+                    inv["features"][0]["tasks"][0]["citations"][0]):
+            cit["location"] = "§3.1"
+        findings, warnings = self.run_check(inv)
+        self.assertEqual(findings, [])
+        self.assertTrue(any("does not resolve to a row" in w for w in warnings))
+
+
+class TaskCitationsAreChecked(unittest.TestCase):
+    """Every walk in this file stopped at feature.citations. That is why a task could cite a
+    source that does not exist, quote nothing, or invent a passage, and pass."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        (self.dir / "S1-sow.md").write_text(
+            "## 2. Scope\n\nUsers must be able to log in with an email and password.\n"
+            "Sessions expire after thirty minutes of inactivity.\n", encoding="utf-8")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def with_task(self, **cit):
+        f = feature()
+        base = {"source_id": "S1", "location": "§2.1",
+                "quote": "Sessions expire after thirty minutes of inactivity."}
+        f["tasks"] = [{"id": "F1-T1", "name": "Expire sessions", "citations": [base | cit]}]
+        return inventory(features=[f])
+
+    def test_an_invented_task_quote_is_caught(self):
+        found = check.verify_citations(
+            self.with_task(quote="Sessions are secured with a hardware token."), self.dir)
+        self.assertEqual(len(found), 1)
+        self.assertIn("F1.tasks[0].citations[0]", found[0])
+
+    def test_a_verbatim_task_quote_passes(self):
+        self.assertEqual(check.verify_citations(self.with_task(), self.dir), [])
+
+    def test_a_task_citing_a_source_that_does_not_exist_is_caught(self):
+        found = check.check_integrity(self.with_task(source_id="S9"))
+        self.assertTrue(any("F1.tasks[0].citations[0]" in f and "S9" in f for f in found))
+
+    def test_an_empty_task_quote_is_caught(self):
+        found = check.check_integrity(self.with_task(quote="   "))
+        self.assertTrue(any("F1.tasks[0].citations[0]" in f and "quote is empty" in f
+                            for f in found))
+
+    def test_a_row_cited_only_under_its_story_is_not_reported_as_unread(self):
+        """coverage_regions built its `referenced` set from feature citations alone, so a row
+        the extraction did read came back as a gap — wrong in the direction that hides
+        omissions behind noise."""
+        (self.dir / "S1-book.md").write_text(
+            "## sheet: Backlog\n\n| row | A |\n| --- | --- |\n| 4 | Login |\n| 5 | Export |\n",
+            encoding="utf-8")
+        (self.dir / "S1-sow.md").unlink()
+        f = feature()
+        f["citations"] = [{"source_id": "S1", "location": "sheet 'Backlog' row 4",
+                           "quote": "Login"}]
+        f["tasks"] = [{"id": "F1-T1", "name": "Export",
+                       "citations": [{"source_id": "S1", "location": "sheet 'Backlog' row 5",
+                                      "quote": "Export"}]}]
+        inv = inventory(features=[f], not_scope=[])
+        regions = check.coverage_regions(inv, self.dir)
+        self.assertEqual([r for r in regions if 5 in r.get("rows", [])], [])
+
+
+class InferredDependencies(unittest.TestCase):
+    def dep(self, **extra):
+        return inventory(features=[feature("F1"), feature("F2", depends_on=[
+            {"feature_id": "F1", "inferred": True} | extra])])
+
+    def test_an_inferred_dependency_without_a_why_is_caught(self):
+        """A stated dependency needs evidence. An inferred one had no obligation at all, which
+        left a bare id pointing at another bare id for a human to confirm on faith."""
+        found = check.check_integrity(self.dep())
+        self.assertTrue(any("inferred dependency needs 'why'" in f for f in found))
+
+    def test_an_inferred_dependency_with_a_why_passes(self):
+        found = check.check_integrity(self.dep(why="Password reset implies an account exists."))
+        self.assertEqual([f for f in found if "depends_on" in f], [])
+
+
 class Grouping(unittest.TestCase):
     """Epics, tasks and surfaces decide how much the estimate invents on its own."""
 

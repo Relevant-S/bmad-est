@@ -67,11 +67,32 @@ it. Nine full-price copies is the single biggest inflation in a workbook-shaped 
 
 ## What stays visible
 
-Every source row still appears, as a `task` under its story, carrying its own citation. This
-is not bookkeeping: the module's non-negotiable is that a reviewer can open the inventory
-beside the client's document and check it line by line, and that is only possible while every
-line is still represented. A task belongs to exactly one story — `inventory-check.py` rejects
-a task id used twice, because a row in two stories is work counted twice.
+Every source row still appears, as a `task` under its story, **carrying the row's own text**.
+A task has an `id`, a `name` and a citation, and the citation's `quote` is where the text
+lives — there is no separate description field, because a quote is checked against the
+document and a paraphrase is not.
+
+The text is the point, and it is the part that goes missing. A real run gave all 912 of its
+tasks a citation quoting the task's own title:
+
+```json
+{"id": "F1-TO9", "name": "Enforce domain access by grant state",
+ "citations": [{"location": "sheet 'Ops' row 9", "quote": "Enforce domain access by grant state"}]}
+```
+
+The row it came from was a 490-word paragraph setting out a three-state permission grant, and
+none of it survived. Rows 9 and 10 described *different* grant models and both reduced to the
+same six words, so the inventory could no longer tell them apart. Every check passed, because
+the title is genuinely in the document — it is the column next door.
+
+Quote the row, not its label. The whole cell, to its end. Two readers depend on it: the
+classifier in `est-estimate` sizes the story against these words and nothing else, and a
+reviewer is meant to check the inventory against the client's document **without opening it**.
+`inventory-check.py` now compares each quote against the rest of the cell it came from, and a
+task quoting its own name is a finding rather than a pass.
+
+A task belongs to exactly one story — `inventory-check.py` rejects a task id used twice,
+because a row in two stories is work counted twice.
 
 Size the **story**, not the sum of its rows. Ten rows describing one screen is one screen.
 
