@@ -453,12 +453,19 @@ WIDE = {"description": 70, "quotes": 90, "text": 90, "depends_on": 50, "open_que
         "name": 42, "feature_name": 42, "link": 46, "sheet": 26, "source_path": 30}
 
 
-def render_xlsx(inv, target, links=None):
-    """Two sheets with hyperlinks in both directions, and out to the converted source.
+WRAP = ("description", "quotes", "text", "depends_on", "open_questions", "why")
 
-    A CSV can only ever hand you an id to go and look up: `F1-TO2` appeared in exactly one cell
-    of the old file and matched no row in it. Here the story's task cell clicks through to its
-    rows and each row clicks back, so a reference is something you follow rather than resolve.
+
+def write_workbook(sheets, target, links=()):
+    """Write one workbook from a list of (title, columns, rows), with the cross-links.
+
+    Shared with est-estimate, which puts the priced estimate on the same two tabs. Two writers
+    would drift, and the point of the estimate workbook is that it *is* the inventory workbook
+    with more columns.
+
+    `links` is a list of (from_sheet, from_column, to_sheet, key_column, index) tuples, where
+    `index` maps a key to the 1-based row it should jump to. Returns False if openpyxl is
+    absent, so the caller can degrade to CSV rather than fail.
     """
     try:
         from openpyxl import Workbook
@@ -468,63 +475,74 @@ def render_xlsx(inv, target, links=None):
     except ImportError:
         return False
 
-    stories, tasks = story_rows(inv, links), task_rows(inv, links)
-    first_task_row, seen = {}, {}
-    for i, row in enumerate(tasks, start=2):
-        seen.setdefault(row["feature_id"], i)
-    first_task_row = seen
-    story_row_of = {row["id"]: i for i, row in enumerate(stories, start=2)}
-
     wb = Workbook()
-    ws = wb.active
-    ws.title = "Stories"
-    ts = wb.create_sheet("Tasks")
-
-    for sheet, columns, rows in ((ws, STORY_COLUMNS, stories), (ts, TASK_COLUMNS, tasks)):
-        sheet.append(columns)
+    made = {}
+    for n, (title, columns, rows) in enumerate(sheets):
+        sheet = wb.active if n == 0 else wb.create_sheet(title)
+        sheet.title = title
+        made[title] = (sheet, columns, rows)
+        sheet.append(list(columns))
         for cell in sheet[1]:
             cell.font = Font(bold=True)
         for row in rows:
             sheet.append([row.get(c, "") for c in columns])
         sheet.freeze_panes = "A2"
         sheet.auto_filter.ref = (f"A1:{get_column_letter(len(columns))}"
-                                f"{max(len(rows) + 1, 1)}")
+                                 f"{max(len(rows) + 1, 1)}")
         for i, name in enumerate(columns, start=1):
             sheet.column_dimensions[get_column_letter(i)].width = WIDE.get(name, 18)
         wrap = Alignment(wrap_text=True, vertical="top")
-        for name in ("description", "quotes", "text", "depends_on", "open_questions"):
+        for name in WRAP:
             if name not in columns:
                 continue
             letter = get_column_letter(columns.index(name) + 1)
             for cell in sheet[letter][1:]:
                 cell.alignment = wrap
 
-    def link(cell, location=None, href=None):
-        if location:
-            cell.hyperlink = Hyperlink(ref=cell.coordinate, location=location)
-        elif href:
-            cell.hyperlink = href
-        else:
-            return
-        cell.style = "Hyperlink"
-
-    task_col = STORY_COLUMNS.index("task_ids") + 1
-    for i, row in enumerate(stories, start=2):
-        at = first_task_row.get(row["id"])
-        if at:
-            link(ws.cell(row=i, column=task_col), location=f"Tasks!A{at}")
-
-    back_col = TASK_COLUMNS.index("feature_id") + 1
-    link_col = TASK_COLUMNS.index("link") + 1
-    for i, row in enumerate(tasks, start=2):
-        at = story_row_of.get(row["feature_id"])
-        if at:
-            link(ts.cell(row=i, column=back_col), location=f"Stories!A{at}")
-        if row.get("link"):
-            link(ts.cell(row=i, column=link_col), href=row["link"])
+    for from_sheet, from_column, to_sheet, key_column, index in links:
+        if from_sheet not in made or from_column not in made[from_sheet][1]:
+            continue
+        sheet, columns, rows = made[from_sheet]
+        col = columns.index(from_column) + 1
+        for i, row in enumerate(rows, start=2):
+            cell = sheet.cell(row=i, column=col)
+            if to_sheet is None:                      # an external link, in the cell's own value
+                if row.get(from_column):
+                    cell.hyperlink = row[from_column]
+                    cell.style = "Hyperlink"
+                continue
+            at = index.get(row.get(key_column))
+            if at:
+                cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"{to_sheet}!A{at}")
+                cell.style = "Hyperlink"
 
     wb.save(target)
     return True
+
+
+def workbook_links(stories, tasks, story_key="id", task_parent="feature_id",
+                   story_link_col="task_ids"):
+    """The two-way index between a Stories sheet and a Tasks sheet."""
+    first_task = {}
+    for i, row in enumerate(tasks, start=2):
+        first_task.setdefault(row.get(task_parent), i)
+    story_row = {row.get(story_key): i for i, row in enumerate(stories, start=2)}
+    return [("Stories", story_link_col, "Tasks", story_key, first_task),
+            ("Tasks", task_parent, "Stories", task_parent, story_row),
+            ("Tasks", "link", None, None, {})]
+
+
+def render_xlsx(inv, target, links=None):
+    """Two sheets with hyperlinks in both directions, and out to the converted source.
+
+    A CSV can only ever hand you an id to go and look up: `F1-TO2` appeared in exactly one cell
+    of the old file and matched no row in it. Here the story's task cell clicks through to its
+    rows and each row clicks back, so a reference is something you follow rather than resolve.
+    """
+    stories, tasks = story_rows(inv, links), task_rows(inv, links)
+    return write_workbook(
+        [("Stories", STORY_COLUMNS, stories), ("Tasks", TASK_COLUMNS, tasks)],
+        target, workbook_links(stories, tasks))
 
 
 def main():

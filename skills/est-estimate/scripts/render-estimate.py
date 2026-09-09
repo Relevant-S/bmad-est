@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
+# dependencies = ["openpyxl>=3.1"]
 # ///
 """Render estimate.json into the human, sales and negotiation views.
 
 estimate.json is the source of truth; these are projections regenerated on demand.
+
+**No output reports a grand total.** A single summed number is meaningless when the work
+splits across roles, and this one could not even be reconciled: adding up the story rows gave
+1,752 h against a headline of 2,414 h, because planning, planning-review, QA and overhead
+touch no story. The role table is the headline now, each role carrying its own range and
+saying how much of it is story work and how much is project-level. `total_hours` stays in
+estimate.json — calibration compares it against delivered actuals — and nothing renders it.
+
+**Nothing is a point value.** Every story and every role carries low/likely/high, because how
+well-specified the work is only becomes visible as width.
+
+**The tabular outputs extend est-scope-extract's, never replace them.** The story and task
+columns come from `render-inventory.py`'s own row builders, so a column added there cannot be
+dropped here.
 
 The HTML is the interesting one: it carries the per-feature components and the cost
 model's own coefficients, so unticking a feature recomputes the whole estimate in the
@@ -21,6 +36,64 @@ import sys
 from pathlib import Path
 
 TEMPLATE = Path(__file__).resolve().parent.parent / "assets" / "report-template.html"
+
+AXES = ("size_band", "compressibility", "review_tier", "clarity", "novelty")
+
+
+def inventory_renderer():
+    """est-scope-extract's row builders, so the estimate sheets are the inventory sheets plus
+    columns. Imported rather than reimplemented, the way classification-merge.py imports the
+    diff's matcher: a second column list is a second thing to forget to update."""
+    global _INV
+    try:
+        return _INV
+    except NameError:
+        pass
+    path = (Path(__file__).resolve().parents[2]
+            / "est-scope-extract" / "scripts" / "render-inventory.py")
+    spec = importlib.util.spec_from_file_location("render_inventory", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _INV = mod
+    return mod
+
+
+def rng(value):
+    """A three-point value as low/likely/high, whatever shape it arrives in."""
+    if isinstance(value, dict):
+        return value.get("low", 0.0), value.get("likely", 0.0), value.get("high", 0.0)
+    if isinstance(value, (list, tuple)) and len(value) == 3:
+        return tuple(value)
+    return (value, value, value)
+
+
+def band(value, fmt="{:,.1f}"):
+    lo, likely, hi = rng(value)
+    return f"{fmt.format(lo)} – {fmt.format(likely)} – {fmt.format(hi)}"
+
+
+def role_names(est):
+    return sorted(est.get("by_role") or {})
+
+
+def load_inventory(est, override=None):
+    """The inventory this estimate was priced from, if it can still be found."""
+    path = Path(override) if override else None
+    if path is None and est.get("inventory"):
+        candidate = Path(est["inventory"])
+        for guess in ([candidate] if candidate.is_absolute() else
+                      [Path.cwd() / candidate, candidate]):
+            if guess.exists():
+                path = guess
+                break
+    if path is None or not path.exists():
+        return None, (f"inventory not found at {override or est.get('inventory')!r} — the story "
+                      f"and task columns est-scope-extract wrote are not in these outputs. Pass "
+                      f"--inventory to point at it.")
+    try:
+        return json.loads(path.read_text(encoding="utf-8")), None
+    except (OSError, json.JSONDecodeError) as exc:
+        return None, f"inventory at {path} could not be read: {exc}"
 
 
 
@@ -43,11 +116,33 @@ def engine():
     return mod
 
 
+def role_table(est, indent=""):
+    """The estimate's headline. Every role, as a range, with the arithmetic on the page."""
+    rows = [f"{indent}| Role | Low | Likely | High | On stories | Project-level |",
+            f"{indent}| --- | ---: | ---: | ---: | ---: | ---: |"]
+    for role, row in sorted((est.get("by_role") or {}).items(),
+                            key=lambda kv: -rng(kv[1])[1]):
+        lo, likely, hi = rng(row)
+        on_stories = row.get("on_stories") if isinstance(row, dict) else None
+        project = row.get("project_level") if isinstance(row, dict) else None
+        rows.append(
+            f"{indent}| {role} | {lo:,.0f} | {likely:,.0f} | {hi:,.0f} | "
+            f"{'—' if not on_stories else format(on_stories, ',.0f')} | "
+            f"{'—' if not project else format(project, ',.0f')} |")
+    return rows
+
+
 def markdown(est, show_manual_baseline=False):
-    total = est["total_hours"]
     out = [f"# Estimate — {est.get('project', 'untitled')}", ""]
     out.append(f"*{est['granularity']} · {est['mode']} mode · generated {est.get('generated') or 'n/a'}*")
-    out += ["", f"## {total['likely']:,.0f} hours  ·  range {total['low']:,.0f} – {total['high']:,.0f}", ""]
+    out += ["", "## Hours by role", ""] + role_table(est) + [""]
+    out.append("Each role is a range, not a figure. There is deliberately no single project "
+               "total: summing across roles answers no question anyone asks, and the roles are "
+               "what gets staffed, quoted and argued about. *On stories* is work that traces to "
+               "a line of the client's document; *project-level* is planning, review of "
+               "planning, QA and overhead, which the whole project pays regardless of which "
+               "story survives.")
+    out.append("")
 
     conf = est["confidence"]
     out.append(f"> {conf['why']}")
@@ -81,10 +176,6 @@ def markdown(est, show_manual_baseline=False):
                 "every project, so it is the most predictable component and the part of the number "
                 "that can be defended hardest.", ""]
 
-    out += ["## By role", "", "| Role | Hours |", "| --- | ---: |"]
-    for role, hours in sorted(est["by_role"].items(), key=lambda kv: -kv[1]):
-        out.append(f"| {role} | {hours:,.0f} |")
-
     risky = [f for f in est["features"]
              if f["tags"]["compressibility"] == "low"
              and f["tags"]["review_tier"] in ("sensitive", "critical")]
@@ -93,7 +184,8 @@ def markdown(est, show_manual_baseline=False):
                 f"{len(risky)} feature(s) are hard to build *and* expensive to verify — the quadrant "
                 "where BMad's advantage is smallest and the real uncertainty is widest:", ""]
         out += [f"- **{f['id']}** {f['name']} — {f['tags']['compressibility']} compressibility, "
-                f"{f['tags']['review_tier']} review, {f['hours']:,.0f}h" for f in risky]
+                f"{f['tags']['review_tier']} review, {band(f.get('range') or f['hours'], '{:,.0f}')}h"
+                for f in risky]
 
     if est.get("narrowing_questions"):
         out += ["", "## Answer these to tighten the range", "",
@@ -110,25 +202,36 @@ def markdown(est, show_manual_baseline=False):
                 f"**{d['weeks']} weeks.** {d['basis']}", ""]
 
     # Role columns are the point of the table, not a decoration: "9h" invites a haggle,
-    # "9h = dev 6.1, ba 1.5, ux 1.4" invites a conversation about who is doing what.
+    # "9h = dev 6.1, ba 1.5, ux 1.4" invites a conversation about who is doing what. Each one
+    # is a range for the same reason the total is: a point value hides how well-specified
+    # the work is, which is the signal the reader is actually after.
     roles = sorted({r for f in est["features"] for r in (f.get("by_role") or {})})
     out += ["", "## Features", "",
-            "| ID | Feature | Size | Compress | Review | Clarity | Hours | "
+            "| ID | Feature | Size | Compress | Review | Clarity | Low | Likely | High | "
             + "".join(f"{r} | " for r in roles) + "Source |",
-            "| --- | --- | --- | --- | --- | --- | ---: | " + "---: | " * len(roles) + "--- |"]
+            "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | "
+            + "---: | " * len(roles) + "--- |"]
     for f in est["features"]:
         cites = "; ".join(f"{c['source_id']} {c['location']}" for c in f["citations"]) or "—"
         scope = {"outside_agreed_scope": " *(outside agreed scope)*",
                  "standing_work": " *(standing work — every project pays it)*",
                  }.get(f.get("scope_status"), "")
         split = f.get("by_role") or {}
-        cells = "".join(f"{split[r]:,.1f} | " if split.get(r) else "— | " for r in roles)
-        # Standing work carries its own hours rather than a band, so the column is honestly
+        cells = ""
+        for r in roles:
+            if not split.get(r):
+                cells += "— | "
+                continue
+            lo, likely, hi = rng(split[r])
+            cells += f"{lo:,.1f}–{likely:,.1f}–{hi:,.1f} | "
+        # Standing work carries its own hours rather than a size band, so the column is honestly
         # empty for it instead of borrowing a label that no longer prices anything.
-        band = f["tags"].get("size_band") or "—"
-        out.append(f"| {f['id']} | {f['name']}{scope} | {band} | "
+        size = f["tags"].get("size_band") or "—"
+        lo, likely, hi = rng(f.get("range") or f["hours"])
+        out.append(f"| {f['id']} | {f['name']}{scope} | {size} | "
                    f"{f['tags']['compressibility']} | {f['tags']['review_tier']} | "
-                   f"{f['tags']['clarity']} | {f['hours']:,.0f} | {cells}{cites} |")
+                   f"{f['tags']['clarity']} | {lo:,.1f} | {likely:,.1f} | {hi:,.1f} | "
+                   f"{cells}{cites} |")
 
     out += ["", "## Assumptions", ""] + [f"- {a}" for a in est["assumptions"]]
 
@@ -179,6 +282,8 @@ def brief(est):
             "id": f["id"],
             "name": f["name"],
             "hours": f["hours"],
+            "range": f.get("range") or {"low": f["hours"], "likely": f["hours"],
+                                        "high": f["hours"]},
             "by_role": f.get("by_role") or {},
             "scope_status": f.get("scope_status") or "in_agreed_scope",
             "origin": f.get("origin") or "extracted",
@@ -192,37 +297,128 @@ def brief(est):
     }
 
 
-def write_csv(est, target):
-    role_columns = sorted({r for f in est["features"] for r in (f.get("by_role") or {})})
-    columns = ["id", "name", "scope_status", "commitment", "size_band", "compressibility",
-               "review_tier", "clarity", "novelty", "hours", "sd", "build", "spec", "review",
-               "rework", "epic_id", "origin", *role_columns, "depends_on", "sources"]
+def estimate_columns(est):
+    """The columns the estimate adds on top of whatever the inventory already carried."""
+    cols = ["hours", "hours_low", "hours_likely", "hours_high", "sd",
+            *AXES, "build", "spec", "review", "rework"]
+    for role in role_names(est):
+        cols += [f"{role}_low", f"{role}_likely", f"{role}_high"]
+    return cols
+
+
+def estimate_cells(f, est):
+    """One story's priced columns. Every figure that is a range is written as three."""
+    lo, likely, hi = rng(f.get("range") or f["hours"])
+    row = {"hours": f["hours"], "hours_low": lo, "hours_likely": likely, "hours_high": hi,
+           "sd": f.get("sd"),
+           **{axis: f["tags"].get(axis) for axis in AXES},
+           **{k: v for k, v in (f.get("component_hours") or {}).items()}}
+    split = f.get("by_role") or {}
+    for role in role_names(est):
+        r_lo, r_likely, r_hi = rng(split.get(role, 0.0))
+        row[f"{role}_low"] = round(r_lo, 2)
+        row[f"{role}_likely"] = round(r_likely, 2)
+        row[f"{role}_high"] = round(r_hi, 2)
+    return row
+
+
+def tabular(est, inventory=None):
+    """The Stories and Tasks tables, as (columns, rows) each.
+
+    Stories start as est-scope-extract's own story rows — description, epic name, surfaces,
+    task ids, open questions, quotes, all of it — and the priced columns are appended. That is
+    why no inventory column can be dropped here: they are not re-listed, they are reused.
+    Without the inventory the estimate still renders, with its own columns only, and the
+    caller is told.
+    """
+    inv_mod = inventory_renderer()
+    priced = {f["id"]: f for f in est["features"]}
+
+    if inventory:
+        links = inv_mod.Links()
+        story_rows = inv_mod.story_rows(inventory, links)
+        task_rows = inv_mod.task_rows(inventory, links)
+        story_columns = list(inv_mod.STORY_COLUMNS)
+        task_columns = list(inv_mod.TASK_COLUMNS)
+        seen = {row["id"] for row in story_rows}
+        # Standing work and anything else priced but absent from the inventory still has to
+        # appear, or the sheet silently prices less than the estimate does.
+        for fid, f in priced.items():
+            if fid not in seen:
+                story_rows.append({"id": fid, "name": f.get("name"),
+                                   "description": f.get("description"),
+                                   "epic_id": f.get("epic_id") or "",
+                                   "origin": f.get("origin") or "extracted"})
+    else:
+        story_columns = ["id", "name", "description", "epic_id", "origin", "commitment",
+                         "scope_status", "depends_on", "sources"]
+        task_columns = ["task_id", "feature_id", "feature_name", "name", "text", "location"]
+        story_rows = [{"id": f["id"], "name": f.get("name"),
+                       "description": f.get("description"),
+                       "epic_id": f.get("epic_id") or "",
+                       "origin": f.get("origin") or "extracted",
+                       "commitment": f.get("commitment"),
+                       "scope_status": f.get("scope_status") or "in_agreed_scope",
+                       "depends_on": "; ".join(f.get("depends_on") or []),
+                       "sources": "; ".join(f"{c['source_id']} {c['location']}"
+                                            for c in f.get("citations") or [])}
+                      for f in est["features"]]
+        task_rows = [{"task_id": tk.get("id"), "feature_id": f["id"],
+                      "feature_name": f.get("name"), "name": tk.get("name"),
+                      "text": "\n\n".join((c.get("quote") or "").strip()
+                                           for c in tk.get("citations") or []),
+                      "location": "; ".join(c.get("location", "")
+                                            for c in tk.get("citations") or [])}
+                     for f in est["features"] for tk in f.get("tasks") or []]
+
+    added = [c for c in estimate_columns(est) if c not in story_columns]
+    for row in story_rows:
+        f = priced.get(row.get("id"))
+        if f:
+            row.update(estimate_cells(f, est))
+    # Project-level lines are real hours someone pays for, so they belong in the sales sheet.
+    # They carry no story columns, and no grand total row follows them.
+    for name, comp in (est.get("project_components") or {}).items():
+        row = {"id": "—", "name": f"[project] {name.replace('_', ' ')}",
+               "scope_status": "project-wide", "origin": "project",
+               "hours": comp["hours"], "sd": comp["sd"]}
+        lo, likely, hi = rng(comp.get("range") or comp["hours"])
+        row.update({"hours_low": lo, "hours_likely": likely, "hours_high": hi})
+        for role, split in (comp.get("by_role") or {}).items():
+            r_lo, r_likely, r_hi = rng(split)
+            row[f"{role}_low"] = r_lo
+            row[f"{role}_likely"] = r_likely
+            row[f"{role}_high"] = r_hi
+        story_rows.append(row)
+
+    return (story_columns + added, story_rows), (task_columns, task_rows)
+
+
+def write_csv(est, target, inventory=None):
+    (columns, rows), _ = tabular(est, inventory)
     with open(target, "w", newline="", encoding="utf-8-sig") as fh:
-        writer = csv.DictWriter(fh, fieldnames=columns)
+        writer = csv.DictWriter(fh, fieldnames=columns, extrasaction="ignore")
         writer.writeheader()
-        for f in est["features"]:
-            writer.writerow({
-                "id": f["id"], "name": f["name"],
-                "scope_status": f.get("scope_status") or "in_agreed_scope",
-                "commitment": f.get("commitment"),
-                **{axis: f["tags"][axis] for axis in
-                   ("size_band", "compressibility", "review_tier", "clarity", "novelty")},
-                "hours": f["hours"], "sd": f["sd"],
-                **{k: v for k, v in f["component_hours"].items()},
-                "epic_id": f.get("epic_id") or "",
-                "origin": f.get("origin") or "extracted",
-                **{r: (f.get("by_role") or {}).get(r, 0) for r in role_columns},
-                "depends_on": "; ".join(f.get("depends_on") or []),
-                "sources": "; ".join(f"{c['source_id']} {c['location']}" for c in f["citations"]),
-            })
-        # Project-level lines belong in the sales sheet too: they are real hours someone pays for.
-        for name, row in est["project_components"].items():
-            writer.writerow({"id": "—", "name": f"[project] {name.replace('_', ' ')}",
-                             "scope_status": "project-wide", "hours": row["hours"], "sd": row["sd"],
-                             "origin": "project"})
-        writer.writerow({"id": "—", "name": "[total] likely", "hours": est["total_hours"]["likely"]})
-        writer.writerow({"id": "—", "name": "[total] low", "hours": est["total_hours"]["low"]})
-        writer.writerow({"id": "—", "name": "[total] high", "hours": est["total_hours"]["high"]})
+        writer.writerows(rows)
+
+
+def write_tasks_csv(est, target, inventory=None):
+    _, (columns, rows) = tabular(est, inventory)
+    with open(target, "w", newline="", encoding="utf-8-sig") as fh:
+        writer = csv.DictWriter(fh, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_xlsx(est, target, inventory=None):
+    """The inventory workbook with the estimate's columns on it — same two tabs, same links."""
+    inv_mod = inventory_renderer()
+    (story_columns, story_rows), (task_columns, task_rows) = tabular(est, inventory)
+    task_parent = "feature_id" if "feature_id" in task_columns else None
+    links = inv_mod.workbook_links(story_rows, task_rows) if task_parent else []
+    return inv_mod.write_workbook(
+        [("Stories", story_columns, story_rows), ("Tasks", task_columns, task_rows)],
+        target, links)
 
 
 def write_html(est, target, options):
@@ -243,8 +439,14 @@ def main():
     )
     ap.add_argument("estimate", help="path to estimate.json")
     ap.add_argument("--out-dir", help="directory for rendered files (default: alongside the estimate)")
-    ap.add_argument("--formats", default="md,csv,html,brief",
-                    help="comma-separated subset of md,csv,html,brief")
+    ap.add_argument("--formats", default="md,csv,xlsx,html,brief",
+                    help="comma-separated subset of md,csv,xlsx,html,brief. Members this "
+                         "script does not produce are ignored, so the shared est_output_formats "
+                         "value can be passed through unchanged.")
+    ap.add_argument("--inventory",
+                    help="path to feature-inventory.json. Defaults to the path recorded in the "
+                         "estimate. The story and task columns come from it, so without it the "
+                         "sheets carry the priced columns only and the render says so.")
     ap.add_argument("--show-manual-baseline", action="store_true",
                     help="include the build-compression comparison; internal output only")
     ap.add_argument("--stack", help="override; defaults to the profile recorded in the estimate")
@@ -262,7 +464,10 @@ def main():
     out_dir = Path(args.out_dir) if args.out_dir else path.parent
     out_dir.mkdir(parents=True, exist_ok=True)
     formats = {f.strip() for f in args.formats.split(",") if f.strip()}
-    written = []
+    written, notes = [], []
+    inventory, problem = load_inventory(est, args.inventory)
+    if problem:
+        notes.append(problem)
 
     if "md" in formats:
         target = out_dir / "estimate.md"
@@ -270,8 +475,18 @@ def main():
         written.append(str(target))
     if "csv" in formats:
         target = out_dir / "estimate.csv"
-        write_csv(est, target)
+        write_csv(est, target, inventory)
         written.append(str(target))
+        target = out_dir / "estimate.tasks.csv"
+        write_tasks_csv(est, target, inventory)
+        written.append(str(target))
+    if "xlsx" in formats:
+        target = out_dir / "estimate.xlsx"
+        if write_xlsx(est, target, inventory):
+            written.append(str(target))
+        else:
+            notes.append("xlsx skipped: openpyxl is not importable. Run this under `uv run`, "
+                         "which provisions it, or drop xlsx from est_output_formats.")
     if "brief" in formats:
         target = out_dir / "estimate-brief.json"
         target.write_text(json.dumps(brief(est), indent=2, ensure_ascii=False) + "\n",
@@ -290,11 +505,15 @@ def main():
             # Overhead is priced per person per week, so the page cannot recompute it
             # without the team size the document assumed.
             "team_size": recorded.get("team_size"),
+            "show_manual_baseline": bool(args.show_manual_baseline),
         })
         written.append(str(target))
 
-    print(json.dumps({"ok": True, "written": written,
-                      "total_hours": est["total_hours"]}, indent=2))
+    result = {"ok": True, "written": written,
+              "by_role": {r: rng(v)[1] for r, v in (est.get("by_role") or {}).items()}}
+    if notes:
+        result["notes"] = notes
+    print(json.dumps(result, indent=2))
     return 0
 
 

@@ -59,6 +59,30 @@ def div(a, b):
     return (a[0] / b[2], a[1] / b[1], a[2] / b[0])
 
 
+def widen(value, factor):
+    """Stretch an interval around its likely value without moving it.
+
+    The likely vertex is unchanged — a vague story is not automatically a longer one — while lo
+    and hi move out, because what is not yet decided is what the range exists to carry. The PERT
+    *mean* does rise, because hours are floored at zero: the right tail can extend further than
+    the left can contract, so the expected cost of ambiguity is genuinely higher. Measured: +5%
+    on a project of uniformly low-clarity stories, nothing at all on a high-clarity one.
+
+    Geometric, not linear: hours are floored at zero and unbounded above, so widening both ends
+    by the same additive factor collapses the low side long before the high side has moved.
+    Scaling the *ratio* instead — lo and hi move to likely·(lo/likely)^f and likely·(hi/likely)^f
+    — cannot produce a negative bound, behaves the same on a 2-hour story and a 200-hour one,
+    and acts directly on hi/lo, which is the spread being reported. A linear version of this
+    drove the lower bound of a small vague story to 0.0 h and its ratio to 57x.
+    """
+    lo, likely, hi = value
+    if factor == 1.0 or likely <= 0:
+        return value
+    low = likely * (lo / likely) ** factor if lo > 0 else lo
+    high = likely * (hi / likely) ** factor if hi > 0 else hi
+    return (low, likely, high)
+
+
 def pert(value):
     """PERT mean and standard deviation of a three-point estimate."""
     lo, likely, hi = value
@@ -180,9 +204,18 @@ def price_feature(feature, model, team):
     rework = scale(add(build, review),
                    clarity_row["rework_rate"] * novelty_factor * team["rework"])
 
+    # How well-specified the work is has to show up as width, and until this line it did the
+    # opposite: spec and rework are scalar multiples of an interval and so proportionally
+    # tight, and low clarity adds MORE of them, which pulled the relative band DOWN. A real
+    # inventory read 6.32 hi/lo at high clarity against 5.52 at low — a vague story presenting
+    # as the more certain one.
+    band = float(clarity_row.get("band_multiplier", 1.0))
+    total = widen(add(build, spec, review, rework), band)
+
     return {
         "id": feature.get("id"),
         "name": feature.get("name"),
+        "description": feature.get("description"),
         "epic_id": feature.get("epic_id"),
         "origin": feature.get("origin") or "extracted",
         "surfaces": surfaces_of(feature),
@@ -201,7 +234,8 @@ def price_feature(feature, model, team):
         "depends_on": [d.get("feature_id") for d in feature.get("depends_on", [])],
         "manual_baseline": manual,
         "components": {"build": build, "spec": spec, "review": review, "rework": rework},
-        "total": add(build, spec, review, rework),
+        "clarity_band_multiplier": band,
+        "total": total,
     }
 
 
@@ -337,26 +371,53 @@ def component_roles(model, component, surfaces):
 
 
 def feature_roles(feature, model):
-    """Role hours for one story, so a line item can be defended role by role."""
+    """Role intervals for one story, so a line item can be defended role by role.
+
+    Three-point, not a mean. A role figure with no interval behind it is the point value the
+    estimate is not allowed to report, and every output breaks the hours out per role.
+    The story's clarity band is applied to each role's share, so a role's numbers still add
+    up to the story's own range.
+    """
     surfaces = feature.get("surfaces")
     surfaces = set(surfaces) if surfaces else None
+    band = float(feature.get("clarity_band_multiplier", 1.0))
     totals = {}
     for component, value in feature["components"].items():
         for role, share in component_roles(model, component, surfaces).items():
-            totals[role] = totals.get(role, 0.0) + pert(value)[0] * share
-    return totals
+            totals[role] = add(totals.get(role, (0.0, 0.0, 0.0)), scale(value, share))
+    return {role: widen(value, band) for role, value in totals.items()}
 
 
 def by_role(priced, project, model):
-    """Project role totals — the sum of the per-story splits plus the project components."""
-    totals = {}
+    """Project role totals: an interval per role, and the two sources it came from.
+
+    This replaces the grand total as the estimate's headline, so it has to reconcile. Summing
+    the story rows alone gave architect 0 and qa 0 against 170 h and 205 h in the table, because
+    planning, planning-review, QA and overhead touch no story — 27% of a real project sitting
+    outside every row a reader could add up. Both parts are reported, so the arithmetic is on
+    the page rather than left as a gap to discover.
+    """
+    stories, project_side = {}, {}
     for feature in priced:
-        for role, hours in feature_roles(feature, model).items():
-            totals[role] = totals.get(role, 0.0) + hours
+        for role, value in feature_roles(feature, model).items():
+            stories[role] = add(stories.get(role, (0.0, 0.0, 0.0)), value)
     for name, value in project.items():
         for role, share in component_roles(model, name, None).items():
-            totals[role] = totals.get(role, 0.0) + pert(value)[0] * share
-    return {role: round(hours, 1) for role, hours in sorted(totals.items())}
+            project_side[role] = add(project_side.get(role, (0.0, 0.0, 0.0)),
+                                     scale(value, share))
+
+    out = {}
+    for role in sorted(set(stories) | set(project_side)):
+        on_stories = stories.get(role, (0.0, 0.0, 0.0))
+        project_level = project_side.get(role, (0.0, 0.0, 0.0))
+        total = add(on_stories, project_level)
+        out[role] = {
+            "low": round(total[0], 1), "likely": round(total[1], 1), "high": round(total[2], 1),
+            "hours": round(pert(total)[0], 1),
+            "on_stories": round(pert(on_stories)[0], 1),
+            "project_level": round(pert(project_level)[0], 1),
+        }
+    return out
 
 
 def by_phase(priced, project, model):
@@ -826,13 +887,29 @@ def build_estimate(inventory, model, options):
             {k: v for k, v in f.items() if k != "_raw"} | {
                 "hours": round(pert(f["total"])[0], 1),
                 "sd": round(pert(f["total"])[1], 1),
+                # Every level of breakdown carries its interval. A point value is what the
+                # reader is meant to stop seeing.
+                "range": {"low": round(f["total"][0], 1), "likely": round(f["total"][1], 1),
+                          "high": round(f["total"][2], 1)},
                 "component_hours": {k: round(pert(v)[0], 1) for k, v in f["components"].items()},
-                "by_role": {r: round(h, 1) for r, h in sorted(feature_roles(f, model).items()) if h},
+                "by_role": {r: {"low": round(v[0], 1), "likely": round(v[1], 1),
+                                "high": round(v[2], 1), "hours": round(pert(v)[0], 1)}
+                            for r, v in sorted(feature_roles(f, model).items())
+                            if pert(v)[0] >= 0.05},
             }
             for f in priced
         ],
         "project_components": {
-            name: {"hours": round(pert(value)[0], 1), "sd": round(pert(value)[1], 1)}
+            name: {"hours": round(pert(value)[0], 1), "sd": round(pert(value)[1], 1),
+                   "range": {"low": round(value[0], 1), "likely": round(value[1], 1),
+                             "high": round(value[2], 1)},
+                   # The role split of each project line, so a sheet's project rows reconcile
+                   # against the role table rather than sitting blank beside it.
+                   "by_role": {role: {"low": round(value[0] * share, 1),
+                                      "likely": round(value[1] * share, 1),
+                                      "high": round(value[2] * share, 1),
+                                      "hours": round(pert(value)[0] * share, 1)}
+                               for role, share in component_roles(model, name, None).items()}}
             for name, value in project.items()
         },
         "overhead_check": overhead_check(priced, project, span),

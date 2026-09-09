@@ -72,7 +72,14 @@ est-estimate:
       role: the document a human reads
   optional:
     - path: estimate.csv
-      when: csv is in est_output_formats
+      when: csv is in est_output_formats. The inventory's Stories columns with the priced
+            columns appended — every column est-scope-extract wrote is still in it.
+    - path: estimate.tasks.csv
+      when: csv is in est_output_formats. The inventory's Tasks columns, so a task id a
+            story names still resolves to a row.
+    - path: estimate.xlsx
+      when: xlsx is in est_output_formats and openpyxl is importable. Stories and Tasks on
+            two tabs, hyperlinked, the same shape as feature-inventory.xlsx.
     - path: estimate.html
       when: html is in est_output_formats
     - path: estimate-brief.json

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
+# dependencies = ["openpyxl>=3.1"]
 # ///
 """Tests for render-estimate.py.
 
@@ -35,6 +36,12 @@ def load(name, filename):
 est = load("estimate", "estimate.py")
 render = load("render_estimate", "render-estimate.py")
 
+try:
+    import openpyxl  # noqa: F401
+    _HAS_XLSX = True
+except ImportError:
+    _HAS_XLSX = False
+
 
 def estimate_for(features=None, **opt):
     inv = inventory(features)
@@ -43,9 +50,40 @@ def estimate_for(features=None, **opt):
 
 
 class TestMarkdown(unittest.TestCase):
-    def test_headline_range_is_present(self):
+    def test_the_headline_is_the_role_table_and_there_is_no_grand_total(self):
+        """Adding up the story rows gave 1,752 h against a 2,414 h headline, because planning,
+        QA and overhead touch no story. Summing across roles answers no question anyone asks,
+        so the number that could not be reconciled is simply not reported."""
+        est = estimate_for()
+        md = render.markdown(est)
+        self.assertIn("## Hours by role", md)
+        self.assertNotIn("hours  ·  range", md)
+        for key in ("low", "likely", "high"):
+            self.assertNotIn(f"{est['total_hours'][key]:,.0f} hours", md)
+
+    def test_every_role_is_a_range_with_its_two_sources_shown(self):
         md = render.markdown(estimate_for())
-        self.assertIn("hours  ·  range", md)
+        self.assertIn("| Role | Low | Likely | High | On stories | Project-level |", md)
+        self.assertIn("architect", md)
+
+    def test_every_story_row_carries_a_range_not_a_point(self):
+        md = render.markdown(estimate_for([feature("F1", "Login")]))
+        self.assertIn("| Low | Likely | High |", md)
+        row = [ln for ln in md.splitlines() if ln.startswith("| F1 |")][0]
+        cells = [c.strip() for c in row.split("|")]
+        lo, likely, hi = (float(cells[7]), float(cells[8]), float(cells[9]))
+        self.assertLess(lo, likely)
+        self.assertLess(likely, hi)
+
+    def test_every_role_cell_on_a_story_is_a_range_too(self):
+        md = render.markdown(estimate_for([feature("F1", "Login")]))
+        row = [ln for ln in md.splitlines() if ln.startswith("| F1 |")][0]
+        priced = [c.strip() for c in row.split("|") if "–" in c and c.strip()[0].isdigit()]
+        self.assertTrue(priced, "no role cell rendered as a range")
+        for cell in priced:
+            lo, likely, hi = (float(x) for x in cell.split("–"))
+            self.assertLessEqual(lo, likely)
+            self.assertLessEqual(likely, hi)
 
     def test_every_feature_row_carries_its_source(self):
         md = render.markdown(estimate_for([feature("F1", "Login")]))
@@ -148,10 +186,164 @@ class TestCsv(unittest.TestCase):
         self.assertTrue(any("[project] planning review" in n for n in names))
         self.assertTrue(any("[project] qa" in n for n in names))
 
-    def test_totals_are_included_for_a_sales_sheet(self):
+    def test_no_grand_total_row_is_written(self):
         names = [r["name"] for r in self.rows(estimate_for())]
-        for expected in ("[total] likely", "[total] low", "[total] high"):
-            self.assertIn(expected, names)
+        for gone in ("[total] likely", "[total] low", "[total] high"):
+            self.assertNotIn(gone, names)
+
+    def test_every_row_carries_its_range_and_every_role_carries_one(self):
+        est = estimate_for([feature("F1", "Login")])
+        rows = {r["id"]: r for r in self.rows(est)}
+        row = rows["F1"]
+        self.assertLess(float(row["hours_low"]), float(row["hours_high"]))
+        roles = [r for r in est["by_role"] if f"{r}_low" in row]
+        self.assertTrue(roles, "no per-role columns in the sheet")
+        for role in roles:
+            self.assertLessEqual(float(row[f"{role}_low"]), float(row[f"{role}_high"]))
+
+
+class ExtendsTheInventory(unittest.TestCase):
+    """The estimate sheets are the inventory sheets with more columns on them.
+
+    The old estimate.csv re-derived its own 23 columns and lost description, epic name,
+    surfaces, task ids, open questions, locations and quotes — and every task. The columns
+    here come from est-scope-extract's own row builders, so a column added there arrives
+    without anyone remembering to add it.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.inv = inventory([feature("F1", "Login")])
+        self.inv["epics"] = [{"id": "E1", "name": "Access", "origin": "source"}]
+        self.inv["features"][0]["epic_id"] = "E1"
+        self.inv["features"][0]["tasks"] = [
+            {"id": "F1-T1", "name": "Sign in",
+             "citations": [{"source_id": "S1", "location": "§1", "quote": "Users must log in."}]}]
+        self.est = est.build_estimate(self.inv, model(), options(granularity="project"))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def inventory_columns(self):
+        inv_mod = render.inventory_renderer()
+        return list(inv_mod.STORY_COLUMNS), list(inv_mod.TASK_COLUMNS)
+
+    def test_no_inventory_story_column_is_dropped(self):
+        story_columns, _ = self.inventory_columns()
+        target = self.dir / "estimate.csv"
+        render.write_csv(self.est, target, self.inv)
+        with target.open(encoding="utf-8-sig") as fh:
+            got = next(csv.reader(fh))
+        for column in story_columns:
+            self.assertIn(column, got, f"est-scope-extract wrote {column} and the estimate lost it")
+
+    def test_no_inventory_task_column_is_dropped(self):
+        _, task_columns = self.inventory_columns()
+        target = self.dir / "estimate.tasks.csv"
+        render.write_tasks_csv(self.est, target, self.inv)
+        with target.open(encoding="utf-8-sig") as fh:
+            got = next(csv.reader(fh))
+        for column in task_columns:
+            self.assertIn(column, got)
+
+    def test_the_inventory_content_arrives_not_just_the_headers(self):
+        target = self.dir / "estimate.csv"
+        render.write_csv(self.est, target, self.inv)
+        with target.open(encoding="utf-8-sig") as fh:
+            row = next(iter(csv.DictReader(fh)))
+        self.assertEqual(row["epic_name"], "Access")
+        self.assertEqual(row["description"],
+                         self.inv["features"][0]["description"],
+                         "the description est-scope-extract wrote did not survive the join")
+        self.assertEqual(row["task_ids"], "F1-T1")
+
+    def test_a_task_id_a_story_names_resolves_to_a_row(self):
+        render.write_csv(self.est, self.dir / "estimate.csv", self.inv)
+        render.write_tasks_csv(self.est, self.dir / "estimate.tasks.csv", self.inv)
+        with (self.dir / "estimate.csv").open(encoding="utf-8-sig") as fh:
+            story = next(iter(csv.DictReader(fh)))
+        with (self.dir / "estimate.tasks.csv").open(encoding="utf-8-sig") as fh:
+            tasks = {r["task_id"] for r in csv.DictReader(fh)}
+        for tid in story["task_ids"].split("; "):
+            self.assertIn(tid, tasks)
+
+    def test_a_story_priced_but_absent_from_the_inventory_still_appears(self):
+        """Standing work is priced and is in no inventory. Dropping it from the sheet would
+        price less on the page than the estimate does."""
+        target = self.dir / "estimate.csv"
+        render.write_csv(self.est, target, self.inv)
+        with target.open(encoding="utf-8-sig") as fh:
+            ids = {r["id"] for r in csv.DictReader(fh)}
+        priced = {f["id"] for f in self.est["features"]}
+        self.assertTrue(priced <= ids, sorted(priced - ids))
+
+    def test_without_the_inventory_it_still_renders_and_says_what_is_missing(self):
+        est_copy = json.loads(json.dumps(self.est))
+        est_copy["inventory"] = "nowhere/feature-inventory.json"
+        inv, problem = render.load_inventory(est_copy)
+        self.assertIsNone(inv)
+        self.assertIn("inventory not found", problem)
+        target = self.dir / "estimate.csv"
+        render.write_csv(est_copy, target, None)
+        with target.open(encoding="utf-8-sig") as fh:
+            row = next(iter(csv.DictReader(fh)))
+        self.assertEqual(row["id"], "F1")
+        self.assertTrue(float(row["hours_high"]) > 0)
+
+
+@unittest.skipUnless(_HAS_XLSX, "openpyxl not importable")
+class Workbook(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.dir = Path(self.tmp.name)
+        self.inv = inventory([feature("F1", "Login")])
+        self.inv["features"][0]["tasks"] = [
+            {"id": "F1-T1", "name": "Sign in",
+             "citations": [{"source_id": "S1", "location": "§1", "quote": "Users must log in."}]}]
+        self.est = est.build_estimate(self.inv, model(), options(granularity="project"))
+        self.target = self.dir / "estimate.xlsx"
+        self.assertTrue(render.write_xlsx(self.est, self.target, self.inv))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_the_same_two_tabs_the_inventory_workbook_has(self):
+        from openpyxl import load_workbook
+        self.assertEqual(load_workbook(self.target).sheetnames, ["Stories", "Tasks"])
+
+    def test_the_priced_columns_are_on_the_stories_tab_as_ranges(self):
+        from openpyxl import load_workbook
+        ws = load_workbook(self.target)["Stories"]
+        header = [c.value for c in ws[1]]
+        for column in ("hours_low", "hours_likely", "hours_high"):
+            self.assertIn(column, header)
+        for role in self.est["by_role"]:
+            if f"{role}_low" in header:
+                break
+        else:
+            self.fail("no per-role columns on the workbook")
+
+    def test_a_story_still_clicks_through_to_its_tasks(self):
+        from openpyxl import load_workbook
+        wb = load_workbook(self.target)
+        ws, ts = wb["Stories"], wb["Tasks"]
+        col = [c.value for c in ws[1]].index("task_ids") + 1
+        cell = ws.cell(row=2, column=col)
+        self.assertIsNotNone(cell.hyperlink)
+        at = int(cell.hyperlink.location.split("!A")[1])
+        self.assertEqual(ts.cell(row=at, column=1).value, "F1-T1")
+
+    def test_without_openpyxl_the_render_still_succeeds_and_says_the_workbook_was_skipped(self):
+        saved = sys.modules.get("openpyxl")
+        sys.modules["openpyxl"] = None
+        try:
+            self.assertFalse(render.write_xlsx(self.est, self.dir / "x.xlsx", self.inv))
+        finally:
+            if saved is None:
+                sys.modules.pop("openpyxl", None)
+            else:
+                sys.modules["openpyxl"] = saved
 
 
 class TestBrief(unittest.TestCase):

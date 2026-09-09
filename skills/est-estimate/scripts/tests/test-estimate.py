@@ -200,6 +200,68 @@ class TestPlanningAnchor(unittest.TestCase):
         self.assertEqual(e["planning_volume"]["documents"], [])
 
 
+class ClaritySpread(unittest.TestCase):
+    """The spread is the signal: how well-specified the work is has to show up as width.
+
+    Before band_multiplier it ran backwards. Holding size at M on a real 365-story inventory,
+    hi/lo was 6.32 at high clarity and 5.52 at low — the vague story presenting as the more
+    certain one — because spec and rework are scalar multiples of an interval and therefore
+    proportionally tight, so low clarity added more of them and pulled the ratio down.
+    """
+
+    def band(self, clarity, size="M", compressibility="medium"):
+        e = hours(inventory([feature("F1", clarity=clarity, size=size,
+                                     compressibility=compressibility)]))
+        return e["features"][0]["range"]
+
+    def test_a_vaguer_story_gets_a_wider_band(self):
+        ratios = {c: self.band(c)["high"] / self.band(c)["low"]
+                  for c in ("high", "medium", "low")}
+        self.assertLess(ratios["high"], ratios["medium"], ratios)
+        self.assertLess(ratios["medium"], ratios["low"], ratios)
+
+    def test_it_holds_at_every_size_and_compressibility(self):
+        for size in ("XS", "S", "M", "L", "XL"):
+            for comp in ("high", "medium", "low"):
+                r = {c: self.band(c, size, comp) for c in ("high", "low")}
+                self.assertLess(r["high"]["high"] / r["high"]["low"],
+                                r["low"]["high"] / r["low"]["low"], f"{size}/{comp}")
+
+    def test_the_likely_vertex_does_not_move(self):
+        """Widening says the answer is less certain, not that the work is bigger. The PERT
+        mean does rise — hours are floored at zero, so the right tail extends further than
+        the left contracts — but the middle of the triangle is where the judgement put it."""
+        m = model()
+        priced = est.price_feature(feature("F1", clarity="low"), m, m["team_profiles"]["balanced"])
+        unwidened = est.add(*priced["components"].values())
+        self.assertAlmostEqual(priced["total"][1], unwidened[1], places=6)
+        self.assertLess(priced["total"][0], unwidened[0])
+        self.assertGreater(priced["total"][2], unwidened[2])
+
+    def test_widening_never_produces_a_negative_or_zero_lower_bound(self):
+        """A linear version of this drove a small vague story's lower bound to 0.0 h and its
+        ratio to 57x. Hours are floored at zero, so the widening is geometric."""
+        for size in ("XS", "S", "M", "L", "XL"):
+            for comp in ("high", "medium", "low"):
+                r = self.band("low", size, comp)
+                self.assertGreater(r["low"], 0.0, f"{size}/{comp}")
+                self.assertLess(r["high"] / r["low"], 25, f"{size}/{comp} is not a usable range")
+
+    def test_high_clarity_is_left_exactly_as_it_was(self):
+        """band_multiplier 1.0 has to be a no-op, or every previously-defensible estimate
+        moves for no reason anyone can point at."""
+        m = model()
+        priced = est.price_feature(feature("F1", clarity="high"), m,
+                                   m["team_profiles"]["balanced"])
+        self.assertEqual(priced["total"], est.add(*priced["components"].values()))
+
+    def test_widen_is_scale_free(self):
+        """The same clarity has to mean the same spread on a 2-hour story and a 200-hour one."""
+        small, big = (1.0, 2.0, 5.0), (100.0, 200.0, 500.0)
+        a, b = est.widen(small, 1.35), est.widen(big, 1.35)
+        self.assertAlmostEqual(a[2] / a[0], b[2] / b[0], places=6)
+
+
 class TestSplits(unittest.TestCase):
     def test_agreed_and_additional_scope_are_reported_separately(self):
         inv = inventory([
@@ -246,7 +308,31 @@ class TestSplits(unittest.TestCase):
     def test_role_hours_sum_to_the_central_estimate(self):
         e = hours(inventory([feature(f"F{i}", review_tier=t)
                              for i, t in enumerate(["routine", "sensitive", "critical"], 1)]))
-        self.assertAlmostEqual(sum(e["by_role"].values()), e["total_hours"]["likely"], delta=0.5)
+        self.assertAlmostEqual(sum(r["hours"] for r in e["by_role"].values()),
+                               e["total_hours"]["likely"], delta=0.5)
+
+    def test_every_role_carries_an_interval_not_a_point(self):
+        """The role table is the estimate's headline now, and a headline with no range is the
+        false precision the whole band mechanism exists to prevent."""
+        e = hours(inventory([feature(f"F{i}") for i in range(1, 4)]))
+        for role, row in e["by_role"].items():
+            self.assertLessEqual(row["low"], row["likely"], role)
+            self.assertLessEqual(row["likely"], row["high"], role)
+            self.assertLess(row["low"], row["high"], f"{role} has no width at all")
+
+    def test_each_role_total_is_its_story_work_plus_its_project_work(self):
+        """The arithmetic that used to be missing: summing the story rows gave architect 0
+        against 170 h in the table, with 27% of the project outside every row on the page."""
+        e = hours(inventory([feature(f"F{i}") for i in range(1, 4)]))
+        for role, row in e["by_role"].items():
+            self.assertAlmostEqual(row["on_stories"] + row["project_level"], row["hours"],
+                                   delta=0.2, msg=role)
+
+    def test_the_roles_with_no_story_work_say_so_rather_than_reading_zero(self):
+        e = hours(inventory([feature(f"F{i}") for i in range(1, 4)]))
+        architect = e["by_role"]["architect"]
+        self.assertEqual(architect["on_stories"], 0.0)
+        self.assertGreater(architect["project_level"], 0.0)
 
     def test_phase_hours_sum_to_the_central_estimate(self):
         e = hours(inventory([feature(f"F{i}") for i in range(1, 6)]))
@@ -311,8 +397,9 @@ class TestSplits(unittest.TestCase):
         wide = est.price_feature(feature("F1"), m, m["team_profiles"]["balanced"])
         narrow = est.price_feature(feature("F1", surfaces=["backend"]), m,
                                    m["team_profiles"]["balanced"])
-        self.assertAlmostEqual(sum(est.feature_roles(wide, m).values()),
-                               sum(est.feature_roles(narrow, m).values()), delta=0.01)
+        self.assertAlmostEqual(sum(est.pert(v)[0] for v in est.feature_roles(wide, m).values()),
+                               sum(est.pert(v)[0] for v in est.feature_roles(narrow, m).values()),
+                               delta=0.01)
 
     def test_surfaces_are_read_from_the_story_and_only_from_there(self):
         """One placement. It used to be read out of the tag block first and off the story
@@ -358,15 +445,15 @@ class TestSplits(unittest.TestCase):
             [["backend"], ["frontend", "design"], ["infra"], ["backend", "data"]], 1)]))
         per_story = {}
         for f in e["features"]:
-            for role, h in f["by_role"].items():
-                per_story[role] = per_story.get(role, 0.0) + h
+            for role, row in f["by_role"].items():
+                per_story[role] = per_story.get(role, 0.0) + row["hours"]
         project = {name: sum(
             v["hours"] * share for name2, v in e["project_components"].items()
             for r, share in est.component_roles(model(), name2, None).items() if r == name)
             for name in set(e["by_role"])}
-        for role, total in e["by_role"].items():
+        for role, row in e["by_role"].items():
             self.assertAlmostEqual(per_story.get(role, 0.0) + project.get(role, 0.0),
-                                   total, delta=0.5, msg=role)
+                                   row["hours"], delta=0.5, msg=role)
 
 
 class TestDependenciesAndDuration(unittest.TestCase):

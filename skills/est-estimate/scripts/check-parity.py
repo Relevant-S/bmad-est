@@ -84,11 +84,21 @@ def compare(estimate, js):
         if b is None or abs(row["hours"] - b) > TOLERANCE:
             drift.append({"field": f"by_phase.{phase}", "engine": row["hours"],
                           "browser": None if b is None else round(b, 2)})
-    for role, hours in estimate["by_role"].items():
+    # Roles carry an interval on both sides now, so parity is checked across the whole band
+    # rather than at the midpoint. A page that agreed on the central figure and disagreed on
+    # the bounds would be exactly the contradiction a client finds by reading the range.
+    for role, row in estimate["by_role"].items():
         b = js["roles"].get(role)
-        if b is None or abs(hours - b) > TOLERANCE:
-            drift.append({"field": f"by_role.{role}", "engine": hours,
-                          "browser": None if b is None else round(b, 2)})
+        if b is None:
+            drift.append({"field": f"by_role.{role}", "engine": row, "browser": None})
+            continue
+        engine_side = ([row["low"], row["likely"], row["high"]]
+                       if isinstance(row, dict) else [row, row, row])
+        browser_side = list(b) if isinstance(b, (list, tuple)) else [b, b, b]
+        for key, a, c in zip(("low", "likely", "high"), engine_side, browser_side):
+            if abs(a - c) > TOLERANCE:
+                drift.append({"field": f"by_role.{role}.{key}", "engine": round(a, 2),
+                              "browser": round(c, 2), "delta": round(c - a, 2)})
     return drift
 
 

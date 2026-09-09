@@ -16,7 +16,9 @@ Three properties make it different from a spreadsheet:
 
 **Nothing is invented and nothing is silently dropped.** Every extracted feature carries a verbatim quote from its source. Every substantive passage that *didn't* become a feature is listed with a reason. Both directions are checked mechanically by re-opening the documents — not asserted.
 
-**Every task is priced per role, and only the roles actually on it.** Each story declares the surfaces it touches — backend, frontend, design, infra, data — and roles whose surface is absent are dropped from that story entirely. A nightly reconciliation job bills no designer. The shares renormalise, so the story still costs what it costs; the hours just land on the people doing the work. The architect appears only in project-level components, because the tech lead does not review individual stories.
+**Every task is priced per role, and only the roles actually on it.** Each story declares the surfaces it touches — backend, frontend, design, infra, data — and roles whose surface is absent are dropped from that story entirely. A nightly reconciliation job bills no designer. The shares renormalise, so the story still costs what it costs; the hours just land on the people doing the work. The architect — who is the tech lead; there is one such role, not two — appears only in project-level components, because a tech lead does not review individual stories.
+
+**There is no project total.** A single summed number is meaningless when the work splits across roles, and it could not be reconciled anyway: adding up the story rows of a real estimate gave 1,752 h against a 2,414 h headline, because planning, QA and overhead touch no story. Every output leads with the role table instead, each role a range, showing how much of it traces to a story and how much the project pays regardless. **Nothing is a point value**: every story and every role carries low/likely/high, and the width says how well-specified the work is — a vague story reads wider than a detailed one.
 
 **The coefficients are fitted to a delivered project, and it says so.** The shipped model is calibrated against EPP Phase 1 — 76 stories, 540 hours, split across six roles — which re-prices to 569h, within 5%. That is one project, `calibration_history` records `n=1`, and every rendered estimate carries the sample size. One project is far better than a reasoned guess and is not a trend; the module never lets you confuse the two.
 
@@ -229,7 +231,9 @@ _bmad/memory/est/               ← shared by all five skills
 │   + .tasks.csv
 ├── classification.json         ← what each story costs to build, keyed by story id
 ├── estimate.json               ← the full estimate, with per-story role splits
-├── estimate.md / .csv / .html  ← the shareable renders
+├── estimate.md / .html         ← the shareable renders, led by the role table
+├── estimate.csv                ← the inventory's Stories columns, plus the priced ones
+│   + .tasks.csv / .xlsx        ← its Tasks columns, and both tabs in one workbook
 └── normalized/                 ← converted sources, so citations stay verifiable
 ```
 

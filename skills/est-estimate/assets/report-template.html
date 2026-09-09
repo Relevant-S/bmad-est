@@ -59,13 +59,14 @@
   <div class="sub" id="subtitle"></div>
 
   <div class="panel headline">
-    <div>
-      <div class="figure"><span id="likely"></span> <small>hours</small></div>
-      <div class="range" id="range"></div>
+    <div style="flex:1; min-width:320px">
+      <div class="muted" style="margin-bottom:8px">Hours by role — low · likely · high</div>
+      <table id="roleHeadline"></table>
     </div>
     <div style="flex:1; min-width:240px">
       <div class="muted" id="confidence"></div>
       <div class="muted" id="scopeNote" style="margin-top:6px"></div>
+      <div class="muted" id="reconcile" style="margin-top:6px"></div>
     </div>
   </div>
 
@@ -80,8 +81,9 @@
     <div class="scroll">
       <table>
         <thead><tr>
-          <th style="width:44%">Feature</th><th>Tier</th><th>Compress</th><th>Clarity</th>
-          <th class="num">Hours</th>
+          <th style="width:32%">Feature</th><th>Tier</th><th>Compress</th><th>Clarity</th>
+          <th class="num">Low</th><th class="num">Likely</th><th class="num">High</th>
+          <th id="roleHeads"></th>
         </tr></thead>
         <tbody id="features"></tbody>
       </table>
@@ -96,6 +98,9 @@
     <div>
       <h2>By role</h2>
       <div class="panel"><table id="roles"></table></div>
+      <div class="muted" style="margin-top:8px">Each role is a range. There is no single
+        project total: summing across roles answers no question anyone asks, and the roles are
+        what gets staffed and quoted.</div>
     </div>
   </div>
 
@@ -119,6 +124,13 @@ const TP = { mean: v => (v[0] + 4*v[1] + v[2]) / 6, sd: v => (v[2] - v[0]) / 6 }
 const add = (...v) => [0,1,2].map(i => v.reduce((s,x) => s + x[i], 0));
 const mul = (a,b) => [a[0]*b[0], a[1]*b[1], a[2]*b[2]];
 const scale = (a,k) => a.map(x => x*k);
+/* Mirrors widen() in estimate.py. Geometric, so a bound floored at zero cannot be driven
+   negative and the spread scales as a ratio. Clarity is what makes the band mean something:
+   a vague story reads wider than a specified one, which before this ran backwards. */
+const widen = (v,f) => (f === 1 || v[1] <= 0) ? v
+  : [v[0] > 0 ? v[1] * Math.pow(v[0]/v[1], f) : v[0], v[1],
+     v[2] > 0 ? v[1] * Math.pow(v[2]/v[1], f) : v[2]];
+const bandOf = f => f.clarity_band_multiplier || 1;
 const h = n => Math.round(n).toLocaleString();
 
 const opts = E._render_options;
@@ -233,15 +245,32 @@ function compute(ids) {
     for (const role of Object.keys(kept)) kept[role] /= total;
     return kept;
   };
-  const putRole = (v, key, surfaces) => {
-    for (const [role, share] of Object.entries(shares(key, surfaces)))
-      roles[role] = (roles[role] || 0) + TP.mean(v) * share;
+  /* Roles carry intervals, not means — the page reports a range per role like the document.
+     Accumulate three-point, and apply the story's clarity band exactly where the engine does,
+     so a role's numbers still add up to the story's own range. */
+  const roleBand = {};
+  const putRole = (v, key, surfaces, band) => {
+    for (const [role, share] of Object.entries(shares(key, surfaces))) {
+      const bucket = band === 1 ? roles : roleBand;
+      bucket[role] = add(bucket[role] || [0,0,0], scale(v, share));
+    }
+  };
+  const widenInto = (band) => {
+    for (const [role, v] of Object.entries(roleBand)) {
+      roles[role] = add(roles[role] || [0,0,0], widen(v, band));
+      delete roleBand[role];
+    }
   };
   for (const f of feats) {
     const surfaces = f.surfaces ? new Set(f.surfaces) : null;
-    for (const [comp, v] of Object.entries(f.components)) { putPhase(v, comp); putRole(v, comp, surfaces); }
+    const band = bandOf(f);
+    for (const [comp, v] of Object.entries(f.components)) {
+      putPhase(v, comp);
+      putRole(v, comp, surfaces, band);
+    }
+    widenInto(band);
   }
-  for (const [name, v] of Object.entries(project)) { putPhase(v, name); putRole(v, name, null); }
+  for (const [name, v] of Object.entries(project)) { putPhase(v, name); putRole(v, name, null, 1); }
 
   const scope = {};
   for (const f of feats) {
@@ -256,6 +285,7 @@ function compute(ids) {
 
 function rows(target, data, total) {
   const el = document.getElementById(target);
+  if (!el) return;
   const entries = Object.entries(data).sort((a,b) => b[1] - a[1]);
   el.innerHTML = entries.map(([k,v]) => `
     <tr><td>${k.replace(/[-_]/g,' ')}</td>
@@ -263,11 +293,22 @@ function rows(target, data, total) {
         <td class="num">${h(v)}</td></tr>`).join('');
 }
 
+/* Roles are intervals, so they get their own renderer: a bar on the central figure with the
+   low and high beside it. A point value here would hide exactly the signal the range carries. */
+function roleRows(target, data, total) {
+  const el = document.getElementById(target);
+  if (!el) return;
+  const entries = Object.entries(data).sort((a,b) => TP.mean(b[1]) - TP.mean(a[1]));
+  el.innerHTML = entries.map(([k,v]) => {
+    const m = TP.mean(v);
+    return `<tr><td>${k.replace(/[-_]/g,' ')}</td>
+        <td style="width:34%"><div class="bar"><span style="width:${total ? (100*m/total).toFixed(1) : 0}%"></span></div></td>
+        <td class="num">${h(v[0])} – ${h(v[1])} – ${h(v[2])}</td></tr>`;
+  }).join('');
+}
+
 function render() {
   const r = compute(included);
-  document.getElementById('likely').textContent = h(r.mean);
-  document.getElementById('range').textContent =
-    `${h(Math.max(r.mean - r.half, 0))} – ${h(r.mean + r.half)} hours`;
   document.getElementById('confidence').textContent =
     `Input completeness ${E.confidence.input_completeness} widens the band by ${E.confidence.band_multiplier}×. ` +
     E.confidence.why.split('.').slice(-2).join('.').trim();
@@ -278,7 +319,15 @@ function render() {
     r.features === E.features.length ? scopeParts : `${r.features} of ${E.features.length} features included — ${scopeParts}`;
 
   rows('phases', r.phases, r.mean);
-  rows('roles', r.roles, r.mean);
+  roleRows('roles', r.roles, r.mean);
+  roleRows('roleHeadline', r.roles, r.mean);
+  const onStories = Object.values(E.by_role || {})
+    .reduce((s,v) => s + (v.on_stories || 0), 0);
+  const projectLevel = Object.values(E.by_role || {})
+    .reduce((s,v) => s + (v.project_level || 0), 0);
+  document.getElementById('reconcile').textContent =
+    `${h(onStories)}h traces to a story; ${h(projectLevel)}h is planning, QA and overhead the ` +
+    `project pays whichever stories survive.`;
 
   document.querySelectorAll('tr[data-fid]').forEach(tr => {
     tr.classList.toggle('off', !included.has(tr.dataset.fid));
@@ -297,8 +346,15 @@ if ((M.calibration_status || '').startsWith('UNCALIBRATED')) {
      est-calibrate has reconciled them against real actuals.</div>`;
 }
 
+const ROLES = Object.keys(E.by_role || {}).sort();
+const n1 = x => (Math.round(x * 10) / 10).toFixed(1);
+document.getElementById('roleHeads').outerHTML =
+  ROLES.map(r => `<th class="num">${r}</th>`).join('');
+
 document.getElementById('features').innerHTML = E.features.map(f => {
   const tier = f.tags.review_tier;
+  const rr = f.range || {low: f.hours, likely: f.hours, high: f.hours};
+  const [r0, r1, r2] = [rr.low, rr.likely, rr.high];
   const outside = (f.scope_status && f.scope_status !== 'in_agreed_scope')
     ? `<span class="chip outside">outside agreed scope</span>` : '';
   const cites = f.citations.map(c => `${c.source_id} ${c.location}`).join(' · ');
@@ -311,7 +367,12 @@ document.getElementById('features').innerHTML = E.features.map(f => {
     <td><span class="chip ${tier}">${tier}</span></td>
     <td>${f.tags.compressibility}</td>
     <td>${f.tags.clarity}</td>
-    <td class="num">${h(f.hours)}</td></tr>`;
+    <td class="num">${h(r0)}</td><td class="num">${h(r1)}</td><td class="num">${h(r2)}</td>
+    ${ROLES.map(role => {
+        const v = (f.by_role || {})[role];
+        if (!v) return '<td class="num muted">—</td>';
+        return `<td class="num">${n1(v.low)}–${n1(v.likely)}–${n1(v.high)}</td>`;
+      }).join('')}</tr>`;
 }).join('');
 
 const risky = E.features.filter(f =>
@@ -347,11 +408,16 @@ if (E.duration) {
 document.getElementById('assumptions').innerHTML =
   E.assumptions.map(a => `<li>${a}</li>`).join('');
 
-document.getElementById('footer').innerHTML =
-  `Build compression ${E.manual_equivalent.build_compression}× on build effort alone
-   (${h(E.manual_equivalent.build_hours)}h manual → ${h(E.manual_equivalent.bmad_build_hours)}h with BMad).
-   This is <em>not</em> whole-project compression: planning, standing setup work, QA and client overhead are
-   costs a manual project pays too.`;
+/* Gated exactly as the markdown gates it. The build-compression figure is an internal
+   sanity check against pre-BMad intuition, and it was printing unconditionally here while
+   estimate.md kept it behind --show-manual-baseline — so the flag hid it from the document
+   a client reads and left it on the page a client is shown. */
+document.getElementById('footer').innerHTML = opts.show_manual_baseline
+  ? `Build compression ${E.manual_equivalent.build_compression}× on build effort alone
+     (${h(E.manual_equivalent.build_hours)}h manual → ${h(E.manual_equivalent.bmad_build_hours)}h with BMad).
+     This is <em>not</em> whole-project compression: planning, standing setup work, QA and client overhead are
+     costs a manual project pays too.`
+  : `Every hour above traces to a story, and every story to a quote in the client's own documents.`;
 
 document.addEventListener('change', e => {
   if (e.target.matches('input[type=checkbox][data-fid]')) {

@@ -163,20 +163,26 @@
     }
   },
   "clarity": {
-    "_what": "spec_rate and rework_rate as shares of manual_baseline and of (build+review) respectively. Under BMad, ambiguity is no longer resolved by a developer stopping to ask — it gets confidently implemented, reviewed, and rebuilt. Vagueness costs MORE than it did in manual delivery, which inverts the usual assumption. Rates are about half the manual-era figures for the same reason review is: the agent drafts the specification and catches its own first-pass mistakes. The ordering is untouched — vagueness still costs more under BMad, not less. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
+    "_what": "spec_rate and rework_rate as shares of manual_baseline and of (build+review) respectively, plus band_multiplier, which widens the story's own interval. Under BMad, ambiguity is no longer resolved by a developer stopping to ask — it gets confidently implemented, reviewed, and rebuilt. Vagueness costs MORE than it did in manual delivery, which inverts the usual assumption. Rates are about half the manual-era figures for the same reason review is: the agent drafts the specification and catches its own first-pass mistakes. The ordering is untouched — vagueness still costs more under BMad, not less. BAND: without band_multiplier the spread ran BACKWARDS — holding size at M, a real inventory produced hi/lo of 6.32 at high clarity and 5.52 at low, because spec and rework are scalar multiples of an interval and therefore proportionally tight, so adding more of them pulled the ratio down. A vague story read as more certain than a specified one, which is the opposite of the signal the range exists to carry. The multiplier widens the total around its likely value, the same way uncertainty.completeness_multiplier does at project level — correlated risk, not independent noise. DOUBLE COUNT, measured: clarity is also 18% of input_completeness, which widens the PROJECT band, so the same signal is read twice. The overlap turns out to be immaterial — per-story sds combine in quadrature, so the aggregate barely moves: a project of uniformly high-clarity stories is unchanged to the decimal, a realistic mix moves 0.0pp, and one of entirely low-clarity stories widens 0.8pp. Nothing was removed from the completeness path, because there was nothing material to remove. EPP Phase 1: 76 delivered stories, 9 epics, 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). n=1.",
     "high": {
       "spec_rate": 0.04,
       "rework_rate": 0.05,
+      "band_multiplier": 1.0,
+      "band_multiplier_why": "Acceptance criteria present, data model implied, edge cases named — the interval the size band and compressibility already imply needs no widening",
       "why": "Acceptance criteria present, data model implied, edge cases named"
     },
     "medium": {
       "spec_rate": 0.075,
       "rework_rate": 0.1,
+      "band_multiplier": 1.15,
+      "band_multiplier_why": "Clear in prose, intent unambiguous, details absent. The details are where the hours hide, so the spread widens by an exponent on hi/lo",
       "why": "Clear in prose, intent unambiguous, details absent"
     },
     "low": {
       "spec_rate": 0.125,
       "rework_rate": 0.2,
+      "band_multiplier": 1.35,
+      "band_multiplier_why": "A line in a transcript, or inferred from context. What is being built is genuinely not yet known, and a narrow band here would be false precision",
       "why": "A line in a transcript, or inferred from context. The rework rate is the dominant term here and it is real, not padding"
     }
   },
@@ -521,7 +527,7 @@
       "lo": 0.02,
       "likely": 0.03,
       "hi": 0.05,
-      "why": "Generated E2E suites plus exploratory testing and release verification"
+      "why": "Generated E2E suites run through the bmad-qat module (https://github.com/Relevant-S/bmad-qat), plus exploratory testing and release verification. ANCHOR: EPP Phase 1 epics 1-9 spent 40 h of QA in total running the suite through bmad-qat, against a manual baseline of roughly 1,200 h — 3.3%. An estimate that assumes the tooling without naming it cannot be checked against the project that produced the rate"
     },
     "mobile_manual": {
       "lo": 0.05,
