@@ -1,10 +1,117 @@
 {
- "schema_version": "1.0",
+ "schema_version": "1.1",
  "generated": "2026-09-09T00:00:00Z",
  "project": "memorial-healthcare epics 1-9.7",
  "granularity": "project",
  "working_language": "en",
  "_provenance": "NO per-story effort record exists. Bands are bridged onto EPP's measured 1-5 scale by files-touched (mean error 1.09 points per story; within 4% in aggregate). Surfaces and premiums are inferred from story titles. Actuals: dev 140 / architect 60 / BA 80 / UX 80, no QA and no DevOps = 360 h over 3.5 weeks, 9 planned epics.",
+ "epics": [
+  {
+   "id": "E1",
+   "name": "Epic 1",
+   "origin": "source",
+   "sequence": 1,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E2",
+   "name": "Epic 2",
+   "origin": "source",
+   "sequence": 2,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E3",
+   "name": "Epic 3",
+   "origin": "source",
+   "sequence": 3,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E4",
+   "name": "Epic 4",
+   "origin": "source",
+   "sequence": 4,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E5",
+   "name": "Epic 5",
+   "origin": "source",
+   "sequence": 5,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E6",
+   "name": "Epic 6",
+   "origin": "source",
+   "sequence": 6,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E7",
+   "name": "Epic 7",
+   "origin": "source",
+   "sequence": 7,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E8",
+   "name": "Epic 8",
+   "origin": "source",
+   "sequence": 8,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E8.5",
+   "name": "Epic 8.5",
+   "origin": "source",
+   "sequence": 9,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E8.6",
+   "name": "Epic 8.6",
+   "origin": "source",
+   "sequence": 10,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E8.7",
+   "name": "Epic 8.7",
+   "origin": "source",
+   "sequence": 11,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E9",
+   "name": "Epic 9",
+   "origin": "source",
+   "sequence": 12,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E9.5",
+   "name": "Epic 9.5",
+   "origin": "source",
+   "sequence": 13,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E9.6",
+   "name": "Epic 9.6",
+   "origin": "source",
+   "sequence": 14,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E9.7",
+   "name": "Epic 9.7",
+   "origin": "source",
+   "sequence": 15,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  }
+ ],
  "sources": [
   {
    "id": "S1",

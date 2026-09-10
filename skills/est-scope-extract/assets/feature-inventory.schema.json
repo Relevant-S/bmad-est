@@ -16,7 +16,8 @@
     "schema_version": {
       "type": "string",
       "enum": [
-        "1.0"
+        "1.0",
+        "1.1"
       ]
     },
     "generated": {
@@ -411,7 +412,7 @@
           "citations": {
             "type": "array",
             "minItems": 0,
-            "description": "At least one. A feature with no citation is invented scope.",
+            "description": "Where the source states this grouping. Optional: an epic taken from a document's own structure can point at the heading that grouped it, and a synthesised one has nothing to cite and carries `why` instead.",
             "items": {
               "type": "object",
               "required": [
@@ -438,6 +439,35 @@
                 },
                 "quote_language": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Build order, 1 first. Dependencies before what is built on them, foundations before what stands on them. Unique and contiguous 1..N across the epic list, so a gap reads as an epic somebody forgot rather than a deliberate space. Required from schema 1.1. The ARRAY order of `epics` means nothing: every render sorts on this field, so the two can disagree without consequence."
+          },
+          "sequence_why": {
+            "type": "string",
+            "description": "One line naming what this epic must follow, or what waits on it. Separate from `why`, which says what the GROUPING was made on — the two are different judgements and a reader checking the build order should not have to read past the grouping rationale to find it. Required from schema 1.1."
+          },
+          "depends_on_epics": {
+            "type": "array",
+            "description": "Ordering that no story dependency records — a design system that must land before the screens consuming it, a data model every later epic reads. Story-level `depends_on` is rolled up to epic level automatically, so this is only for what that roll-up cannot see. inventory-check.py validates the stated `sequence` against both.",
+            "items": {
+              "type": "object",
+              "required": [
+                "epic_id",
+                "why"
+              ],
+              "properties": {
+                "epic_id": {
+                  "type": "string"
+                },
+                "why": {
+                  "type": "string",
+                  "description": "What makes the order necessary rather than merely tidy."
                 }
               }
             }
@@ -598,6 +628,57 @@
           "rationale": {
             "type": "string",
             "description": "Why this work is certain to happen although no passage asks for it — the sentence in the source that implies it, or the delivery fact that makes it unavoidable. This replaces the citation, and it is required for exactly that reason: work with neither a quote nor a reason is invented scope."
+          }
+        }
+      }
+    },
+    "standing_scope": {
+      "type": "object",
+      "description": "Which of the cost model's `standing_work` items this project pays. The catalogue and its hours live in cost-model.json and stay there — this records only the SELECTION, so foundation work is visible in the inventory without every estimate re-deciding what it costs. `uv run scripts/inventory-check.py --standing` prints the catalogue to select against. Absent means the estimate falls back to selecting by stack profile alone, which is what every inventory before schema 1.1 did.",
+      "required": [
+        "selected"
+      ],
+      "properties": {
+        "catalogue": {
+          "type": "string",
+          "description": "Where the item keys come from. Always 'cost-model standing_work' today; named so a later second catalogue cannot be mistaken for this one."
+        },
+        "selected": {
+          "type": "array",
+          "description": "One entry per catalogue item, including the ones this project does NOT pay. A deliberate exclusion recorded with its reason is the whole point — it is `not_scope` for work no document mentions, and an item simply left out is indistinguishable from an item nobody considered.",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "applies",
+              "why"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "The item's key in the cost model's `standing_work.items`."
+              },
+              "applies": {
+                "type": "boolean",
+                "description": "Whether this project pays it."
+              },
+              "why": {
+                "type": "string",
+                "description": "Required either way. For `true`, what makes it necessary here; for `false`, what the client is bringing instead, or which extracted story already covers it. Held to the same standard as a feature's citation, because this work has none."
+              },
+              "covered_by": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[FI][0-9]+$"
+                },
+                "description": "Extracted stories that already cover this item, which is why `applies` is false. This is what makes double-counting visible: all three delivered anchor projects priced repo scaffold, CI and environment setup as ordinary stories AND paid standing work on top of them."
+              },
+              "epic_id": {
+                "type": "string",
+                "description": "Where it sits in the delivery structure, normally the first epic. Optional, and it changes no arithmetic: standing work is excluded from the planning volume on both the Python and the JavaScript side, because a pipeline gets no PRD section and no story file."
+              }
+            }
           }
         }
       }

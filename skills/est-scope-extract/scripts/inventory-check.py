@@ -612,14 +612,25 @@ def check_grouping(inv):
     """Epics, tasks and surfaces: the three things that decide how much the estimate invents.
 
     Epics are billed per epic, tasks are what a reviewer checks the workbook against, and
-    surfaces are what keeps a role off work it does not do. Each is optional — an inventory
-    from a two-page brief has no epics to declare — but a half-declared one is worse than
-    neither, because the estimate silently mixes a declared count with a derived one.
+    surfaces are what keeps a role off work it does not do.
+
+    From schema 1.1 grouping is REQUIRED: an ungrouped inventory has no delivery structure to
+    order, and every render sorts on the epic sequence. Below 1.1 it stays optional but never
+    half-done, because an estimate that mixes a declared epic count with a derived one is
+    billing planning against a number matching neither the source nor the stories.
     """
     findings = []
     features = inv.get("features", [])
     epics = inv.get("epics", [])
     epic_ids = {e.get("id") for e in epics}
+    ordered = str(inv.get("schema_version") or "1.0") >= "1.1"
+
+    if ordered and not epics:
+        findings.append(
+            "no epics are declared — from schema 1.1 every inventory carries a delivery "
+            "structure. Where the source groups nothing, synthesise the grouping and mark it "
+            "origin 'synthesised' with a 'why'"
+        )
 
     for i, epic in enumerate(epics):
         if epic.get("origin") == "synthesised" and not (epic.get("why") or "").strip():
@@ -627,7 +638,7 @@ def check_grouping(inv):
                             f"a grouping the source did not make has to say on what basis it was made")
 
     grouped = [f for f in features if f.get("epic_id")]
-    if epics and len(grouped) != len(features):
+    if (epics or ordered) and len(grouped) != len(features):
         missing = [f.get("id") for f in features if not f.get("epic_id")][:5]
         findings.append(
             f"{len(features) - len(grouped)} stories carry no epic_id while {len(epics)} epics are "
@@ -727,6 +738,21 @@ def load_bands(cost_model=None):
             return bands, Path(path), f"{label}: {path}"
     return None, None, ("no cost model with a size_bands._anchor block was readable — "
                         "sizing is unchecked for this run")
+
+
+def load_standing_catalogue(cost_model=None):
+    """The standing_work items an inventory selects from. Same fallback order as load_bands."""
+    for path in (cost_model, SEED_MODEL_PATH):
+        if not path:
+            continue
+        try:
+            block = json.loads(Path(path).read_text(encoding="utf-8")).get("standing_work")
+        except (OSError, json.JSONDecodeError):
+            continue
+        items = (block or {}).get("items")
+        if isinstance(items, dict) and items:
+            return items, f"{path}"
+    return None, "no cost model with a standing_work catalogue was readable"
 
 
 def band_of(feature):
@@ -939,6 +965,204 @@ def check_granularity(features, bands, floor=20, tol=1.6):
                       "advisory_only": "reported with its direction; never gates pricing"}
 
 
+STANDING_TRIGGERS = {
+    # Advisory name matches, not a classifier. Each is a prompt to look at a story that may
+    # already cover a catalogue item the project is also paying standing work for.
+    "repo_scaffold": ("scaffold", "monorepo", "boilerplate", "shared config", "lint", "bootstrap"),
+    "bmad_setup": ("bmad",),
+    "ci_pipeline": ("ci/cd", "ci ", "pipeline", "github actions", "regression gate"),
+    "environments": ("environment", "provisioning", "secret", "dns", "tls"),
+    "observability": ("observability", "logging", "metrics", "alerting", "monitoring"),
+    "release_process": ("release", "rollback"),
+    "mobile_release": ("app store", "testflight", "play console", "store provisioning"),
+    "service_integration_env": ("integration environment",),
+}
+
+
+def check_sequence(inv):
+    """Build order, and whether the order stated can actually be built.
+
+    The extraction states `sequence`; this checks it rather than trusting it. Story-level
+    `depends_on` is rolled up to epic level — a story in A depending on one in B means A cannot
+    be built before B — and `depends_on_epics` adds the ordering no story records. A stated
+    order contradicting a stated dependency is a fact rather than a preference, so it is a
+    finding and not an advisory.
+
+    Returns (findings, report). Quiet below schema 1.1, where `sequence` did not exist.
+    """
+    findings = []
+    epics = inv.get("epics") or []
+    report = {"epics": len(epics), "order": [], "violations": [],
+              "derived_edges": 0, "stated_edges": 0}
+    if not epics:
+        return findings, report
+    required = str(inv.get("schema_version") or "1.0") >= "1.1"
+
+    seq, held = {}, {}
+    for i, epic in enumerate(epics):
+        eid, value = epic.get("id"), epic.get("sequence")
+        if value is None:
+            if required:
+                findings.append(f"epics[{i}] ({eid}): no 'sequence' — from schema 1.1 every epic "
+                                f"states where it falls in the build order")
+            continue
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            findings.append(f"epics[{i}] ({eid}): sequence {value!r} is not a positive integer")
+            continue
+        if value in held:
+            findings.append(f"epics[{i}] ({eid}): sequence {value} is already held by "
+                            f"'{held[value]}' — two epics cannot both be built {value}th")
+        held[value] = eid
+        seq[eid] = value
+        if required and not (epic.get("sequence_why") or "").strip():
+            findings.append(f"epics[{i}] ({eid}): carries a sequence but no 'sequence_why' — an "
+                            f"order nobody can interrogate is the guess this field exists to prevent")
+
+    if seq and sorted(held) != list(range(1, len(epics) + 1)):
+        findings.append(
+            f"epic sequence reads {sorted(held)} — it must run 1..{len(epics)} with no gaps and "
+            f"no repeats, because a gap reads as an epic somebody dropped rather than a space "
+            f"left deliberately"
+        )
+
+    epic_of = {f.get("id"): f.get("epic_id")
+               for key in ("features", "implicit_scope") for f in inv.get(key) or []}
+    edges = {}
+    for key in ("features", "implicit_scope"):
+        for f in inv.get(key) or []:
+            after = f.get("epic_id")
+            for dep in f.get("depends_on") or []:
+                before = epic_of.get(dep.get("feature_id"))
+                if after and before and after != before:
+                    edges.setdefault((after, before),
+                                     f"{f.get('id')} depends on {dep.get('feature_id')}")
+    report["derived_edges"] = len(edges)
+
+    for i, epic in enumerate(epics):
+        after = epic.get("id")
+        for dep in epic.get("depends_on_epics") or []:
+            before = dep.get("epic_id")
+            if before not in epic_ids_of(epics):
+                findings.append(f"epics[{i}] ({after}): depends_on_epics '{before}' is not a "
+                                f"declared epic")
+                continue
+            if before == after:
+                findings.append(f"epics[{i}] ({after}): depends on itself — remove it")
+                continue
+            report["stated_edges"] += 1
+            edges[(after, before)] = dep.get("why") or "stated on the epic"
+
+    pseudo = [{"id": e.get("id"),
+               "depends_on": [{"feature_id": b} for (a, b) in edges if a == e.get("id")]}
+              for e in epics]
+    for cycle in find_cycles(pseudo):
+        findings.append(f"epic dependency cycle: {' -> '.join(str(c) for c in cycle)} — no build "
+                        f"order exists that satisfies it")
+
+    for (after, before), why in sorted(edges.items()):
+        if after in seq and before in seq and seq[after] <= seq[before]:
+            findings.append(
+                f"{after} is sequenced {seq[after]} but depends on {before} at {seq[before]} "
+                f"({why}) — it cannot be built before what it stands on"
+            )
+            report["violations"].append({"epic": after, "needs": before, "sequence": seq[after],
+                                         "needs_sequence": seq[before], "why": why})
+
+    report["order"] = [{"id": e.get("id"), "name": e.get("name"),
+                        "sequence": seq.get(e.get("id"))}
+                       for e in sorted(epics, key=lambda e: (seq.get(e.get("id")) is None,
+                                                             seq.get(e.get("id")) or 0,
+                                                             str(e.get("id") or "")))]
+    return findings, report
+
+
+def epic_ids_of(epics):
+    return {e.get("id") for e in epics}
+
+
+def check_standing_overlap(inv, catalogue):
+    """Foundation work: what was selected, what was left out, and what may be paid twice.
+
+    Advisory throughout, and deliberately so. Nothing here can under-price: an item the
+    inventory never mentions is still priced by est-estimate, so silence costs a warning
+    rather than hours. The overlap it looks for is real and measured — all three delivered
+    anchor projects priced repo scaffold, CI and environment setup as ordinary stories while
+    the cost model billed standing work for the same thing on top — but the detection is a
+    name match, and a name match is a reason to look rather than a verdict.
+    """
+    findings, warnings = [], []
+    report = {"catalogue_items": len(catalogue or {}), "selected": [], "excluded": [],
+              "unmentioned": [], "overlaps": [], "advisory_only": True}
+    stories = [f for key in ("features", "implicit_scope") for f in inv.get(key) or []]
+    ids = {f.get("id") for f in stories}
+    block = inv.get("standing_scope")
+
+    if not catalogue:
+        report["note"] = "no cost model with a standing_work catalogue was readable"
+        return findings, warnings, report
+    if not block:
+        report["note"] = ("no standing_scope block — est-estimate will select foundation work by "
+                          "stack profile alone, which is what every inventory before schema 1.1 "
+                          "did. Nothing is dropped; nothing is tailored either")
+        report["unmentioned"] = sorted(catalogue)
+        return findings, warnings, report
+
+    seen = {}
+    for i, row in enumerate(block.get("selected") or []):
+        key = row.get("key")
+        if key not in catalogue:
+            findings.append(f"standing_scope.selected[{i}]: '{key}' is not a standing_work item — "
+                            f"run inventory-check.py --standing for the catalogue")
+            continue
+        seen[key] = row
+        entry = {"key": key, "name": catalogue[key].get("name"), "why": row.get("why")}
+        if row.get("applies"):
+            report["selected"].append(entry)
+        else:
+            entry["covered_by"] = row.get("covered_by") or []
+            report["excluded"].append(entry)
+        for fid in row.get("covered_by") or []:
+            if fid not in ids:
+                findings.append(f"standing_scope.selected[{i}] ({key}): covered_by '{fid}' is not "
+                                f"a declared story")
+
+    report["unmentioned"] = sorted(set(catalogue) - set(seen))
+    # Split by how an unmentioned item actually behaves. One that every project pays is priced
+    # regardless, so silence costs nothing but clarity. One gated to a stack profile is priced
+    # only if the estimate happens to run under that stack — so silence there really can drop
+    # it, and saying "priced anyway" about both would be false about half of them.
+    universal = [k for k in report["unmentioned"] if catalogue[k].get("stacks") == "all"]
+    gated = [k for k in report["unmentioned"] if k not in universal]
+    if universal:
+        warnings.append(
+            f"standing_scope: {len(universal)} item(s) every project pays are neither claimed nor "
+            f"declined ({', '.join(universal)}) — they are priced regardless, so nothing is lost, "
+            f"but an item nobody wrote down is indistinguishable from one nobody considered"
+        )
+    if gated:
+        warnings.append(
+            f"standing_scope: {len(gated)} stack-gated item(s) are unmentioned "
+            f"({', '.join(gated)}) — these are priced ONLY when the estimate runs under a "
+            f"matching --stack, so leaving them out is the one case where silence can drop real "
+            f"work. Claim or decline them explicitly"
+        )
+
+    for key, row in seen.items():
+        if not row.get("applies"):
+            continue
+        words = STANDING_TRIGGERS.get(key, ())
+        hits = [f"{f.get('id')} {f.get('name')}" for f in stories
+                if any(w in (f.get("name") or "").lower() for w in words)]
+        if hits:
+            report["overlaps"].append({"key": key, "stories": hits[:5], "count": len(hits)})
+            warnings.append(
+                f"standing_scope: '{key}' is claimed while {len(hits)} extracted story name(s) "
+                f"read like the same work (e.g. {hits[0]}) — if the story already covers it, set "
+                f"applies false and name the story in covered_by, or the project pays for it twice"
+            )
+    return findings, warnings, report
+
+
 def find_cycles(features):
     """Depth-first cycle detection. est-estimate cannot compute a critical path over a cyclic graph."""
     graph = {f.get("id"): [d.get("feature_id") for d in f.get("depends_on", [])] for f in features}
@@ -1093,6 +1317,9 @@ def main():
     ap.add_argument("--bands", action="store_true",
                     help="print the size bands, their worked exemplars and the delivery anchor, "
                          "then exit — read this before classifying, not from memory")
+    ap.add_argument("--standing", action="store_true",
+                    help="print the standing_work catalogue an inventory's standing_scope selects "
+                         "from, then exit — select against this, not from memory")
     ap.add_argument("--weights", action="store_true", help="print the scoring weights and exit")
     ap.add_argument("--verbose", action="store_true", help="list findings on stderr as well")
     ap.add_argument("--boilerplate-threshold", type=float, default=0.2,
@@ -1108,6 +1335,15 @@ def main():
         print(json.dumps({"source": source, "size_bands": bands}, indent=2, ensure_ascii=False))
         return 0
 
+    if args.standing:
+        catalogue, source = load_standing_catalogue(args.cost_model)
+        if not catalogue:
+            print(json.dumps({"ok": False, "error": source}, indent=2))
+            return 2
+        print(json.dumps({"source": source, "standing_work": catalogue},
+                         indent=2, ensure_ascii=False))
+        return 0
+
     if args.weights:
         print(json.dumps({"weights": SIGNAL_WEIGHTS, "signal_points": SIGNAL_POINTS,
                           "clarity_points": CLARITY_POINTS,
@@ -1115,7 +1351,7 @@ def main():
         return 0
 
     if not args.inventory:
-        ap.error("inventory path is required unless --weights or --bands is given")
+        ap.error("inventory path is required unless --weights, --bands or --standing is given")
 
     path = Path(args.inventory)
     try:
@@ -1201,6 +1437,17 @@ def main():
     grain_warnings, grain = check_granularity(inv.get("features", []), bands)
     result["granularity"] = grain
     result["warnings"] += grain_warnings
+
+    # Build order and foundation work. Both read before the citation pass, because both are
+    # facts about the inventory alone and neither needs the normalized sources.
+    seq_findings, sequence = check_sequence(inv)
+    findings += seq_findings
+    result["sequence"] = sequence
+    catalogue, _ = load_standing_catalogue(args.cost_model)
+    sw_findings, sw_warnings, standing = check_standing_overlap(inv, catalogue)
+    findings += sw_findings
+    result["warnings"] += sw_warnings
+    result["standing_scope"] = standing
     if args.normalized:
         findings += verify_citations(inv, args.normalized) + check_anchors(inv, args.normalized)
         clipped, partial = check_quote_completeness(inv, args.normalized)

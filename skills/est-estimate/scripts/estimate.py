@@ -152,7 +152,7 @@ def surfaces_of(feature):
     return sorted({node} if isinstance(node, str) else {str(x) for x in node})
 
 
-def standing_features(model, options):
+def standing_features(model, options, inventory=None):
     """The work every project pays that no client document describes.
 
     Returned in the same shape as an extracted feature so it is priced by the same engine,
@@ -160,14 +160,41 @@ def standing_features(model, options):
     argue with it item by item. It has no citation, and that is the point: inventing a
     citation for it would be worse than admitting it has none, so it carries `origin` and
     the coefficient's own `why` instead, and `traceability()` checks for those.
+
+    The CATALOGUE and its hours live here, in the cost model, so every estimate prices the
+    same pipeline at the same rate. The SELECTION belongs to the project: an inventory at
+    schema 1.1 carries `standing_scope`, saying which items it pays and why, and which the
+    client is bringing. An item that selection never mentions is priced anyway — the failure
+    mode of a half-finished selection has to be paying for something twice, never silently
+    dropping it — and `inventory-check.py` warns about it at extraction time.
+
+    Returns (features, selection_report).
     """
     if options.get("no_standing_work"):
-        return []
+        return [], {"applies": [], "declined": [], "unmentioned": [], "basis": "suppressed"}
     stack, out = options["stack"], []
+    chosen = {}
+    for row in (((inventory or {}).get("standing_scope") or {}).get("selected") or []):
+        if row.get("key") in model["standing_work"]["items"]:
+            chosen[row["key"]] = row
+    report = {"applies": [], "declined": [], "unmentioned": [],
+              "basis": ("the inventory's own standing_scope selection" if chosen
+                        else f"stack profile '{stack}' — the inventory declared no selection")}
     for key, spec in (model["standing_work"]["items"]).items():
         stacks = spec["stacks"]
-        if stacks != "all" and stack not in stacks:
-            continue
+        row = chosen.get(key)
+        if row is not None:
+            if not row.get("applies"):
+                report["declined"].append({"key": key, "name": spec["name"],
+                                           "why": row.get("why"),
+                                           "covered_by": row.get("covered_by") or []})
+                continue
+            report["applies"].append({"key": key, "name": spec["name"], "why": row.get("why")})
+        else:
+            if stacks != "all" and stack not in stacks:
+                continue
+            if chosen:
+                report["unmentioned"].append({"key": key, "name": spec["name"]})
         out.append({
             "id": f"SW-{key}",
             "name": spec["name"],
@@ -189,8 +216,12 @@ def standing_features(model, options):
             "surfaces": spec["surfaces"],
             "depends_on": [],
             "open_questions": [],
+            # Optional, and it moves no arithmetic: standing work is filtered out of the
+            # planning volume on both the Python and the JavaScript side before epics are
+            # counted, so placing it in an epic changes where it is READ, never what it costs.
+            "epic_id": (row or {}).get("epic_id"),
         })
-    return out
+    return out, report
 
 
 def effort_premium(feature, model):
@@ -939,14 +970,31 @@ def inventory_from(estimate):
             implicit.append(entry)
         else:
             features.append(entry)
-    return {
-        "schema_version": "1.0", "generated": estimate.get("generated"),
+    # The delivery structure round-trips too. Standing work is regenerated rather than carried,
+    # but the SELECTION that decided which items to regenerate is a property of the project, so
+    # dropping it here would silently re-price a scope against the stack default instead of
+    # against what the project actually chose.
+    epics = [dict(e) for e in estimate.get("epics") or []]
+    selection = ((estimate.get("standing_work") or {}).get("selection") or {})
+    rebuilt = [{"key": row["key"], "applies": True, "why": row.get("why") or "carried from a priced estimate"}
+               for row in selection.get("applies") or []]
+    rebuilt += [{"key": row["key"], "applies": False,
+                 "why": row.get("why") or "declined on the priced estimate",
+                 "covered_by": row.get("covered_by") or []}
+                for row in selection.get("declined") or []]
+    out = {
+        "schema_version": "1.1" if epics else "1.0", "generated": estimate.get("generated"),
         "project": estimate.get("project"), "granularity": estimate.get("granularity", "project"),
         "working_language": "en",
         "sources": [{"id": "S1", "path": "ledger", "doc_type": "sow", "language": "en"}],
         "features": features, "implicit_scope": implicit,
         "not_scope": [], "conflicts": [], "assumptions": [], "completeness_signals": {},
     }
+    if epics:
+        out["epics"] = epics
+    if rebuilt:
+        out["standing_scope"] = {"catalogue": "cost-model standing_work", "selected": rebuilt}
+    return out
 
 
 # --- main ---------------------------------------------------------------------
@@ -954,10 +1002,14 @@ def inventory_from(estimate):
 def build_estimate(inventory, model, options):
     features = inventory.get("features", [])
     implicit = [dict(f, origin="implicit") for f in inventory.get("implicit_scope", [])]
-    standing = standing_features(model, options)
+    standing, standing_selection = standing_features(model, options, inventory)
+    # Build order, resolved once and stamped onto every priced row, so a render never has to
+    # join back to the epic list to sort. An epic the sequence does not name sorts last.
+    sequence_of = {e.get("id"): e.get("sequence") for e in inventory.get("epics") or []}
     priced = []
     for raw in features + implicit + standing:
         entry = price_feature(raw, model, options["team"])
+        entry["epic_sequence"] = sequence_of.get(entry.get("epic_id"))
         entry["_raw"] = raw
         priced.append(entry)
 
@@ -983,6 +1035,12 @@ def build_estimate(inventory, model, options):
         "schema_version": "1.0",
         "project": inventory.get("project"),
         "granularity": options["granularity"],
+        # The delivery structure, in build order, so every render can group and sort without
+        # holding the inventory open beside it. Ordering lives on the epic, never in array
+        # order: the two are allowed to disagree and the sequence is what wins.
+        "epics": sorted((inventory.get("epics") or []),
+                        key=lambda e: (e.get("sequence") is None, e.get("sequence") or 0,
+                                       str(e.get("id") or ""))),
         "mode": options["mode"],
         "generated": options["generated"],
         "inventory": options["inventory_path"],
@@ -1068,6 +1126,10 @@ def build_estimate(inventory, model, options):
             "why": ("Work no client document describes and every project pays. Added openly and "
                     "priced through the same engine as the extracted scope, so it can be argued "
                     "with item by item or suppressed with --no-standing-work."),
+            # What the project chose, including what it chose NOT to pay. A declined item with
+            # its reason is the part a client actually reads: it says the pipeline was
+            # considered and the client is bringing one, rather than that nobody thought of it.
+            "selection": standing_selection,
         },
         "by_phase": by_phase(priced, project, model),
         "by_role": by_role(priced, project, model),

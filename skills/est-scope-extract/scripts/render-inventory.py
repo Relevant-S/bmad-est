@@ -37,11 +37,11 @@ INDEX_NAME = "feature-inventory.md"
 PAGES_DIR = "inventory"
 TASKS_CSV = "feature-inventory.tasks.csv"
 
-STORY_COLUMNS = ["id", "name", "description", "epic_id", "epic_name", "surfaces",
+STORY_COLUMNS = ["id", "name", "description", "epic_seq", "epic_id", "epic_name", "surfaces",
                  "commitment", "scope_status", "origin", "task_count", "task_ids",
                  "depends_on", "open_questions", "sources", "locations", "quotes"]
 
-TASK_COLUMNS = ["task_id", "feature_id", "feature_name", "epic_id", "name", "text",
+TASK_COLUMNS = ["task_id", "feature_id", "feature_name", "epic_seq", "epic_id", "name", "text",
                 "source_id", "source_path", "sheet", "row", "location", "link"]
 
 
@@ -132,6 +132,45 @@ def _sheet_row(cit, links):
 
 # --- the page layout ------------------------------------------------------------------------
 
+def epic_order(inv):
+    """Epic id -> build position. THE ordering authority for every projection in this file.
+
+    The `epics` array order means nothing: `sequence` is what the extraction stated and what
+    `inventory-check.py` validated against the dependency graph, so the two are allowed to
+    disagree and this is the one that wins. An epic with no sequence sorts last rather than
+    first, because an unordered epic is unfinished work and burying it at the top of the
+    document is how it stays unfinished.
+    """
+    return {e.get("id"): e.get("sequence") for e in inv.get("epics") or []
+            if e.get("id") is not None}
+
+
+def _rank(sequence, fallback=""):
+    return (sequence is None, sequence or 0, str(fallback or ""))
+
+
+def sorted_epics(inv):
+    order = epic_order(inv)
+    return sorted((inv.get("epics") or []),
+                  key=lambda e: _rank(order.get(e.get("id")), e.get("id")))
+
+
+def story_sort_key(inv):
+    """Stories read in build order: epic sequence first, then the story's own id.
+
+    `F10` after `F9` rather than before it — a natural sort on the numeric tail, because an
+    inventory is read as a list of ids and a lexicographic one puts F10 second.
+    """
+    order = epic_order(inv)
+
+    def key(f):
+        fid = str(f.get("id") or "")
+        digits = "".join(c for c in fid if c.isdigit())
+        return _rank(order.get(f.get("epic_id")), f.get("epic_id")) + (
+            int(digits) if digits else 0, fid)
+    return key
+
+
 def plan_pages(inv):
     """Which file each story is rendered into.
 
@@ -148,11 +187,15 @@ def plan_pages(inv):
                  "features": features + implicit}], {}
 
     pages, by_feature = [], {}
-    for epic in epics:
+    order = story_sort_key(inv)
+    for epic in sorted_epics(inv):
         eid = epic.get("id")
-        members = [f for f in features if f.get("epic_id") == eid]
+        members = sorted([f for f in features if f.get("epic_id") == eid], key=order)
+        seq = epic.get("sequence")
+        title = f"{eid} — {epic.get('name')}"
         pages.append({"path": f"{PAGES_DIR}/{_slug(str(eid))}-{_slug(epic.get('name'))}.md",
-                      "title": f"{eid} — {epic.get('name')}", "epic": epic, "features": members})
+                      "title": f"{seq}. {title}" if seq is not None else title,
+                      "epic": epic, "features": members})
     loose = [f for f in features if not f.get("epic_id")]
     if loose:
         pages.append({"path": f"{PAGES_DIR}/unassigned.md", "title": "Stories with no epic",
@@ -162,6 +205,11 @@ def plan_pages(inv):
                       "epic": None, "features": implicit})
 
     pages = [p for p in pages if p["features"]]
+    if (inv.get("standing_scope") or {}).get("selected"):
+        # Last, and story-less: this page is the selection with its reasons, not a backlog.
+        # The hours behind it live in the cost model and are priced by est-estimate.
+        pages.append({"path": f"{PAGES_DIR}/standing.md", "title": "Foundation work",
+                      "epic": None, "features": [], "standing": inv["standing_scope"]})
     for page in pages:
         for f in page["features"]:
             by_feature[f.get("id")] = page["path"]
@@ -274,15 +322,26 @@ def render_index(inv, pages, links):
     if split:
         out += ["## Contents", ""]
         for page in pages:
+            if page.get("standing"):
+                # Not a story list, so counting stories on it would read as an empty epic.
+                picked = sum(1 for r in page["standing"].get("selected") or [] if r.get("applies"))
+                out.append(f"- [{page['title']}]({page['path']}) · {picked} item"
+                           f"{'' if picked == 1 else 's'} priced from the cost model")
+                continue
             n = len(page["features"])
             out.append(f"- [{page['title']}]({page['path']}) · {n} "
                        f"{'story' if n == 1 else 'stories'}")
         out.append("")
 
     if epics:
-        out += ["## Epics", "", "| id | epic | stories | from |", "| --- | --- | ---: | --- |"]
+        # In build order, which is the order the table is read as an answer to "what happens
+        # first". `#` is the stated sequence; `after` is what it waits on.
+        out += ["## Epics", "", "*In build sequence — dependencies first, foundations before "
+                "what stands on them.*", "",
+                "| # | id | epic | stories | after | why this position | from |",
+                "| ---: | --- | --- | ---: | --- | --- | --- |"]
         page_of = {p["epic"]["id"]: p["path"] for p in pages if p.get("epic")}
-        for epic in epics:
+        for epic in sorted_epics(inv):
             eid = epic.get("id")
             n = sum(1 for f in features if f.get("epic_id") == eid)
             origin = epic.get("origin", "")
@@ -291,7 +350,10 @@ def render_index(inv, pages, links):
             name = epic.get("name")
             if eid in page_of:
                 name = f"[{name}]({page_of[eid]})"
-            out.append(f"| {eid} | {name} | {n} | {origin} |")
+            after = "; ".join(d.get("epic_id", "") for d in epic.get("depends_on_epics") or [])
+            seq = epic.get("sequence")
+            out.append(f"| {seq if seq is not None else '—'} | {eid} | {name} | {n} | "
+                       f"{after or '—'} | {epic.get('sequence_why') or '—'} | {origin} |")
         out.append("")
 
     out += ["## Sources", "", "| id | document | type | language | converter | coverage note |",
@@ -327,6 +389,38 @@ def render_index(inv, pages, links):
     return out
 
 
+def _ordinal(n):
+    if not isinstance(n, int):
+        return "in an unstated position"
+    return f"{n}{'th' if 11 <= n % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
+def standing_block(standing):
+    """Foundation work: what this project pays, and what it does not.
+
+    Both halves are rendered. An item declined with its reason says the pipeline was
+    considered and the client is bringing one; an item simply missing from the page says
+    nothing at all, and a reader cannot tell those apart unless the page prints both.
+    """
+    rows = list(standing.get("selected") or [])
+    applies = [r for r in rows if r.get("applies")]
+    declined = [r for r in rows if not r.get("applies")]
+    body = ["Work no client document describes and every project pays. The hours live in the "
+            "cost model's `standing_work` catalogue and are priced by est-estimate — this page "
+            "records only what this project selected, and why.", ""]
+    if applies:
+        body += ["## Paid on this project", "", "| item | why |", "| --- | --- |"]
+        body += [f"| `{r.get('key')}` | {r.get('why') or '—'} |" for r in applies]
+        body.append("")
+    if declined:
+        body += ["## Not paid on this project", "", "| item | why | already covered by |",
+                 "| --- | --- | --- |"]
+        body += [f"| `{r.get('key')}` | {r.get('why') or '—'} | "
+                 f"{'; '.join(r.get('covered_by') or []) or '—'} |" for r in declined]
+        body.append("")
+    return body
+
+
 def render_pages(inv, links=None, pages=None, by_feature=None):
     """Every markdown page this inventory renders to, keyed by workspace-relative path."""
     links = links or Links()
@@ -353,6 +447,11 @@ def render_pages(inv, links=None, pages=None, by_feature=None):
                 f"({_relative(INDEX_NAME, page['path'])})", ""]
         if page.get("epic") and page["epic"].get("origin") == "synthesised" and page["epic"].get("why"):
             body += [f"*Synthesised epic — {page['epic']['why']}*", ""]
+        if page.get("epic") and page["epic"].get("sequence_why"):
+            body += [f"**Built {_ordinal(page['epic'].get('sequence'))}** — "
+                     f"{page['epic']['sequence_why']}", ""]
+        if page.get("standing"):
+            body += standing_block(page["standing"])
         for f in page["features"]:
             body += story_block(f, inv, links, page["path"], by_feature, src_by_id, names)
         out[page["path"]] = "\n".join(body)
@@ -373,8 +472,12 @@ def story_rows(inv, links=None):
     names = {f.get("id"): f.get("name")
              for f in list(inv.get("features") or []) + list(inv.get("implicit_scope") or [])}
 
+    order = epic_order(inv)
     rows = []
-    for f in list(inv.get("features", [])) + list(inv.get("implicit_scope") or []):
+    # Sorted, so the spreadsheet reads in build order like every other projection. A reader
+    # who sorts the sheet themselves still can; a reader who does not now gets the right order.
+    for f in sorted(list(inv.get("features", [])) + list(inv.get("implicit_scope") or []),
+                    key=story_sort_key(inv)):
         citations = f.get("citations", []) or []
         deps = []
         for d in f.get("depends_on", []) or []:
@@ -387,6 +490,7 @@ def story_rows(inv, links=None):
             "id": f.get("id"),
             "name": f.get("name"),
             "description": f.get("description"),
+            "epic_seq": order.get(f.get("epic_id")) or "",
             "epic_id": f.get("epic_id") or "",
             "epic_name": epic_names.get(f.get("epic_id"), ""),
             "surfaces": "; ".join(f.get("surfaces") or []),
@@ -412,8 +516,10 @@ def story_rows(inv, links=None):
 def task_rows(inv, links=None, from_page=""):
     links = links or Links()
     src_by_id = {s["id"]: s for s in inv.get("sources", [])}
+    order = epic_order(inv)
     rows = []
-    for f in list(inv.get("features", [])) + list(inv.get("implicit_scope") or []):
+    for f in sorted(list(inv.get("features", [])) + list(inv.get("implicit_scope") or []),
+                    key=story_sort_key(inv)):
         for task in f.get("tasks") or []:
             citations = task.get("citations") or []
             first = citations[0] if citations else {}
@@ -422,6 +528,7 @@ def task_rows(inv, links=None, from_page=""):
                 "task_id": task.get("id"),
                 "feature_id": f.get("id"),
                 "feature_name": f.get("name"),
+                "epic_seq": order.get(f.get("epic_id")) or "",
                 "epic_id": f.get("epic_id") or "",
                 "name": task.get("name"),
                 "text": "\n\n".join((c.get("quote") or "").strip() for c in citations),

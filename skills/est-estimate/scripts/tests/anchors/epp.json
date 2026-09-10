@@ -1,10 +1,75 @@
 {
- "schema_version": "1.0",
+ "schema_version": "1.1",
  "generated": "2026-09-09T00:00:00Z",
  "project": "EPP (myEPP) epics 1-9",
  "granularity": "project",
  "working_language": "en",
  "_provenance": "Bands, surfaces and the money/IdP/native premiums are read from EPP's own measured per-story record: docs/reference/phase-1-per-feature-estimate.csv (75 stories, 237 points, 1.165 h/point). review_tier is inferred from each story's subject matter using the classification guide's own trigger words. Actuals: dev 300 / architect 110 / BA 100 / UX 100 / QA 40 / DevOps 40 = 690 h over 7 weeks, 8 planned epics.",
+ "epics": [
+  {
+   "id": "E1",
+   "name": "Epic 1",
+   "origin": "source",
+   "sequence": 1,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E2",
+   "name": "Epic 2",
+   "origin": "source",
+   "sequence": 2,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E3",
+   "name": "Epic 3",
+   "origin": "source",
+   "sequence": 3,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E4",
+   "name": "Epic 4",
+   "origin": "source",
+   "sequence": 4,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E5",
+   "name": "Epic 5",
+   "origin": "source",
+   "sequence": 5,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E6",
+   "name": "Epic 6",
+   "origin": "source",
+   "sequence": 6,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E7",
+   "name": "Epic 7",
+   "origin": "source",
+   "sequence": 7,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E8",
+   "name": "Epic 8",
+   "origin": "source",
+   "sequence": 8,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E9",
+   "name": "Epic 9",
+   "origin": "source",
+   "sequence": 9,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  }
+ ],
  "sources": [
   {
    "id": "S1",

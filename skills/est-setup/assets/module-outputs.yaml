@@ -28,9 +28,9 @@ est-scope-extract:
       role: append-only process record
   optional:
     - path: "inventory/{page}.md"
-      when: the inventory is grouped into epics — one page per epic, plus unassigned.md and
-            implicit.md where those exist. Row text inline takes a 365-story inventory past
-            2 MB in one file.
+      when: the inventory is grouped into epics — one page per epic in build sequence, plus
+            unassigned.md, implicit.md and standing.md where those exist. Row text inline
+            takes a 365-story inventory past 2 MB in one file.
     - path: feature-inventory.csv
       when: csv is in est_output_formats
     - path: feature-inventory.tasks.csv

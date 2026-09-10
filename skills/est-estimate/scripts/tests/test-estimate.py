@@ -644,7 +644,7 @@ class TestTraceabilityAndQuestions(unittest.TestCase):
                          for i in range(1, 5)])
         e = hours(inv, completeness=0.4)
         opts = options(completeness=0.4, granularity="project")
-        raws = inv["features"] + est.standing_features(model(), opts)
+        raws = inv["features"] + est.standing_features(model(), opts)[0]
         priced = [est.price_feature(f, model(), opts["team"]) for f in raws]
         for p, raw in zip(priced, raws):
             p["_raw"] = raw
@@ -758,6 +758,141 @@ class TestModeAndSnapshot(unittest.TestCase):
         f["tags"]["size_band"]["value"] = "XXL"
         with self.assertRaises(KeyError):
             hours(inventory([f]))
+
+
+class StandingScopeSelection(unittest.TestCase):
+    """The catalogue and its hours stay in the cost model; the SELECTION belongs to the project.
+
+    The failure mode is deliberately asymmetric: an incomplete selection pays for something
+    twice, and never silently drops it. Under-pricing is the one outcome none of this may
+    produce, because nobody reads an estimate looking for what is missing from it.
+    """
+
+    def inv(self, selected=None, **over):
+        base = inventory(features=[feature("F1", size="M")])
+        if selected is not None:
+            base["schema_version"] = "1.1"
+            base["standing_scope"] = {"catalogue": "cost-model standing_work",
+                                      "selected": selected}
+        base.update(over)
+        return base
+
+    def priced(self, inv, **opt):
+        opt.setdefault("no_standing_work", False)
+        e = hours(inv, **opt)
+        return {f["id"]: f for f in e["features"] if f.get("origin") == "standing"}, e
+
+    def test_a_declined_item_is_not_priced(self):
+        keys = list(model()["standing_work"]["items"])
+        without, e = self.priced(self.inv([
+            {"key": keys[0], "applies": False, "why": "the client is bringing it"}]))
+        self.assertNotIn(f"SW-{keys[0]}", without)
+        self.assertIn(keys[0], [r["key"] for r in e["standing_work"]["selection"]["declined"]])
+
+    def test_a_declined_item_still_appears_in_the_report_with_its_reason(self):
+        """A client reads 'considered, and you are bringing one'. An item simply absent from
+        the page says nothing at all."""
+        keys = list(model()["standing_work"]["items"])
+        _, e = self.priced(self.inv([
+            {"key": keys[0], "applies": False, "why": "the client is bringing it",
+             "covered_by": ["F1"]}]))
+        row = e["standing_work"]["selection"]["declined"][0]
+        self.assertEqual(row["why"], "the client is bringing it")
+        self.assertEqual(row["covered_by"], ["F1"])
+
+    def test_declining_an_item_actually_lowers_the_number(self):
+        keys = list(model()["standing_work"]["items"])
+        full = hours(self.inv(), no_standing_work=False)["total_hours"]["likely"]
+        cut = hours(self.inv([{"key": k, "applies": False, "why": "brought"} for k in keys]),
+                    no_standing_work=False)["total_hours"]["likely"]
+        self.assertLess(cut, full)
+
+    def test_an_item_the_selection_never_mentions_is_still_priced(self):
+        """The fail-safe. A half-finished selection must not read as a discount."""
+        keys = list(model()["standing_work"]["items"])
+        items, e = self.priced(self.inv([
+            {"key": keys[0], "applies": True, "why": "greenfield"}]))
+        self.assertIn(f"SW-{keys[1]}", items)
+        self.assertIn(keys[1], [r["key"] for r in e["standing_work"]["selection"]["unmentioned"]])
+
+    def test_an_inventory_with_no_selection_falls_back_to_the_stack_profile(self):
+        _, e = self.priced(self.inv())
+        self.assertIn("stack profile", e["standing_work"]["selection"]["basis"])
+        self.assertEqual(e["standing_work"]["selection"]["applies"], [])
+
+    def test_a_selection_says_it_was_the_inventorys_own(self):
+        _, e = self.priced(self.inv([{"key": "repo_scaffold", "applies": True, "why": "w"}]))
+        self.assertIn("inventory's own", e["standing_work"]["selection"]["basis"])
+
+    def test_suppressing_standing_work_still_wins_over_any_selection(self):
+        _, e = self.priced(self.inv([{"key": "repo_scaffold", "applies": True, "why": "w"}]),
+                           no_standing_work=True)
+        self.assertEqual(e["standing_work"]["items"], [])
+        self.assertEqual(e["standing_work"]["selection"]["basis"], "suppressed")
+
+    def test_an_unknown_key_in_the_selection_changes_nothing(self):
+        """inventory-check.py refuses it; the engine must not crash on one that slips past."""
+        items, _ = self.priced(self.inv([{"key": "teleportation", "applies": True, "why": "w"}]))
+        self.assertIn("SW-repo_scaffold", items)
+
+    def test_the_selection_survives_a_round_trip_through_a_priced_estimate(self):
+        """est-calibrate backtests and est-agent-estimator scenarios both re-price through
+        inventory_from(). Losing the selection there would silently re-price the scope against
+        the stack default instead of what the project chose."""
+        keys = list(model()["standing_work"]["items"])
+        first = hours(self.inv([{"key": keys[0], "applies": False, "why": "brought"},
+                                {"key": keys[1], "applies": True, "why": "needed"}]),
+                      no_standing_work=False)
+        back = est.inventory_from(first)
+        rows = {r["key"]: r for r in back["standing_scope"]["selected"]}
+        self.assertFalse(rows[keys[0]]["applies"])
+        self.assertTrue(rows[keys[1]]["applies"])
+        second = hours(back, no_standing_work=False)
+        self.assertAlmostEqual(first["total_hours"]["likely"],
+                               second["total_hours"]["likely"], delta=0.6)
+
+
+class DeliveryStructure(unittest.TestCase):
+    """Epics carry a build order, and it reaches the estimate rather than stopping at the
+    inventory."""
+
+    def inv(self):
+        return inventory(
+            schema_version="1.1",
+            features=[feature("F1", size="M", epic_id="E2"),
+                      feature("F2", size="M", epic_id="E1")],
+            epics=[{"id": "E2", "name": "Booking", "origin": "source", "sequence": 2,
+                    "sequence_why": "reads the data model"},
+                   {"id": "E1", "name": "Foundation", "origin": "source", "sequence": 1,
+                    "sequence_why": "everything stands on it"}])
+
+    def test_the_estimate_carries_the_epics_in_sequence_order(self):
+        e = hours(self.inv())
+        self.assertEqual([x["id"] for x in e["epics"]], ["E1", "E2"])
+
+    def test_every_priced_story_carries_its_epics_position(self):
+        by_id = {f["id"]: f for f in hours(self.inv())["features"]}
+        self.assertEqual(by_id["F1"]["epic_sequence"], 2)
+        self.assertEqual(by_id["F2"]["epic_sequence"], 1)
+
+    def test_the_sequence_moves_no_hours_at_all(self):
+        """Ordering decides where work is READ, never what it costs. If reversing the sequence
+        moved the total, the field would have become a pricing input by accident."""
+        inv = self.inv()
+        before = hours(inv)["total_hours"]["likely"]
+        for e in inv["epics"]:
+            e["sequence"] = 3 - e["sequence"]
+        self.assertEqual(hours(inv)["total_hours"]["likely"], before)
+
+    def test_the_structure_survives_a_round_trip(self):
+        back = est.inventory_from(hours(self.inv()))
+        self.assertEqual([(e["id"], e["sequence"]) for e in back["epics"]], [("E1", 1), ("E2", 2)])
+        self.assertEqual(back["schema_version"], "1.1")
+
+    def test_an_estimate_from_an_ungrouped_inventory_round_trips_as_one_point_zero(self):
+        back = est.inventory_from(hours(inventory(features=[feature("F1")])))
+        self.assertEqual(back["schema_version"], "1.0")
+        self.assertNotIn("epics", back)
 
 
 class CalibrationClaim(unittest.TestCase):

@@ -43,6 +43,38 @@ Where you do have to synthesise, group by **user value**, not by technical layer
 management" with upload, status and permissions as stories, never "Database setup" then "API
 layer" then "Screens". Consolidate epics that would all churn the same component.
 
+## Ordering the epics
+
+Grouping says what belongs together. **Ordering says what gets built first**, and an inventory
+that answers only the first question is a catalogue rather than a delivery plan. Every epic
+carries a `sequence` running `1..N` with no gaps, and a `sequence_why` naming what it must
+follow or what waits on it.
+
+The order that keeps being right, in rough priority:
+
+1. **The repository and its shared configuration.** Everything after it inherits those choices.
+2. **The data model**, and the authentication skeleton if there is one. Almost every later epic
+   reads from both, so putting them anywhere but near the front creates rework that no
+   dependency in the source will have told you about.
+3. **A design system before the screens that consume it.** This is the classic ordering no
+   story records — the screens do not "depend on" it in any sentence the client wrote, but
+   building them first means building them twice.
+4. **The capability everything else reads.** In a booking product that is the booking; in a
+   marketplace it is the listing. Consumers after producers.
+5. **Integrations after the thing they integrate with.** A payment rail has nothing to charge
+   for until there is a thing to buy.
+6. **Reporting, admin and moderation last.** They read what the rest of the system writes, and
+   they are also what a cut-line conversation reaches for first.
+
+Two mechanics matter. A story in one epic depending on a story in another **is** an ordering
+fact, and `inventory-check.py` rolls those up on its own — you do not restate them. What you
+do state is `depends_on_epics`, for the ordering no story records: the design-system case
+above is exactly what it is for. And **the array order of `epics` is not the sequence**. The
+two are allowed to disagree, every projection sorts on `sequence`, and the checker validates
+the order you state against the dependency graph rather than believing it. A stated order that
+contradicts a stated dependency is a finding — which means the ordering is the one judgement
+in this file that something other than a reader can catch you getting wrong.
+
 ## What becomes a story
 
 A story is one coherent unit of delivery: something a developer could pick up, build and have

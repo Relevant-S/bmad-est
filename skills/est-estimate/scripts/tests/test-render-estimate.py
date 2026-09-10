@@ -161,6 +161,93 @@ class TestMarkdown(unittest.TestCase):
         self.assertIn("no citation", md)
 
 
+class GroupedByEpic(unittest.TestCase):
+    """The estimate reads in build order. A flat table of 120 rows answers "what does line 84
+    cost"; a reader deciding what to fund first is asking a question only grouping answers."""
+
+    def est(self, **opt):
+        inv = inventory([feature("F1", "Screens", epic_id="E2"),
+                         feature("F2", "Data model", epic_id="E1")])
+        inv["schema_version"] = "1.1"
+        # Array order is deliberately the wrong way round: the sequence is what must win.
+        inv["epics"] = [{"id": "E2", "name": "Booking", "origin": "source", "sequence": 2,
+                         "sequence_why": "reads the data model"},
+                        {"id": "E1", "name": "Foundation", "origin": "source", "sequence": 1,
+                         "sequence_why": "everything stands on it"}]
+        opt.setdefault("granularity", inv.get("granularity", "project"))
+        opt.setdefault("no_standing_work", True)
+        return est.build_estimate(inv, model(), options(**opt))
+
+    def test_the_features_section_carries_one_heading_per_epic_in_sequence(self):
+        md = render.markdown(self.est())
+        heads = [l for l in md.split("\n") if l.startswith("### ")]
+        self.assertEqual(heads[:2], ["### 1. E1 — Foundation", "### 2. E2 — Booking"])
+
+    def test_each_epic_carries_a_subtotal(self):
+        md = render.markdown(self.est())
+        self.assertIn("**E1 — Foundation — ", md)
+        self.assertIn("h likely**", md)
+
+    def test_the_build_sequence_table_is_present_and_ordered(self):
+        md = render.markdown(self.est())
+        self.assertIn("## Build sequence", md)
+        table = md[md.index("## Build sequence"):md.index("## Features")]
+        self.assertLess(table.index("Foundation"), table.index("Booking"))
+        self.assertIn("everything stands on it", table)
+
+    def test_the_subtotals_reconcile_with_the_rows_above_them(self):
+        """A subtotal that does not add up is worse than none, because it reads as checked."""
+        e = self.est()
+        md = render.markdown(e)
+        section = md[md.index("### 1. E1"):md.index("### 2. E2")]
+        rows = [l for l in section.split("\n") if l.startswith("| F")]
+        total = sum(float(l.split("|")[8].strip().replace(",", "")) for l in rows)
+        stated = float(section.split("h likely**")[0].split("— ")[-1].replace(",", ""))
+        self.assertAlmostEqual(total, stated, delta=0.15)
+
+    def test_an_ungrouped_estimate_stays_one_flat_table(self):
+        md = render.markdown(estimate_for([feature("F1", "Login")], no_standing_work=True))
+        self.assertNotIn("## Build sequence", md)
+        self.assertEqual([l for l in md.split("\n") if l.startswith("### ")], [])
+
+    def test_standing_work_lands_in_its_own_section_rather_than_inside_an_epic(self):
+        """It is real scope and it is not the client's, so it must be visible and separate."""
+        md = render.markdown(self.est(no_standing_work=False))
+        self.assertIn("### Ungrouped", md)
+        section = md[md.index("### Ungrouped"):]
+        self.assertIn("SW-ci_pipeline", section)
+
+    def test_the_brief_carries_the_structure_so_the_agent_can_reason_over_it(self):
+        b = render.brief(self.est())
+        self.assertEqual([(e["id"], e["sequence"]) for e in b["epics"]], [("E1", 1), ("E2", 2)])
+        by_id = {f["id"]: f for f in b["features"]}
+        self.assertEqual(by_id["F2"]["epic_sequence"], 1)
+
+    def test_the_spreadsheet_reads_in_the_same_order_as_the_document(self):
+        """One field, one answer. Appending standing work put it at the bottom of the sheet
+        while the markdown grouped it into the epic the same field named."""
+        e = self.est(no_standing_work=False)
+        inv = {"features": [], "epics": e["epics"], "sources": [], "implicit_scope": []}
+        (_columns, rows), _tasks = render.tabular(e, inv)
+        seqs = [r.get("epic_seq") for r in rows if r.get("epic_seq") not in ("", None)]
+        self.assertEqual(seqs, sorted(seqs))
+
+    def test_a_standing_row_placed_in_an_epic_sorts_into_it(self):
+        e = self.est(no_standing_work=False)
+        for f in e["features"]:
+            if f.get("origin") == "standing":
+                f["epic_id"], f["epic_sequence"] = "E1", 1
+        inv = {"features": [], "epics": e["epics"], "sources": [], "implicit_scope": []}
+        (_columns, rows), _tasks = render.tabular(e, inv)
+        placed = [i for i, r in enumerate(rows) if str(r.get("id") or "").startswith("SW-")]
+        others = [i for i, r in enumerate(rows) if r.get("epic_seq") == 2]
+        self.assertTrue(max(placed) < min(others), "standing work sorted below a later epic")
+
+    def test_the_brief_carries_what_foundation_work_was_declined(self):
+        b = render.brief(self.est(no_standing_work=False))
+        self.assertIn("basis", b["standing_work"])
+
+
 class TestCsv(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

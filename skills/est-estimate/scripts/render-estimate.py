@@ -206,12 +206,84 @@ def markdown(est, show_manual_baseline=False):
     # is a range for the same reason the total is: a point value hides how well-specified
     # the work is, which is the signal the reader is actually after.
     roles = sorted({r for f in est["features"] for r in (f.get("by_role") or {})})
-    out += ["", "## Features", "",
+
+    # In build order, one section per epic. A flat table of 120 rows answers "what does line 84
+    # cost"; a reader deciding what to fund first is asking "what does the first month cost",
+    # and only the grouping answers that.
+    groups = group_by_epic(est)
+
+    if len(groups) > 1:
+        out += ["", "## Build sequence", "",
+                "The order the work is expected to be built in — dependencies first, foundations "
+                "before what stands on them. Hours are the stories in each epic; project-level "
+                "components sit outside this table.", "",
+                "| # | Epic | Stories | Likely | Range | Why this position |",
+                "| ---: | --- | ---: | ---: | --- | --- |"]
+        for g in groups:
+            lo, likely, hi = rng(add3([f.get("range") or f["hours"] for f in g["features"]]))
+            out.append(f"| {g['sequence'] if g['sequence'] is not None else '—'} | "
+                       f"{g['name']} | {len(g['features'])} | {likely:,.0f} | "
+                       f"{lo:,.0f}–{hi:,.0f} | {g.get('sequence_why') or '—'} |")
+        out.append("")
+
+    out += ["", "## Features", ""]
+    for g in groups:
+        if len(groups) > 1:
+            out += [f"### {g['label']}", ""]
+            if g.get("sequence_why"):
+                out += [f"*{g['sequence_why']}*", ""]
+        out += feature_table(g["features"], roles)
+        if len(groups) > 1:
+            lo, likely, hi = rng(add3([f.get("range") or f["hours"] for f in g["features"]]))
+            out += ["", f"**{g['name']} — {likely:,.1f} h likely** ({lo:,.1f}–{hi:,.1f})", ""]
+
+    out += ["", "## Assumptions", ""] + [f"- {a}" for a in est["assumptions"]]
+    return _rest_of_markdown(out, est, show_manual_baseline)
+
+
+def add3(ranges):
+    """Sum a list of {low, likely, high} into one. Vertex-wise, matching the engine."""
+    lo = sum(float(r["low"]) for r in ranges)
+    likely = sum(float(r["likely"]) for r in ranges)
+    hi = sum(float(r["high"]) for r in ranges)
+    return {"low": lo, "likely": likely, "high": hi}
+
+
+def group_by_epic(est):
+    """Priced features grouped into epics, in the build sequence the inventory stated.
+
+    Standing work and anything the extraction never grouped fall into trailing sections of
+    their own rather than being hidden: a row with no epic is a row somebody has to place.
+    """
+    epics = est.get("epics") or []
+    order = {e.get("id"): e.get("sequence") for e in epics}
+    names = {e.get("id"): e.get("name") for e in epics}
+    seq_why = {e.get("id"): e.get("sequence_why") for e in epics}
+    groups = {}
+    for f in est["features"]:
+        groups.setdefault(f.get("epic_id"), []).append(f)
+
+    out = []
+    for eid in sorted(groups, key=lambda e: (e is None, order.get(e) is None,
+                                             order.get(e) or 0, str(e or ""))):
+        if eid is None:
+            name = label = "Ungrouped"
+        else:
+            seq = order.get(eid)
+            name = f"{eid} — {names.get(eid) or eid}"
+            label = f"{seq}. {name}" if seq is not None else name
+        out.append({"id": eid, "label": label, "name": name, "sequence": order.get(eid),
+                    "features": groups[eid], "sequence_why": seq_why.get(eid)})
+    return out
+
+
+def feature_table(features, roles):
+    out = [
             "| ID | Feature | Size | Compress | Review | Clarity | Low | Likely | High | "
             + "".join(f"{r} | " for r in roles) + "Source |",
             "| --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | "
             + "---: | " * len(roles) + "--- |"]
-    for f in est["features"]:
+    for f in features:
         cites = "; ".join(f"{c['source_id']} {c['location']}" for c in f["citations"]) or "—"
         scope = {"outside_agreed_scope": " *(outside agreed scope)*",
                  "standing_work": " *(standing work — every project pays it)*",
@@ -232,9 +304,10 @@ def markdown(est, show_manual_baseline=False):
                    f"{f['tags']['compressibility']} | {f['tags']['review_tier']} | "
                    f"{f['tags']['clarity']} | {lo:,.1f} | {likely:,.1f} | {hi:,.1f} | "
                    f"{cells}{cites} |")
+    return out
 
-    out += ["", "## Assumptions", ""] + [f"- {a}" for a in est["assumptions"]]
 
+def _rest_of_markdown(out, est, show_manual_baseline):
     if show_manual_baseline:
         me = est["manual_equivalent"]
         out += ["", "## Build compression (internal only)", "",
@@ -279,9 +352,16 @@ def brief(est):
         "by_role": est["by_role"],
         "assumptions": est["assumptions"],
         "narrowing_questions": est.get("narrowing_questions", []),
+        # The delivery structure, so the conversational agent can answer "what does the first
+        # phase cost" without re-deriving an order from the feature list.
+        "epics": [{"id": e.get("id"), "name": e.get("name"), "sequence": e.get("sequence"),
+                   "sequence_why": e.get("sequence_why")} for e in est.get("epics") or []],
+        "standing_work": (est.get("standing_work") or {}).get("selection", {}),
         "features": [{
             "id": f["id"],
             "name": f["name"],
+            "epic_id": f.get("epic_id"),
+            "epic_sequence": f.get("epic_sequence"),
             "hours": f["hours"],
             "range": f.get("range") or {"low": f["hours"], "likely": f["hours"],
                                         "high": f["hours"]},
@@ -348,8 +428,15 @@ def tabular(est, inventory=None):
             if fid not in seen:
                 story_rows.append({"id": fid, "name": f.get("name"),
                                    "description": f.get("description"),
+                                   "epic_seq": f.get("epic_sequence") or "",
                                    "epic_id": f.get("epic_id") or "",
                                    "origin": f.get("origin") or "extracted"})
+        # Back into build order. Appending put standing work at the bottom of the sheet even
+        # when the inventory had placed it in an epic, so a row said "E1" while sitting below
+        # E9 — and the markdown, which groups on the same field, put it inside E1. One field,
+        # two answers. Rows with no epic still trail, which is where unplaced work belongs.
+        story_rows.sort(key=lambda r: (r.get("epic_seq") in ("", None),
+                                       r.get("epic_seq") or 0, str(r.get("id") or "")))
     else:
         story_columns = ["id", "name", "description", "epic_id", "origin", "commitment",
                          "scope_status", "depends_on", "sources"]

@@ -667,6 +667,218 @@ class Grouping(unittest.TestCase):
         self.assertTrue(any("telepathy" in f for f in check.check_grouping(inv)))
 
 
+class MandatoryGroupingAtOnePointOne(unittest.TestCase):
+    """From schema 1.1 an inventory carries a delivery structure or it is not finished."""
+
+    def test_an_ungrouped_inventory_is_refused_at_one_point_one(self):
+        inv = inventory(schema_version="1.1", features=[feature("F1", "Login")])
+        self.assertTrue(any("no epics are declared" in f for f in check.check_grouping(inv)))
+
+    def test_the_same_inventory_is_accepted_at_one_point_zero(self):
+        """The obligation is new. An inventory written before it must stay readable, or every
+        ledger entry in history becomes a finding."""
+        inv = inventory(schema_version="1.0", features=[feature("F1", "Login")])
+        self.assertEqual([f for f in check.check_grouping(inv) if "epic" in f], [])
+
+    def test_at_one_point_one_a_story_with_no_epic_is_refused_even_with_no_epics_declared(self):
+        inv = inventory(schema_version="1.1", features=[feature("F1", "Login")])
+        self.assertTrue(any("carry no epic_id" in f for f in check.check_grouping(inv)))
+
+
+class Sequence(unittest.TestCase):
+    """Build order. The model states it; this is what checks it can actually be built."""
+
+    def inv(self, epics=None, features=None, version="1.1"):
+        epics = epics if epics is not None else [
+            {"id": "E1", "name": "Foundation", "origin": "source", "sequence": 1,
+             "sequence_why": "everything reads the data model it lands"},
+            {"id": "E2", "name": "Booking", "origin": "source", "sequence": 2,
+             "sequence_why": "needs the data model"},
+        ]
+        features = features if features is not None else [
+            feature("F1", "Data model", epic_id="E1"),
+            feature("F2", "Book a slot", epic_id="E2"),
+        ]
+        return inventory(schema_version=version, epics=epics, features=features)
+
+    def findings(self, inv):
+        return check.check_sequence(inv)[0]
+
+    def test_a_clean_sequence_passes(self):
+        self.assertEqual(self.findings(self.inv()), [])
+
+    def test_a_missing_sequence_is_refused(self):
+        epics = [{"id": "E1", "name": "Foundation", "origin": "source"},
+                 {"id": "E2", "name": "Booking", "origin": "source", "sequence": 2,
+                  "sequence_why": "second"}]
+        self.assertTrue(any("no 'sequence'" in f for f in self.findings(self.inv(epics=epics))))
+
+    def test_a_sequence_without_a_reason_is_refused(self):
+        epics = [{"id": "E1", "name": "Foundation", "origin": "source", "sequence": 1},
+                 {"id": "E2", "name": "Booking", "origin": "source", "sequence": 2,
+                  "sequence_why": "second"}]
+        self.assertTrue(any("sequence_why" in f for f in self.findings(self.inv(epics=epics))))
+
+    def test_two_epics_cannot_hold_the_same_position(self):
+        epics = [{"id": "E1", "name": "A", "origin": "source", "sequence": 1, "sequence_why": "w"},
+                 {"id": "E2", "name": "B", "origin": "source", "sequence": 1, "sequence_why": "w"}]
+        self.assertTrue(any("already held by" in f for f in self.findings(self.inv(epics=epics))))
+
+    def test_a_gap_reads_as_a_dropped_epic_rather_than_a_deliberate_space(self):
+        epics = [{"id": "E1", "name": "A", "origin": "source", "sequence": 1, "sequence_why": "w"},
+                 {"id": "E2", "name": "B", "origin": "source", "sequence": 3, "sequence_why": "w"}]
+        self.assertTrue(any("no gaps" in f for f in self.findings(self.inv(epics=epics))))
+
+    def test_a_story_dependency_that_contradicts_the_order_is_a_finding(self):
+        """The whole point of validating rather than trusting: E1 is sequenced first while a
+        story in it waits on one in E2."""
+        features = [feature("F1", "Data model", epic_id="E1",
+                            depends_on=[{"feature_id": "F2", "inferred": True, "why": "needs it"}]),
+                    feature("F2", "Book a slot", epic_id="E2")]
+        findings = self.findings(self.inv(features=features))
+        self.assertTrue(any("cannot be built before what it stands on" in f for f in findings),
+                        findings)
+        self.assertTrue(any("F1 depends on F2" in f for f in findings), findings)
+
+    def test_a_stated_epic_dependency_that_contradicts_the_order_is_a_finding(self):
+        """Ordering no story records — a design system before the screens consuming it."""
+        epics = [{"id": "E1", "name": "A", "origin": "source", "sequence": 1, "sequence_why": "w",
+                  "depends_on_epics": [{"epic_id": "E2", "why": "consumes its components"}]},
+                 {"id": "E2", "name": "B", "origin": "source", "sequence": 2, "sequence_why": "w"}]
+        self.assertTrue(any("E1 is sequenced 1 but depends on E2" in f
+                            for f in self.findings(self.inv(epics=epics))))
+
+    def test_a_dependency_pointing_at_no_declared_epic_is_a_finding(self):
+        epics = [{"id": "E1", "name": "A", "origin": "source", "sequence": 1, "sequence_why": "w",
+                  "depends_on_epics": [{"epic_id": "E9", "why": "typo"}]},
+                 {"id": "E2", "name": "B", "origin": "source", "sequence": 2, "sequence_why": "w"}]
+        self.assertTrue(any("'E9' is not a declared epic"
+                            in f for f in self.findings(self.inv(epics=epics))))
+
+    def test_a_cycle_between_epics_has_no_build_order_at_all(self):
+        epics = [{"id": "E1", "name": "A", "origin": "source", "sequence": 1, "sequence_why": "w",
+                  "depends_on_epics": [{"epic_id": "E2", "why": "a"}]},
+                 {"id": "E2", "name": "B", "origin": "source", "sequence": 2, "sequence_why": "w",
+                  "depends_on_epics": [{"epic_id": "E1", "why": "b"}]}]
+        self.assertTrue(any("cycle" in f for f in self.findings(self.inv(epics=epics))))
+
+    def test_the_report_orders_epics_by_sequence_not_by_array_position(self):
+        """The array is allowed to disagree with the sequence, and the sequence wins — that is
+        the whole reason the field exists rather than relying on write order."""
+        epics = [{"id": "E2", "name": "Booking", "origin": "source", "sequence": 2,
+                  "sequence_why": "w"},
+                 {"id": "E1", "name": "Foundation", "origin": "source", "sequence": 1,
+                  "sequence_why": "w"}]
+        report = check.check_sequence(self.inv(epics=epics))[1]
+        self.assertEqual([e["id"] for e in report["order"]], ["E1", "E2"])
+
+    def test_it_is_quiet_below_one_point_one(self):
+        epics = [{"id": "E1", "name": "A", "origin": "source"},
+                 {"id": "E2", "name": "B", "origin": "source"}]
+        self.assertEqual(self.findings(self.inv(epics=epics, version="1.0")), [])
+
+    def test_a_dependency_inside_one_epic_creates_no_ordering_edge(self):
+        features = [feature("F1", "A", epic_id="E1"),
+                    feature("F2", "B", epic_id="E1",
+                            depends_on=[{"feature_id": "F1", "inferred": True, "why": "w"}])]
+        report = check.check_sequence(self.inv(features=features))[1]
+        self.assertEqual(report["derived_edges"], 0)
+
+
+class StandingScopeSelection(unittest.TestCase):
+    """Foundation work: what was selected, what was declined, what may be paid twice."""
+
+    CATALOGUE = {
+        "repo_scaffold": {"name": "Repository scaffold and shared configuration", "stacks": "all"},
+        "ci_pipeline": {"name": "Build, test and deploy pipeline", "stacks": "all"},
+        "environments": {"name": "Environment provisioning and secrets", "stacks": "all"},
+        "mobile_release": {"name": "Store provisioning and release channels",
+                           "stacks": ["mobile_plus_backend"]},
+    }
+
+    def run_check(self, inv):
+        return check.check_standing_overlap(inv, self.CATALOGUE)
+
+    def inv(self, selected, features=None):
+        return inventory(
+            schema_version="1.1",
+            features=features or [feature("F1", "Book a slot", epic_id="E1")],
+            epics=[{"id": "E1", "name": "A", "origin": "source", "sequence": 1,
+                    "sequence_why": "w"}],
+            standing_scope={"catalogue": "cost-model standing_work", "selected": selected})
+
+    ALL = [{"key": "repo_scaffold", "applies": True, "why": "greenfield"},
+           {"key": "ci_pipeline", "applies": True, "why": "no story covers it"},
+           {"key": "environments", "applies": False, "why": "client brings the AWS org"},
+           {"key": "mobile_release", "applies": False, "why": "web only"}]
+
+    def test_a_complete_selection_is_clean(self):
+        findings, warnings, report = self.run_check(self.inv(list(self.ALL)))
+        self.assertEqual(findings, [])
+        self.assertEqual(warnings, [])
+        self.assertEqual(len(report["selected"]), 2)
+        self.assertEqual(len(report["excluded"]), 2)
+
+    def test_an_unknown_key_is_a_finding(self):
+        findings = self.run_check(self.inv([
+            {"key": "teleportation", "applies": True, "why": "why not"}]))[0]
+        self.assertTrue(any("teleportation" in f for f in findings))
+
+    def test_covered_by_must_name_a_real_story(self):
+        findings = self.run_check(self.inv([
+            {"key": "ci_pipeline", "applies": False, "why": "covered", "covered_by": ["F99"]}]))[0]
+        self.assertTrue(any("'F99' is not a declared story" in f for f in findings))
+
+    def test_an_item_nobody_wrote_down_warns_but_never_discounts(self):
+        """It is still priced, so the failure mode is paying twice, never silently dropping."""
+        findings, warnings, report = self.run_check(self.inv([
+            {"key": "repo_scaffold", "applies": True, "why": "greenfield"}]))
+        self.assertEqual(findings, [])
+        self.assertEqual(sorted(report["unmentioned"]),
+                         ["ci_pipeline", "environments", "mobile_release"])
+        self.assertTrue(any("priced regardless" in w for w in warnings), warnings)
+
+    def test_an_unmentioned_stack_gated_item_is_warned_about_differently(self):
+        """The one case where silence really can drop work: a stack-gated item is priced only
+        when the estimate runs under a matching --stack, so 'priced anyway' would be false."""
+        warnings = self.run_check(self.inv(
+            [r for r in self.ALL if r["key"] != "mobile_release"]))[1]
+        self.assertTrue(any("stack-gated" in w and "can drop real work" in w for w in warnings),
+                        warnings)
+        self.assertFalse(any("priced regardless" in w for w in warnings))
+
+    def test_the_measured_double_count_is_surfaced(self):
+        """All three delivered anchors priced repo scaffold as a story AND paid standing work
+        for it. That overlap was invisible because the two lists lived in different skills."""
+        inv = self.inv([{"key": "repo_scaffold", "applies": True, "why": "greenfield"},
+                        {"key": "ci_pipeline", "applies": False, "why": "n/a"},
+                        {"key": "environments", "applies": False, "why": "n/a"},
+                        {"key": "mobile_release", "applies": False, "why": "n/a"}],
+                       features=[feature("F1", "Monorepo scaffold and shared contracts",
+                                         epic_id="E1")])
+        findings, warnings, report = self.run_check(inv)
+        self.assertEqual(findings, [])
+        self.assertTrue(report["advisory_only"])
+        self.assertEqual(report["overlaps"][0]["key"], "repo_scaffold")
+        self.assertTrue(any("pays for it twice" in w for w in warnings))
+
+    def test_a_declined_item_raises_no_overlap_warning(self):
+        """Declining it with the story named in covered_by is the fix, so it must go quiet."""
+        inv = self.inv([{"key": "repo_scaffold", "applies": False,
+                         "why": "delivered as F1", "covered_by": ["F1"]},
+                        {"key": "ci_pipeline", "applies": False, "why": "n/a"},
+                        {"key": "environments", "applies": False, "why": "n/a"},
+                        {"key": "mobile_release", "applies": False, "why": "n/a"}],
+                       features=[feature("F1", "Monorepo scaffold", epic_id="E1")])
+        self.assertEqual(self.run_check(inv)[1], [])
+
+    def test_an_inventory_with_no_selection_says_so_rather_than_failing(self):
+        inv = inventory(schema_version="1.0", features=[feature("F1", "Login")])
+        findings, warnings, report = self.run_check(inv)
+        self.assertEqual(findings, [])
+        self.assertIn("stack profile alone", report["note"])
+
+
 class BoilerplateTags(unittest.TestCase):
     """A justification repeated across the inventory is a default wearing a reason."""
 

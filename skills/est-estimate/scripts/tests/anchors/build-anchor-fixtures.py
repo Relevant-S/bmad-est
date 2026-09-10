@@ -55,10 +55,25 @@ def tier_of(text):
 
 def tag(v, why): return {"value": v, "why": why, "status": "confirmed"}
 
+def epics_of(features):
+    """The delivered epic list, in the order the project actually built it.
+
+    These are finished projects, so the build sequence is not a judgement here — it is the
+    record. Epic ids sort numerically (E1, E2, ... E10), which is the order the sprint-status
+    file lists them in and the order they shipped.
+    """
+    ids = sorted({f["epic_id"] for f in features},
+                 key=lambda e: [float(x) for x in e[1:].split(".")])
+    return [{"id": eid, "name": f"Epic {eid[1:]}", "origin": "source", "sequence": i + 1,
+             "sequence_why": "delivered in this order — recorded, not inferred"}
+            for i, eid in enumerate(ids)]
+
+
 def wrap(pid, project, features, note):
-    return {"schema_version": "1.0", "generated": "2026-09-09T00:00:00Z", "project": project,
+    return {"schema_version": "1.1", "generated": "2026-09-09T00:00:00Z", "project": project,
             "granularity": "project", "working_language": "en",
             "_provenance": note,
+            "epics": epics_of(features),
             "sources": [{"id": "S1", "path": f"{pid}/epics.md", "doc_type": "backlog", "language": "en"}],
             "features": features, "not_scope": [], "conflicts": [], "assumptions": [],
             # A delivered project's own epics: acceptance criteria on every story, the stack

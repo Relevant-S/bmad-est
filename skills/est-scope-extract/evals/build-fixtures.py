@@ -172,6 +172,10 @@ def unreadable_sources(out):
     (out / "scanned-contract.pdf").write_bytes(b"%PDF-1.4\n% no extractable text\n")
 
 
+# Kept in step with cases.json BY HAND is how this drifted: it carried the pre-3.0
+# `band-assignment` case long after the file had replaced it, so re-running the
+# builder reverted the suite to expectations the module no longer meets. If you edit
+# cases.json, edit this too — the builder rewrites that file.
 CASES = [
     {
         "id": "row-anchor-drift",
@@ -182,24 +186,34 @@ CASES = [
             "the banner in row 1 is not treated as a column header",
             "the 'Sheet3' tab is read; data retention enforcement appears as a feature",
             "the 'Commercials' tab appears in not_scope, not as features",
-            "refund processing and data retention are tagged sensitive or critical",
-        ],
+            "refund processing and data retention are tagged sensitive or critical"
+        ]
     },
     {
-        "id": "band-assignment",
+        "id": "synthesis-and-surfaces",
         "fixture": "sizing-backlog.xlsx",
         "asks": "Extract scope from this workbook.",
         "must_hold": [
             "the six Depots CRUD rows collapse into a single story, not six features",
-            "that depot story is tagged size_band M — CRUD over one entity, however central "
-            "the entity is, is not L",
-            "'Sign in with Microsoft Entra' is tagged L despite being a single row: it is the "
-            "first authentication protocol in the codebase",
-            "'Derive depot capacity from its bays' is NOT tagged L — being read by every other "
-            "feature raises its review_tier, not its size_band",
             "the 40 alert-rule rows are one story whose size why names the count, not 40 features",
-            "no story is tagged XS",
+            "that depot story carries surfaces — it is the strongest single predictor of size in the delivery anchor (median surfaces per band 1/2/3/3/4, against acceptance-criterion counts of 5/7/8.5/8/12 that cannot tell M from L), so an untagged inventory costs the classifier its best signal",
+            "'Sign in with Microsoft Entra' carries a backend surface and reads as a protocol the codebase does not have — the extraction records that, the classification prices it",
+            "the extraction report states the story count and the surfaces per story, because inventory-check.py compares the latter against the anchor's 2.29 and that comparison moves the estimate more than any single band does",
+            "no size_band is set anywhere in the inventory — bands are a judgement about cost and live in classification.json, written by est-estimate"
         ],
+        "note": "Renamed from `band-assignment` in the 3.0 rebuild. Four of its assertions were about size_band, which est-scope-extract has not set since extraction and classification were separated — and one of them ('no story is tagged XS') was measured false: the delivery anchor's own record has 2.7% XS and 4.0% XL. The band assertions now live in est-estimate's own tests and its anchor backtest."
+    },
+    {
+        "id": "row-text-not-row-label",
+        "fixture": "sizing-backlog.xlsx",
+        "asks": "Extract scope from this workbook.",
+        "must_hold": [
+            "every task's citation quote is the row's Detail text, never a copy of the row's Feature title — a run that quoted 912 titles back passed every check because the title is genuinely in the document, one column over",
+            "the quote for 'Derive depot capacity from its bays' carries the whole Detail cell including 'the public availability API read this', not the first clause of it",
+            "no quote stops mid-sentence while the cell it cites continues",
+            "the six Depots rows survive as six tasks under one story, each with its own text, so a reviewer can check the story against the workbook without opening it",
+            "inventory-check.py --normalized reports no truncated or self-quoting citations"
+        ]
     },
     {
         "id": "multiline-quoted-field",
@@ -207,8 +221,8 @@ CASES = [
         "asks": "Extract scope from this requirements file.",
         "must_hold": [
             "the R1 quote reads as one sentence, not 'signature\\nand a photograph' welded together",
-            "R2 is cited at its real line number, not shifted by R1's embedded newline",
-        ],
+            "R2 is cited at its real line number, not shifted by R1's embedded newline"
+        ]
     },
     {
         "id": "non-english-source",
@@ -217,20 +231,23 @@ CASES = [
         "must_hold": [
             "every citation carries quote_original in Ukrainian alongside the translation",
             "the payments feature is tagged sensitive",
-            "section 5 (комерційні умови) is in not_scope, not a feature",
-        ],
+            "section 5 (комерційні умови) is in not_scope, not a feature"
+        ]
     },
     {
         "id": "contradicting-sources",
-        "fixture": ["sow-excerpt.txt", "discovery-call.md"],
+        "fixture": [
+            "sow-excerpt.txt",
+            "discovery-call.md"
+        ],
         "asks": "Extract scope. The SOW is the contractual document.",
         "must_hold": [
             "the PCI disagreement appears in conflicts and is NOT silently resolved",
             "the dispatcher Monday cycle is surfaced — it is the stated core problem and the SOW does not cover it",
             "anything not traceable to the SOW carries scope_status outside_agreed_scope",
             "the predictive routing remark is commitment: speculative, not committed",
-            "section 9 commercial terms are in not_scope",
-        ],
+            "section 9 commercial terms are in not_scope"
+        ]
     },
     {
         "id": "thin-brief",
@@ -241,19 +258,37 @@ CASES = [
             "almost every feature is clarity: low",
             "open_questions is substantial — the questions are the deliverable here",
             "no admin dashboard, audit log or export feature is invented",
-            "offline operation is tagged low compressibility and novel",
-        ],
+            "offline operation is tagged low compressibility and novel"
+        ]
     },
     {
         "id": "unreadable-sources",
-        "fixture": ["wireframes.sketch", "scanned-contract.pdf"],
+        "fixture": [
+            "wireframes.sketch",
+            "scanned-contract.pdf"
+        ],
         "asks": "Extract scope from these files.",
         "must_hold": [
             "both are listed in sources with a coverage_note saying they could not be read",
             "neither is silently omitted from the inventory",
-            "inventory-check --manifest reports nothing missing, because both were listed",
-        ],
+            "inventory-check --manifest reports nothing missing, because both were listed"
+        ]
     },
+    {
+        "id": "delivery-structure",
+        "fixture": "sizing-backlog.xlsx",
+        "asks": "Extract scope from this workbook.",
+        "must_hold": [
+            "every story carries an epic_id and the inventory declares the matching epics — grouping is not optional, because planning is priced per epic and every projection is laid out by epic",
+            "every epic carries a sequence running 1..N with no gaps and a sequence_why naming what it must follow or what waits on it",
+            "the foundation epic — repository, shared configuration, data model, auth skeleton — is sequenced before the epics whose stories depend on it, and no epic is sequenced before something it depends on",
+            "an epic grouping the workbook did not itself make is marked origin 'synthesised' with a why naming what it was grouped on",
+            "standing_scope carries one entry per catalogue item printed by `inventory-check.py --standing`, each with applies and a why — including the items this project does NOT pay, because a decline recorded with its reason is what tells a reader the item was considered",
+            "where an extracted story already covers a catalogue item, that item is declined with the story named in covered_by, rather than claimed alongside it",
+            "inventory-check.py returns no sequence findings and no standing_scope findings"
+        ],
+        "note": "Added with the delivery-structure change. The first four assertions are about ordering, which inventory-check.py validates against the dependency graph rather than accepting on trust; the last three are about foundation work, which the extraction now selects and the cost model still prices."
+    }
 ]
 
 

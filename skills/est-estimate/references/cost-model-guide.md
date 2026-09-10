@@ -41,6 +41,17 @@ story touching nothing external −0.07. That last row is the control. `provisio
 unpriced: all three anchors deferred real infrastructure, so it raises an open question instead of
 inventing a number.
 
+The catalogue is not the whole mechanism any more. **`standing_work` holds the items and their
+hours; the inventory holds the selection.** An extraction at schema 1.1 writes `standing_scope`
+saying which items this project pays and why, and which the client is bringing — so a pipeline
+still costs the same on every estimate, while a project that is not paying for one stops being
+billed for it. The reason it moved is measurable: all three delivered anchors priced repo
+scaffold, CI and environment setup as ordinary stories *and* paid standing work on top, and
+nothing could see the overlap because the two lists were produced in different skills.
+`inventory-check.py` now reports it, and `covered_by` is where the answer is recorded. An item
+the selection never mentions is still priced — the failure mode has to be paying twice, never
+silently discounting.
+
 **`compressibility`** is **reported only**. `manual_equivalent = delivered x compressibility` is the
 client-facing "this would have cost X by hand" sentence, and no priced hour depends on it. If it is
 wrong, only that sentence moves.
@@ -100,7 +111,8 @@ part of the model as the numbers. Read them before you quote anything.
 | `compressibility` | **3/10** | One sentence in the anchor's own assessment; nobody measured a manual baseline | Estimating one project manually before it is built |
 | `component_shares`, `clarity`, `team_profiles` | **2/10** | Nothing — the anchors record hours by role, never by phase | One project that time-tracks to build / specify / review / rework |
 | `overhead_rate` | **2/10** | Nothing — no anchor separated ceremony from delivery | One time-tracking export that splits meetings from build |
-| `standing_work` | **2/10** | Nothing, and worse: all three anchors *deferred* the work it prices | Actuals from one project that reached production |
+| `standing_work` hours | **2/10** | Nothing, and worse: all three anchors *deferred* the work it prices, while pricing some of it again as ordinary stories | Actuals from one project that reached production |
+| `standing_work` selection | **6/10** | Not a coefficient — a per-project decision with a stated reason on every line | Nothing; it is auditable by construction |
 
 **The limit of the whole thing, stated once.** No unit available at presale normalises the three
 projects to better than about 1.7x. Hours per delivered story spread 3.2x across them, per

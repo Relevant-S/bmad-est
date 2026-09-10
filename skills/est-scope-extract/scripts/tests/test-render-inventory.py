@@ -268,6 +268,105 @@ class Pages(unittest.TestCase):
         self.assertIn('<a id="F1"></a>', out["inventory/e2-epic-2.md"])
 
 
+class BuildSequence(unittest.TestCase):
+    """Every projection reads in build order. The `epics` array order is deliberately wrong
+    in these fixtures, because `sequence` is what must win."""
+
+    def sequenced(self):
+        features = [feature("F1", "Screens", epic_id="E2"),
+                    feature("F2", "Data model", epic_id="E1")]
+        epics = [{"id": "E2", "name": "Booking", "origin": "source", "sequence": 2,
+                  "sequence_why": "reads the data model"},
+                 {"id": "E1", "name": "Foundation", "origin": "source", "sequence": 1,
+                  "sequence_why": "everything stands on it"}]
+        return inventory(features=features, epics=epics)
+
+    def test_the_epic_index_table_reads_in_sequence_not_array_order(self):
+        index = render.render_pages(self.sequenced())["feature-inventory.md"]
+        table = index[index.index("## Epics"):index.index("## Sources")]
+        self.assertLess(table.index("Foundation"), table.index("Booking"))
+
+    def test_the_index_table_shows_the_position_and_its_reason(self):
+        index = render.render_pages(self.sequenced())["feature-inventory.md"]
+        self.assertIn("everything stands on it", index)
+        self.assertIn("In build sequence", index)
+
+    def test_the_contents_list_reads_in_sequence(self):
+        index = render.render_pages(self.sequenced())["feature-inventory.md"]
+        contents = index[index.index("## Contents"):index.index("## Epics")]
+        self.assertLess(contents.index("e1-foundation"), contents.index("e2-booking"))
+
+    def test_an_epic_page_states_where_it_falls_and_why(self):
+        out = render.render_pages(self.sequenced())
+        self.assertIn("**Built 1st**", out["inventory/e1-foundation.md"])
+        self.assertIn("everything stands on it", out["inventory/e1-foundation.md"])
+
+    def test_story_rows_read_in_sequence_then_by_id(self):
+        rows = render.story_rows(self.sequenced())
+        self.assertEqual([r["id"] for r in rows], ["F2", "F1"])
+        self.assertEqual([r["epic_seq"] for r in rows], [1, 2])
+
+    def test_story_ids_sort_naturally_rather_than_lexicographically(self):
+        """F10 after F9. A spreadsheet read top to bottom is the deliverable here."""
+        features = [feature(f"F{i}", f"Story {i}", epic_id="E1") for i in (10, 9, 2)]
+        inv = inventory(features=features,
+                        epics=[{"id": "E1", "name": "A", "origin": "source", "sequence": 1,
+                                "sequence_why": "w"}])
+        self.assertEqual([r["id"] for r in render.story_rows(inv)], ["F2", "F9", "F10"])
+
+    def test_task_rows_follow_the_same_order(self):
+        inv = self.sequenced()
+        for f in inv["features"]:
+            f["tasks"] = [{"id": f"{f['id']}-T1", "name": "row",
+                           "citations": [{"source_id": "S1", "location": "§1", "quote": "q"}]}]
+        rows = render.task_rows(inv)
+        self.assertEqual([r["feature_id"] for r in rows], ["F2", "F1"])
+        self.assertEqual([r["epic_seq"] for r in rows], [1, 2])
+
+    def test_an_epic_with_no_sequence_sorts_last_rather_than_first(self):
+        """Unordered work is unfinished work, and burying it at the top is how it stays that
+        way."""
+        inv = self.sequenced()
+        inv["epics"].append({"id": "E3", "name": "Later", "origin": "source"})
+        inv["features"].append(feature("F3", "Something", epic_id="E3"))
+        self.assertEqual([r["id"] for r in render.story_rows(inv)], ["F2", "F1", "F3"])
+
+
+class StandingScopePage(unittest.TestCase):
+    """Foundation work appears in the inventory, both what is paid and what is not."""
+
+    def inv(self):
+        return inventory(
+            features=[feature("F1", "Book a slot", epic_id="E1")],
+            epics=[{"id": "E1", "name": "Booking", "origin": "source", "sequence": 1,
+                    "sequence_why": "w"}],
+            standing_scope={"catalogue": "cost-model standing_work", "selected": [
+                {"key": "ci_pipeline", "applies": True, "why": "no story covers the deploy"},
+                {"key": "repo_scaffold", "applies": False,
+                 "why": "delivered as F1", "covered_by": ["F1"]}]})
+
+    def test_the_page_exists_and_lists_both_halves(self):
+        page = render.render_pages(self.inv())["inventory/standing.md"]
+        self.assertIn("## Paid on this project", page)
+        self.assertIn("ci_pipeline", page)
+        self.assertIn("## Not paid on this project", page)
+        self.assertIn("repo_scaffold", page)
+
+    def test_a_declined_item_shows_its_reason_and_what_covers_it(self):
+        """An item simply missing says nothing; a reader cannot tell 'considered and declined'
+        from 'never thought of' unless the page prints both."""
+        page = render.render_pages(self.inv())["inventory/standing.md"]
+        self.assertIn("delivered as F1", page)
+        self.assertIn("| F1 |", page)
+
+    def test_an_inventory_with_no_selection_gets_no_page(self):
+        self.assertNotIn("inventory/standing.md", render.render_pages(inventory()))
+
+    def test_the_index_links_to_it(self):
+        out = render.render_pages(self.inv())
+        self.assertIn("](inventory/standing.md)", out["feature-inventory.md"])
+
+
 class References(unittest.TestCase):
     """Nothing renders as a bare id."""
 

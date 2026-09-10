@@ -1,10 +1,54 @@
 {
- "schema_version": "1.0",
+ "schema_version": "1.1",
  "generated": "2026-09-09T00:00:00Z",
  "project": "easyterms epics 1-5 + 8",
  "granularity": "project",
  "working_language": "en",
  "_provenance": "NO per-story effort record exists. Bands are bridged onto EPP's measured 1-5 scale by files-touched. Epic 8 is included per the delivery lead: its 11 stories are inside the 160 dev h. Actuals: dev 160 / architect 80, no other role staffed = 240 h over 5 weeks, 6 planned epics.",
+ "epics": [
+  {
+   "id": "E1",
+   "name": "Epic 1",
+   "origin": "source",
+   "sequence": 1,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E2",
+   "name": "Epic 2",
+   "origin": "source",
+   "sequence": 2,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E3",
+   "name": "Epic 3",
+   "origin": "source",
+   "sequence": 3,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E4",
+   "name": "Epic 4",
+   "origin": "source",
+   "sequence": 4,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E5",
+   "name": "Epic 5",
+   "origin": "source",
+   "sequence": 5,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  },
+  {
+   "id": "E8",
+   "name": "Epic 8",
+   "origin": "source",
+   "sequence": 6,
+   "sequence_why": "delivered in this order — recorded, not inferred"
+  }
+ ],
  "sources": [
   {
    "id": "S1",

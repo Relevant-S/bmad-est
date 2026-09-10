@@ -184,7 +184,9 @@ First it classifies: how big each story is, how much BMad compresses it, how har
 
 Then it produces the range, split by BMad phase (`planning`, `planning-review`, `spec`, `build`, `review`, `rework`, `qa`, `overhead`), by role (`dev`, `devops`, `qa`, `ba`, `ux`, `architect`) **and by role per story**, plus a ledger entry that snapshots the exact coefficients used.
 
-It also adds the work no client document describes — repo scaffold, pipeline, environments, release process — from the cost model's `standing_work` catalogue. Those appear as their own labelled lines with their own total, never folded into the number silently. `--no-standing-work` drops the block when the client is bringing a platform that already has it.
+It also adds the work no client document describes — repo scaffold, pipeline, environments, release process. The hours come from the cost model's `standing_work` catalogue, so the same pipeline costs the same on every estimate; **which items apply is decided during extraction**, item by item with a reason on each, including the ones the client is bringing. Those appear as their own labelled lines with their own total, never folded into the number silently, and the estimate reports what was declined as well as what was charged. An item nobody ruled on is charged anyway — the failure mode here has to be paying twice, never silently discounting. `--no-standing-work` drops the block entirely when the client is bringing a platform that already has all of it.
+
+Everything reads in **build sequence**: the inventory and the estimate are both grouped by epic and ordered dependencies-first, and the order is not taken on trust — `inventory-check.py` rolls every story dependency up to epic level and reports an epic sequenced before something it stands on.
 
 ```
 talk to Nadia
@@ -229,9 +231,11 @@ _bmad/memory/est/               ← shared by all five skills
 └── ledger/                     ← one entry per estimate, with its model snapshot
 
 {est_output_folder}/{project}/        ← defaults to {output_folder}/estimates
-├── feature-inventory.json      ← epics → stories → the source rows behind each
-├── feature-inventory.md        ← index; links to one page per epic
-├── inventory/                  ← a page per epic: each story with its rows quoted in full
+├── feature-inventory.json      ← ordered epics → stories → the source rows behind each
+├── feature-inventory.md        ← index; the epic table in build sequence, linking to each page
+├── inventory/                  ← a page per epic in build order, each story with its rows
+│                                 quoted in full, plus standing.md — the foundation work this
+│                                 project pays, and what it declines
 ├── feature-inventory.xlsx      ← Stories and Tasks on two tabs, hyperlinked both ways
 ├── feature-inventory.csv       ← the same two tables in plain text, joined on story id
 │   + .tasks.csv

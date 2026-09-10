@@ -232,6 +232,96 @@ class TheBandsReproduceTheirSource(unittest.TestCase):
         self.assertGreater(got["XL"], 0)
 
 
+class TheDoubleCountIsVisible(unittest.TestCase):
+    """All three delivered projects opened with a foundation epic and priced that work as
+    ordinary stories — memorial-healthcare 1-1 Initialize Frontend, 1-3 Configure Local
+    Development Environment, 1-4 Set Up CI/CD Pipeline; EPP 1-1 Monorepo scaffold; easyterms
+    1-2 service shell, 1-8 CI regression gate. The cost model then billed `standing_work` for
+    the same thing on top.
+
+    Nothing here re-fits a number. Making the overlap visible is what this change does; moving
+    it would need evidence from a project that actually reached production, which is precisely
+    what none of the three anchors is.
+    """
+
+    def check(self):
+        import importlib.util
+        path = (Path(__file__).resolve().parents[3]
+                / "est-scope-extract" / "scripts" / "inventory-check.py")
+        spec = importlib.util.spec_from_file_location("inventory_check", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def overlaps(self, name, applies=("repo_scaffold", "ci_pipeline", "environments")):
+        check = self.check()
+        inv = dict(inventory(name))
+        inv["standing_scope"] = {"catalogue": "cost-model standing_work", "selected": [
+            {"key": k, "applies": True, "why": "claimed, to see whether a story covers it"}
+            for k in applies]}
+        catalogue = check.load_standing_catalogue()[0]
+        findings, warnings, report = check.check_standing_overlap(inv, catalogue)
+        return findings, warnings, report
+
+    def test_memorial_healthcare_names_the_stories_it_would_pay_for_twice(self):
+        findings, warnings, report = self.overlaps("memorial-healthcare")
+        self.assertEqual(findings, [], "this is advisory — it must never fail an inventory")
+        hit = {o["key"] for o in report["overlaps"]}
+        self.assertIn("ci_pipeline", hit)
+        self.assertIn("environments", hit)
+        self.assertTrue(any("pays for it twice" in w for w in warnings))
+
+    def test_epp_names_its_monorepo_scaffold(self):
+        report = self.overlaps("epp")[2]
+        matched = [s for o in report["overlaps"] if o["key"] == "repo_scaffold"
+                   for s in o["stories"]]
+        self.assertTrue(any("onorepo scaffold" in s for s in matched), matched)
+
+    def test_declining_the_overlapping_items_silences_it(self):
+        """The fix, exercised: name the story in covered_by and the advisory goes quiet."""
+        check = self.check()
+        inv = dict(inventory("memorial-healthcare"))
+        inv["standing_scope"] = {"catalogue": "cost-model standing_work", "selected": [
+            {"key": k, "applies": False, "why": "delivered as a story in epic 1"}
+            for k in check.load_standing_catalogue()[0]]}
+        findings, warnings, _ = check.check_standing_overlap(
+            inv, check.load_standing_catalogue()[0])
+        self.assertEqual(findings, [])
+        self.assertEqual(warnings, [])
+
+    def test_the_pinned_size_of_standing_work_has_not_moved(self):
+        """Guards the whole change: if selection logic altered pricing, this is where it shows."""
+        without = sum(roles("epp").values())
+        self.assertGreater(sum(roles("epp", standing=True).values()) / without, 1.10)
+
+
+class TheDeliveryStructureIsRecorded(unittest.TestCase):
+    """The fixtures are delivered projects, so their build order is the record rather than a
+    judgement — which makes them the one place the sequencing check can be run against fact."""
+
+    def test_every_anchor_carries_an_ordered_epic_list(self):
+        for name in ANCHORS:
+            epics = inventory(name).get("epics") or []
+            self.assertTrue(epics, name)
+            self.assertEqual([e["sequence"] for e in epics],
+                             list(range(1, len(epics) + 1)), name)
+
+    def test_the_delivered_order_validates_against_the_dependency_graph(self):
+        import importlib.util
+        path = (Path(__file__).resolve().parents[3]
+                / "est-scope-extract" / "scripts" / "inventory-check.py")
+        spec = importlib.util.spec_from_file_location("inventory_check", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        for name in ANCHORS:
+            self.assertEqual(mod.check_sequence(inventory(name))[0], [], name)
+
+    def test_the_structure_costs_nothing(self):
+        """Adding epics to the fixtures must not have moved a single hour, or the backtest
+        above is measuring the change rather than the model."""
+        self.assertAlmostEqual(sum(roles("epp").values()), 654, delta=25)
+
+
 class TheSizingBiasIsGone(unittest.TestCase):
     """The mechanism, measured. Band assignment carried roughly eight times the weight the
     delivered record supports, and the review step then pushed on that over-weighted variable

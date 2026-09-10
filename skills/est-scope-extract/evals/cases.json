@@ -97,6 +97,21 @@
         "neither is silently omitted from the inventory",
         "inventory-check --manifest reports nothing missing, because both were listed"
       ]
+    },
+    {
+      "id": "delivery-structure",
+      "fixture": "sizing-backlog.xlsx",
+      "asks": "Extract scope from this workbook.",
+      "must_hold": [
+        "every story carries an epic_id and the inventory declares the matching epics — grouping is not optional, because planning is priced per epic and every projection is laid out by epic",
+        "every epic carries a sequence running 1..N with no gaps and a sequence_why naming what it must follow or what waits on it",
+        "the foundation epic — repository, shared configuration, data model, auth skeleton — is sequenced before the epics whose stories depend on it, and no epic is sequenced before something it depends on",
+        "an epic grouping the workbook did not itself make is marked origin 'synthesised' with a why naming what it was grouped on",
+        "standing_scope carries one entry per catalogue item printed by `inventory-check.py --standing`, each with applies and a why — including the items this project does NOT pay, because a decline recorded with its reason is what tells a reader the item was considered",
+        "where an extracted story already covers a catalogue item, that item is declined with the story named in covered_by, rather than claimed alongside it",
+        "inventory-check.py returns no sequence findings and no standing_scope findings"
+      ],
+      "note": "Added with the delivery-structure change. The first four assertions are about ordering, which inventory-check.py validates against the dependency graph rather than accepting on trust; the last three are about foundation work, which the extraction now selects and the cost model still prices."
     }
   ]
 }

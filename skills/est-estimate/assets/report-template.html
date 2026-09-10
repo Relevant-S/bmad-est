@@ -44,6 +44,10 @@
   label.feature { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
   input[type=checkbox] { margin-top: 3px; width:15px; height:15px; accent-color: var(--accent); flex:none; }
   .off { opacity: .42; }
+  .epicHead th { background: #f2f4f7; text-align: left; font-size: 12px; letter-spacing: .02em;
+                 text-transform: none; padding-top: 14px; }
+  .epicWhy { font-weight: 400; color: #667085; }
+  .epicFoot td { border-top: 1px solid #d0d5dd; font-weight: 600; background: #fbfcfd; }
   .grid { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); }
   .q { border-bottom:1px solid var(--line); padding:10px 0; display:flex; gap:14px; justify-content:space-between; }
   .q:last-child { border-bottom:0; }
@@ -360,6 +364,22 @@ function render() {
   document.querySelectorAll('tr[data-fid]').forEach(tr => {
     tr.classList.toggle('off', !included.has(tr.dataset.fid));
   });
+
+  /* Per-epic subtotals over the stories still ticked, so dropping an epic's last story shows
+     that epic falling to zero rather than leaving a stale number under a struck-through list. */
+  for (const g of GROUPS) {
+    const foot = document.querySelector(`tr.epicFoot[data-epic="${g.id}"]`);
+    if (!foot) continue;
+    const kept = g.features.filter(f => included.has(f.id));
+    const sum = k => kept.reduce((s, f) => {
+      const rr = f.range || {low: f.hours, likely: f.hours, high: f.hours};
+      return s + rr[k];
+    }, 0);
+    foot.querySelector('[data-sub=low]').textContent = h(sum('low'));
+    foot.querySelector('[data-sub=likely]').textContent = h(sum('likely'));
+    foot.querySelector('[data-sub=high]').textContent = h(sum('high'));
+    foot.classList.toggle('off', kept.length === 0);
+  }
 }
 
 document.getElementById('title').textContent = `${E.project || 'Estimate'}`;
@@ -379,7 +399,33 @@ const n1 = x => (Math.round(x * 10) / 10).toFixed(1);
 document.getElementById('roleHeads').outerHTML =
   ROLES.map(r => `<th class="num">${r}</th>`).join('');
 
-document.getElementById('features').innerHTML = E.features.map(f => {
+/* Grouped into epics, in the build sequence est-scope-extract stated and inventory-check.py
+   validated against the dependency graph. Outside the parity block on purpose: this changes
+   what the table LOOKS like and nothing about what it computes — `compute()` above filters
+   standing work out before counting epics, exactly as estimate.py:plan_volume does, so where
+   a row is displayed cannot move an hour. */
+function epicGroups() {
+  const meta = new Map((E.epics || []).map(e => [e.id, e]));
+  const groups = new Map();
+  for (const f of E.features) {
+    const key = f.epic_id || '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(f);
+  }
+  const seq = id => { const e = meta.get(id); return e && e.sequence != null ? e.sequence : Infinity; };
+  return [...groups.entries()]
+    .sort((a, b) => (a[0] === '') - (b[0] === '') || seq(a[0]) - seq(b[0]) || a[0].localeCompare(b[0]))
+    .map(([id, features]) => {
+      const e = meta.get(id);
+      const n = e && e.sequence != null ? `${e.sequence}. ` : '';
+      return {id, features,
+              label: id ? `${n}${id} — ${(e && e.name) || id}` : 'Ungrouped',
+              why: (e && e.sequence_why) || ''};
+    });
+}
+
+const GROUPS = epicGroups();
+const featureRow = f => {
   const tier = f.tags.review_tier;
   const rr = f.range || {low: f.hours, likely: f.hours, high: f.hours};
   const [r0, r1, r2] = [rr.low, rr.likely, rr.high];
@@ -401,6 +447,24 @@ document.getElementById('features').innerHTML = E.features.map(f => {
         if (!v) return '<td class="num muted">—</td>';
         return `<td class="num">${n1(v.low)}–${n1(v.likely)}–${n1(v.high)}</td>`;
       }).join('')}</tr>`;
+};
+
+/* One section header per epic, plus a subtotal row that recomputes as stories are unticked.
+   The subtotal spans the label columns so the role columns stay aligned under their headers. */
+const COLSPAN = 4;
+document.getElementById('features').innerHTML = GROUPS.map(g => {
+  const head = GROUPS.length > 1
+    ? `<tr class="epicHead"><th colspan="${COLSPAN + 3 + ROLES.length}">${g.label}` +
+      (g.why ? ` <span class="epicWhy">— ${g.why}</span>` : '') + `</th></tr>`
+    : '';
+  const foot = GROUPS.length > 1
+    ? `<tr class="epicFoot" data-epic="${g.id}">` +
+      `<td colspan="${COLSPAN}">subtotal</td>` +
+      `<td class="num" data-sub="low"></td><td class="num" data-sub="likely"></td>` +
+      `<td class="num" data-sub="high"></td>` +
+      ROLES.map(() => '<td></td>').join('') + `</tr>`
+    : '';
+  return head + g.features.map(featureRow).join('') + foot;
 }).join('');
 
 const risky = E.features.filter(f =>
