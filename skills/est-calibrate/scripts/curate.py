@@ -22,6 +22,7 @@ already sent to clients.
 """
 
 import argparse
+import copy
 import json
 import shutil
 import sys
@@ -96,6 +97,28 @@ def check_sane(path, row, values):
                 f"band collapses silently instead of failing.")
 
 
+def check_band_ladder(model, path):
+    """A size band edited out of order breaks the one thing the scale promises.
+
+    The ladder is nine bands from 1 to 34 complexity points, and the whole extension rests on
+    hours rising with points: that is what lets a fused row carrying four stories' worth of
+    points cost four stories. Set L above XL by hand and a classifier counting honestly gets a
+    CHEAPER answer for MORE work, which no downstream check would catch — the estimate is
+    internally consistent, just inverted. Per-row sanity (lo <= likely <= hi) cannot see this,
+    because every row on its own is fine.
+    """
+    if not path.startswith("size_bands."):
+        return
+    bands = [(v["points"], name, v) for name, v in (model.get("size_bands") or {}).items()
+             if not name.startswith("_") and isinstance(v, dict) and "points" in v]
+    for (p_lo, n_lo, lo_band), (p_hi, n_hi, hi_band) in zip(sorted(bands), sorted(bands)[1:]):
+        if hi_band["likely"] <= lo_band["likely"]:
+            raise Refused(
+                f"{n_lo} ({p_lo} pts, {lo_band['likely']}h) would price at or above {n_hi} "
+                f"({p_hi} pts, {hi_band['likely']}h). The band ladder has to rise with points, "
+                f"or a row counted honestly as more work comes back cheaper.")
+
+
 def stamp_for(why, approved_by, when, previous):
     return (f"Set by judgement on {when} by {approved_by}: {why} "
             f"(previous: {json.dumps(previous, ensure_ascii=False)}). "
@@ -103,6 +126,27 @@ def stamp_for(why, approved_by, when, previous):
 
 
 def set_one(model, path, value, why, approved_by, when):
+    """Apply one change, then check the invariants only visible AFTERWARDS, and roll back if
+    the result would be incoherent.
+
+    Per-coefficient sanity runs before the write, because it can. The band ladder cannot: it is
+    a property of the whole `size_bands` block and is only decidable once the new value is in
+    place. Applying and reverting keeps `check_band_ladder` reading the real model rather than a
+    simulation of it — and a refusal must leave the model exactly as it was found, because the
+    caller may be part-way through a batch of changes.
+    """
+    restore = copy.deepcopy(model.get("size_bands")) if path.startswith("size_bands.") else None
+    try:
+        result = _set_one(model, path, value, why, approved_by, when)
+        check_band_ladder(model, path)
+    except Refused:
+        if restore is not None:
+            model["size_bands"] = restore
+        raise
+    return result
+
+
+def _set_one(model, path, value, why, approved_by, when):
     """Apply one change and stamp its provenance into the coefficient itself.
 
     Three shapes exist in the model and each records its reasoning where a reader will look:

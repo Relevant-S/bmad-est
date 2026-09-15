@@ -29,8 +29,10 @@ infrastructure — EPP's own retrospectives say "no AWS resource was provisioned
 against hours that were never spent.
 """
 
+import copy
 import importlib.util
 import json
+import math
 import unittest
 from pathlib import Path
 
@@ -379,6 +381,86 @@ class TheSizingBiasIsGone(unittest.TestCase):
         ratio = est.pert(rail["total"])[0] / est.pert(plain["total"])[0]
         self.assertGreater(ratio, 1.15)
         self.assertLess(ratio, 1.45)
+
+
+class TheSameScopeSlicedTwoWays(unittest.TestCase):
+    """The defect that extended the scale, stated without reference to any outside estimate.
+
+    Everything downstream is linear in the story count, and the story count is a property of
+    whoever wrote the document rather than of the work. So the test is: take EPP's delivered
+    backlog, fuse its stories into coarser ones, carry the complexity points across unchanged —
+    the SAME scope, written by a different hand — and re-price.
+
+    Under the five-band table the answer fell apart, because a fused story's points had nowhere
+    above XL to go and the surplus was simply discarded:
+
+        75 stories 653.7 h | 38 stories 0.79x | 25 stories 0.57x | 15 stories 0.39x
+
+    A client whose BA wrote in paragraphs rather than bullet points got a 2.6x cheaper project
+    for the same work. Nine bands reach far enough to carry the points, and the same sweep now
+    holds inside 15%. That residue is real and is not a rounding artefact: it is the Fibonacci
+    gap between bands plus the planning and QA components, which are priced per story and so
+    genuinely fall when there are fewer story files to write and review.
+    """
+
+    POINTS = {"XS": 1, "S": 2, "M": 3, "L": 4, "XL": 5, "XXL": 8, "3XL": 13, "4XL": 21, "5XL": 34}
+
+    def nearest_band(self, m, points):
+        """The band whose point value is closest to `points` in ratio terms — the same way a
+        classifier choosing between 13 and 21 for an 16-point row would have to."""
+        available = {b: v["points"] for b, v in m["size_bands"].items() if not b.startswith("_")}
+        return min(available.items(), key=lambda kv: abs(math.log(kv[1] / points)))[0]
+
+    def fuse(self, m, features, per_group):
+        out = []
+        for start in range(0, len(features), per_group):
+            group = features[start:start + per_group]
+            points = sum(self.POINTS[f["tags"]["size_band"]["value"]] for f in group)
+            fused = copy.deepcopy(group[0])
+            fused["tags"]["size_band"]["value"] = self.nearest_band(m, points)
+            fused["surfaces"] = sorted({s for g in group for s in g.get("surfaces") or []})
+            out.append(fused)
+        return out
+
+    def price(self, m, features):
+        inv = dict(inventory("epp"), features=features)
+        options = {
+            "mode": "presale", "team": m["team_profiles"]["balanced"], "team_name": "balanced",
+            "stack": "standard_saas", "qa_platform": "web", "engagement": "standard",
+            "team_size": 3, "no_standing_work": True, "granularity": "project",
+            "input_completeness": 0.85, "inventory_path": "x", "generated": "",
+            "inventory_warnings": [],
+        }
+        return sum(v["hours"] for v in est.build_estimate(inv, m, options)["by_role"].values())
+
+    def test_how_finely_the_source_was_written_does_not_decide_the_price(self):
+        m = model()
+        m["planning"]["split_factor"] = {"lo": 1.0, "likely": 1.0, "hi": 1.0}
+        fine = self.price(m, inventory("epp")["features"])
+        for per_group in (2, 3, 5):
+            with self.subTest(coarser=f"{per_group}x"):
+                coarse = self.price(m, self.fuse(m, inventory("epp")["features"], per_group))
+                ratio = coarse / fine
+                self.assertGreater(ratio, 0.85, f"the same scope written {per_group}x coarser "
+                                                f"prices at {ratio:.2f}x — the scale is not "
+                                                f"reaching the fused stories")
+                self.assertLess(ratio, 1.15, f"the same scope written {per_group}x coarser "
+                                             f"prices at {ratio:.2f}x")
+
+    def test_the_points_survive_the_fusing_which_is_what_makes_this_a_fair_test(self):
+        """Guard on the harness, not the model. If fusing lost or invented complexity points the
+        comparison above would be measuring the fixture rather than the bands."""
+        m = model()
+        original = sum(self.POINTS[f["tags"]["size_band"]["value"]]
+                       for f in inventory("epp")["features"])
+        self.assertEqual(original, 237)
+        for per_group in (2, 3, 5):
+            with self.subTest(coarser=f"{per_group}x"):
+                fused = sum(self.POINTS[f["tags"]["size_band"]["value"]]
+                            for f in self.fuse(m, inventory("epp")["features"], per_group))
+                # Snapping each fused total to the nearest available band loses a little; the
+                # Fibonacci gaps put the worst case around 12%.
+                self.assertAlmostEqual(fused / original, 1.0, delta=0.12)
 
 
 if __name__ == "__main__":

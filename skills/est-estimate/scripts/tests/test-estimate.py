@@ -13,9 +13,17 @@ What actually makes a story expensive is the PROVIDER behind it — a money rail
 +0.75 points over what its surface count predicts, an external IdP +0.73 — and that is
 additive console work, not a multiple of anything.
 
-So the first class now pins the measured claims: bands span 4.8x rather than 90x, the
-tier barely moves a total but does move where the hours are reported, and the premium is
-what a payments story actually costs. If someone re-derives the old shape, these fail.
+So the first class now pins the measured claims: the anchor's own range spans 4.8x rather
+than 90x, the tier barely moves a total but does move where the hours are reported, and the
+premium is what a payments story actually costs. If someone re-derives the old shape, these
+fail.
+
+Note the scoping. XS-XL is the MEASURED range and those assertions are about it alone; the
+scale continues through XXL to 5XL at 34 points, where nothing was measured and the bands
+are the same line extrapolated. `test_the_scale_reaches_the_work_and_still_steps_gently`
+covers the whole ladder — the two sets of assertions answer different questions, and reading
+either as a claim about the other is the mistake that produced a 4.8x ceiling in the first
+place.
 """
 
 import importlib.util
@@ -45,10 +53,14 @@ class TestTheCentralInsight(unittest.TestCase):
         m = model()
         return est.price_feature(feature(**kwargs), m, m["team_profiles"]["balanced"])
 
-    def test_the_band_spread_is_the_one_the_anchor_measured_not_the_2x_one(self):
-        """The single most consequential number in the file. EPP's own per-story record runs
-        1.2 h to 5.8 h of dev time across XS to XL — 4.8x. The 2.x bands ran 1 h to 90 h of
-        manual baseline, and every sizing bias in the module came from that width."""
+    def test_the_measured_range_is_the_one_the_anchor_measured_not_the_2x_one(self):
+        """EPP's own per-story record runs 1.2 h to 5.8 h of dev time across XS to XL — 4.8x.
+        The 2.x bands ran 1 h to 90 h of manual baseline over the same five names, and every
+        sizing bias in the module came from that width.
+
+        This is a claim about XS-XL ONLY, which is the part of the ladder the anchor measured.
+        It is deliberately NOT a claim about the scale: reading it as one is what kept the table
+        at five bands, so that a row holding four stories had nowhere to go."""
         bands = model()["size_bands"]
         spread = bands["XL"]["likely"] / bands["XS"]["likely"]
         self.assertLess(spread, 6.0, "the spread is back to something the anchor cannot support")
@@ -755,9 +767,46 @@ class TestModeAndSnapshot(unittest.TestCase):
 
     def test_an_unknown_tag_value_fails_loudly(self):
         f = feature("F1")
-        f["tags"]["size_band"]["value"] = "XXL"
+        f["tags"]["size_band"]["value"] = "HUGE"
         with self.assertRaises(KeyError):
             hours(inventory([f]))
+
+    def test_every_band_in_the_vocabulary_prices(self):
+        """This test used to assert that `XXL` raised, because the scale stopped at XL. It is
+        inverted deliberately: the ceiling WAS the defect, and a band the vocabulary offers but
+        the engine cannot price would be the same bug wearing a different hat."""
+        for band in ("XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL"):
+            with self.subTest(band=band):
+                f = feature("F1")
+                f["tags"]["size_band"]["value"] = band
+                self.assertGreater(hours(inventory([f]))["total_hours"]["likely"], 0)
+
+    def test_the_scale_reaches_the_work_and_still_steps_gently(self):
+        """Two failures to avoid at once, and they pull in opposite directions.
+
+        A scale too narrow cannot express a row holding several stories, and prices it as one:
+        EPP's own scope re-sliced 5x coarser priced at 0.39x under the five-band table. A scale
+        too coarse makes a single mis-tag expensive — the 2.x bands ran 1 h to 90 h over five
+        bands, so one band of error moved a story 3.0x.
+
+        The bound on the second is the anchor's own: the extension may not make a band slip more
+        expensive than the MEASURED bands already do. It does not — the largest step on the whole
+        ladder is XS->S at 1.88x, which is measured, and every extension step is around 1.62x.
+        """
+        bands = {k: v for k, v in model()["size_bands"].items() if not k.startswith("_")}
+        ladder = sorted(bands.values(), key=lambda b: b["points"])
+        self.assertGreater(ladder[-1]["likely"] / ladder[0]["likely"], 30.0)
+
+        steps = [(lo, hi, hi["likely"] / lo["likely"]) for lo, hi in zip(ladder, ladder[1:])]
+        worst_measured = max(s for lo, hi, s in steps if hi["points"] <= 5)
+        for lower, upper, step in steps:
+            self.assertGreater(step, 1.0)
+            if upper["points"] > 5:
+                self.assertLessEqual(
+                    step, worst_measured,
+                    f"{lower['points']}->{upper['points']} pts steps {step:.2f}x, wider than the "
+                    f"widest measured step ({worst_measured:.2f}x) — the extension would make a "
+                    f"band slip cost more than the anchor's own scale does")
 
 
 class StandingScopeSelection(unittest.TestCase):

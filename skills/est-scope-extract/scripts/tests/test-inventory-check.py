@@ -943,16 +943,23 @@ class Granularity(unittest.TestCase):
         self.assertEqual(self.warn(self.stories(40, ("backend", "frontend"))
                                    + self.stories(20, ("backend", "frontend", "data"))), [])
 
-    def test_a_finely_sliced_inventory_is_reported_with_its_direction(self):
-        """The bands are fitted to the anchor's grain, so half the surfaces per story means
-        roughly twice as many stories for the same scope — and the estimate runs HIGH."""
+    def test_a_finely_sliced_inventory_is_told_which_bands_it_needs(self):
+        """What this warning claims changed when the scale was extended, and the assertion
+        changed with it. It used to say the estimate would run HIGH by roughly the grain ratio —
+        true while the bands stopped at XL and fused rows lost their surplus. Over nine bands
+        the same scope holds inside 15% across a 5x change of grain, so the warning is now about
+        the BANDING: rows written this small belong in XS and S."""
         warnings = self.warn(self.stories(60, ("backend",)))
-        self.assertTrue(any("sliced" in w and "FINER" in w for w in warnings))
-        self.assertTrue(any("run HIGH" in w for w in warnings))
+        self.assertTrue(any("FINER" in w for w in warnings))
+        self.assertTrue(any("XS and S" in w and "over-priced" in w for w in warnings))
+        self.assertFalse(any("run HIGH" in w for w in warnings),
+                         "the grain ratio is no longer a correction factor on the total")
 
-    def test_a_coarsely_sliced_inventory_is_reported_the_other_way(self):
+    def test_a_coarsely_sliced_inventory_is_told_the_other_half(self):
         warnings = self.warn(self.stories(60, ("backend", "frontend", "design", "infra", "data")))
-        self.assertTrue(any("COARSER" in w and "run LOW" in w for w in warnings))
+        self.assertTrue(any("COARSER" in w for w in warnings))
+        self.assertTrue(any("XXL and above" in w for w in warnings))
+        self.assertTrue(any("priced as one story when they hold several" in w for w in warnings))
 
     def test_it_never_gates_and_says_so(self):
         """A genuinely fine-grained backlog is a real thing. This exists so it gets said out
@@ -1104,6 +1111,56 @@ class Sizing(unittest.TestCase):
         judgement about a project's shape, never a certainty, so it must never land there."""
         inv = inventory(features=self.stories({"L": 131, "M": 154, "S": 56}, lines=3))
         self.assertEqual([f for f in check.check_integrity(inv) if "size_band:" in f], [])
+
+
+class Ceiling(unittest.TestCase):
+    """Did the classifier measure the work, or run out of scale?
+
+    This failure was undetectable while XL was the last band in the table: a row holding three
+    stories and a row holding one both came back XL, and nothing downstream could tell them
+    apart. With four bands above XL the signature is cheap to read — stories piled at the top
+    band in use, and every band above it empty.
+    """
+
+    BANDS = check.load_bands()[0]
+
+    # Same fixture builder as Sizing — the band mix is the only thing under test here.
+    stories = Sizing.stories
+
+    def report(self, bands):
+        return check.check_sizing(self.stories(bands), self.BANDS)
+
+    def test_the_anchors_own_mix_is_quiet(self):
+        """EPP delivered 4.0% XL and nothing above. That is a measurement, not a pile."""
+        warnings, report = self.report({"XS": 2, "S": 13, "M": 34, "L": 23, "XL": 3})
+        self.assertFalse(report["ceiling"]["pinned_at_ceiling"])
+        self.assertEqual([w for w in warnings if "NOTHING is tagged above it" in w], [])
+
+    def test_a_pile_at_the_top_band_with_an_empty_scale_above_it_warns(self):
+        warnings, report = self.report({"S": 20, "M": 40, "L": 10, "XL": 25})
+        self.assertTrue(report["ceiling"]["pinned_at_ceiling"])
+        self.assertEqual(report["ceiling"]["top_band_used"], "XL")
+        self.assertEqual(report["ceiling"]["bands_above_unused"], ["XXL", "3XL", "4XL", "5XL"])
+        hit = [w for w in warnings if "NOTHING is tagged above it" in w]
+        self.assertTrue(hit)
+        # The instruction has to be actionable, not just an observation that the mix is odd.
+        self.assertIn("count the anchor-sized stories inside each", hit[0])
+
+    def test_the_same_pile_is_quiet_once_the_upper_bands_are_in_use(self):
+        """The check is about a missing vocabulary, not an unusual project. An inventory of
+        genuinely large rows must not be nagged for being large."""
+        _, report = self.report({"S": 20, "M": 40, "L": 10, "XL": 25, "XXL": 5})
+        self.assertFalse(report["ceiling"]["pinned_at_ceiling"])
+
+    def test_an_inventory_written_entirely_in_large_rows_is_quiet(self):
+        _, report = self.report({"M": 40, "L": 20, "XL": 5, "3XL": 8})
+        self.assertFalse(report["ceiling"]["pinned_at_ceiling"])
+        self.assertEqual(report["ceiling"]["top_band_used"], "3XL")
+
+    def test_nothing_here_gates(self):
+        warnings, report = self.report({"S": 20, "M": 40, "L": 10, "XL": 25})
+        self.assertTrue(warnings)
+        self.assertIn("advisory_only", report)
 
 
 class Bands(unittest.TestCase):

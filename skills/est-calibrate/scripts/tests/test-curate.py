@@ -121,6 +121,48 @@ class Sanity(unittest.TestCase):
         self.assertIn("name one bound", str(ctx.exception))
 
 
+class TheBandLadder(unittest.TestCase):
+    """Nine bands from 1 to 34 complexity points, and hours must rise with points.
+
+    That ordering is what the whole scale extension rests on: a row carrying four stories' worth
+    of points has to cost about four stories. An out-of-order band breaks it invisibly — every
+    row still satisfies lo <= likely <= hi, the estimate is still internally consistent, and a
+    classifier that counted honestly gets a cheaper answer for more work.
+    """
+
+    def test_lifting_a_band_above_the_one_after_it_is_refused(self):
+        with self.assertRaises(cu.Refused) as ctx:
+            cu.set_one(fx.model(), "size_bands.L", {"lo": 6.0, "likely": 9.0, "hi": 12.0},
+                       "L feels big", "me", "2026-09-07")
+        self.assertIn("has to rise with points", str(ctx.exception))
+
+    def test_a_refusal_leaves_the_model_exactly_as_it_was(self):
+        """The check can only run after the write, so the rollback is load-bearing — a caller
+        part-way through a batch must not be handed a half-applied model."""
+        model = fx.model()
+        before = json.loads(json.dumps(model["size_bands"]))
+        with self.assertRaises(cu.Refused):
+            cu.set_one(model, "size_bands.L", {"lo": 6.0, "likely": 9.0, "hi": 12.0},
+                       "w", "me", "2026-09-07")
+        self.assertEqual(model["size_bands"], before)
+
+    def test_sinking_a_band_below_the_one_before_it_is_refused(self):
+        with self.assertRaises(cu.Refused):
+            cu.set_one(fx.model(), "size_bands.XXL.likely", 7.0, "w", "me", "2026-09-07")
+
+    def test_an_ordered_band_change_is_allowed(self):
+        model = fx.model()
+        cu.set_one(model, "size_bands.L", {"lo": 4.5, "likely": 6.5, "hi": 9.0},
+                   "w", "me", "2026-09-07")
+        self.assertEqual(model["size_bands"]["L"]["likely"], 6.5)
+
+    def test_a_coefficient_outside_size_bands_is_not_ladder_checked(self):
+        model = fx.model()
+        cu.set_one(model, "qa.web", {"lo": 0.3, "likely": 0.45, "hi": 0.7},
+                   "w", "me", "2026-09-07")
+        self.assertEqual(model["qa"]["web"]["likely"], 0.45)
+
+
 class Provenance(unittest.TestCase):
     def test_the_reason_lands_in_the_coefficients_own_why(self):
         model = fx.model()

@@ -56,9 +56,23 @@ def apply_one(model, proposal, backtest, approved_by, when):
         before = {b: entry[b] for b in ("lo", "likely", "hi") if b in entry}
         for bound in before:
             entry[bound] = round(entry[bound] * value, 4)
+        # `size_bands` states the same quantity twice: `likely` is the all-role figure and
+        # `measured_dev_h` is the dev-only figure behind it, and the model's own invariant is
+        # `measured_dev_h == points x h_per_point_dev`. Scaling one and not the other leaves the
+        # file internally inconsistent — silently, because nothing prices off `measured_dev_h`.
+        # The band table would then claim a per-point rate it no longer charges.
+        if "measured_dev_h" in entry:
+            entry["measured_dev_h"] = round(entry["measured_dev_h"] * value, 4)
         entry["why"] = f"{entry.get('why', '')} — {stamp} Scaled by {value}x from {before}.".strip(" —")
         changed[key] = {"from": before,
                         "to": {b: entry[b] for b in before}}
+    # ... and the anchor's own rate, so the invariant still holds after the scale moves.
+    anchor = node.get("_anchor") if isinstance(node.get("_anchor"), dict) else None
+    if anchor and "h_per_point_dev" in anchor:
+        anchor["h_per_point_dev"] = round(anchor["h_per_point_dev"] * value, 4)
+        anchor["h_per_point_dev_why"] = (
+            f"{stamp} Scaled by {value}x with the bands it describes — the measured rate and the "
+            f"band table are the same number stated twice, and they move together or not at all.")
     return {"coefficient": target, "factor": value, "entries": changed}
 
 

@@ -368,7 +368,12 @@ class CutlineOrdering(unittest.TestCase):
         """BIG has to be genuinely drastic, and in 3.0 a band alone no longer makes it so: the
         measured spread is 4.8x XS-to-XL, not 90x, so an XL is under three times an S. What
         makes a story expensive now is the provider behind it, so BIG carries all three
-        premiums — which is exactly the shape the anchor's own XL stories had."""
+        premiums — which is exactly the shape the anchor's own XL stories had.
+
+        BIG stays at XL rather than reaching for 3.1's upper bands on purpose. Those exist for
+        rows that hold several stories, and a cut-line fixture wants one expensive STORY — the
+        point being tested is that the provider outweighs the band, and handing BIG 34 points
+        would make the band win by construction and test nothing."""
         return [fx.feature("BIG", size="XL", review_tier="critical", compressibility="low",
                            manual_effort=["money_rail", "external_idp", "native_release"]),
                 fx.feature("S1", size="XS"), fx.feature("S2", size="XS"),

@@ -87,6 +87,29 @@ class TestFactorChanges(unittest.TestCase):
         self.assertIn("M", record["entries"])
         self.assertIn("from", record["entries"]["M"])
 
+    def test_the_bands_and_the_rate_they_describe_move_together(self):
+        """`size_bands` states one quantity twice: `likely` is the all-role figure, and
+        `measured_dev_h` is the dev-only figure the band was derived from, at
+        `_anchor.h_per_point_dev` per point. Nothing prices off the second, which is exactly why
+        scaling only the first went unnoticed — the file would go on claiming a per-point rate it
+        no longer charged, and the classification guide quotes that rate to the classifier."""
+        m = model()
+        ap.apply_one(m, self.proposal(1.2), BACKTEST, "Ostap", "2026-09-07")
+        rate = m["size_bands"]["_anchor"]["h_per_point_dev"]
+        for name, band in m["size_bands"].items():
+            if name.startswith("_") or "measured_dev_h" not in band:
+                continue
+            with self.subTest(band=name):
+                self.assertAlmostEqual(band["measured_dev_h"], band["points"] * rate, delta=0.16)
+
+    def test_a_scaled_model_still_satisfies_its_own_band_ladder(self):
+        m = model()
+        ap.apply_one(m, self.proposal(0.8), BACKTEST, "Ostap", "2026-09-07")
+        ladder = sorted((b for n, b in m["size_bands"].items() if not n.startswith("_")),
+                        key=lambda b: b["points"])
+        for lower, upper in zip(ladder, ladder[1:]):
+            self.assertGreater(upper["likely"], lower["likely"])
+
 
 class TestLogEntry(unittest.TestCase):
     def test_the_log_carries_evidence_backtest_and_reversal(self):

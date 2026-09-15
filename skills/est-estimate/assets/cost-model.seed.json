@@ -1,8 +1,18 @@
 {
-  "schema_version": "3.0",
+  "schema_version": "3.1",
   "seeded_from": "Three delivered BMad projects, re-derived 2026-09-09. EPP carries the only per-story measured record — docs/reference/phase-1-per-feature-estimate.csv — and it is what the size bands are fitted to. memorial-healthcare and easyterms carry per-role totals only, and are used to check the fit rather than to make it.",
   "calibration_status": "THREE ANCHORS AT PROJECT LEVEL, ONE AT STORY LEVEL (n=3 / n=1). Per-role actuals: EPP epics 1-9 = 690 h (dev 300 / architect 110 / BA 100 / UX 100 / QA 40 / DevOps 40) over 7 weeks; memorial-healthcare epics 1-9.7 = 360 h (dev 140 / architect 60 / BA 80 / UX 80, no QA, no DevOps) over 3.5 weeks; easyterms epics 1-5+8 = 240 h (dev 160 / architect 80, no other role staffed) over 5 weeks. ONLY EPP recorded effort per story, so the size bands rest on it alone; the other two can falsify the fit at project level and do not contribute to it. Say n=3 for the shape and n=1 for the bands whenever a client asks how these numbers were arrived at. SUPERSEDES the 540 h EPP figure the 2.x model was fitted to: the same scope is now recorded at 690 h (architect +80, BA +60, dev +20, DevOps +10, UX -20), so every 2.x coefficient carrying '540 h actual' was fitted 22% low against its own anchor.",
   "calibration_history": [
+    {
+      "date": "2026-09-15",
+      "kind": "scale-extension",
+      "samples": 3,
+      "approved_by": "Ostap Dribniuk, delivery lead",
+      "change": "size_bands extended from five bands to nine: XXL 8, 3XL 13, 4XL 21, 5XL 34 points, each placed on the anchor's own measured line (points x 1.165 x 1.32) with the anchor's own interval shape (lo = likely x 0.697, hi = likely x 1.391). XS through XL are byte-identical.",
+      "why": "The bands were fitted to the only per-story record in existence, and that record has no dispersion in it: EPP's `Hours` column is points x 1.165, so the 1-5 weight column is an ORDINAL judgement over an already finely-sliced backlog, and the model adopted it as a RATIO scale of delivered hours. The consequence was measurable without reference to any outside estimate: EPP's own scope, re-sliced 5x coarser and re-priced, came to 0.39x the fine-grained price. A row holding several stories had nowhere above XL to go, so it was priced as one story. Extending the reach fixes that; inflating L and XL would not, because those bands hold EPP's 23 genuinely-L and 3 genuinely-XL stories at their measured values.",
+      "evidence": "Measured on the shipped model before the change: same scope at 2x / 3x / 5x coarser priced at 0.79x / 0.57x / 0.39x. After: 0.96x / 0.87x / 0.93x. All three delivered anchors reprice with ZERO drift (EPP 653.7, memorial-healthcare 525.5, easyterms 693.2) because none of their stories leaves the 1-5 range.",
+      "not_evidence": "The level of the four new bands is asserted, not measured. It assumes 1.165 h/point stays linear above 5 points. One delivered project with a story larger than 6 dev hours, recorded per story, would settle it; nothing on file does."
+    },
     {
       "date": "2026-09-09",
       "kind": "rebuild",
@@ -88,7 +98,7 @@
   ],
   "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
   "size_bands": {
-    "_what": "Delivered hours for one STORY, across every role billed to story work (dev, UX, BA's specification share, DevOps). NOT a manual-equivalent baseline, and NOT divided by anything: the 2.x model priced manual_baseline / compressibility, and neither of those was ever measured on a delivered project. These are. `measured_dev_h` on each band is EPP's own recorded figure — its 1-5 complexity scale at 1.165 h of DEV time per point — and `likely` is that figure grossed up by 1.32 to cover the other roles that are billed to a story. The gross-up is the one fitted number here; the shape is measured. THE SPREAD IS 4.8x, XS to XL. The 2.x bands ran 1 h to 90 h, an 18-fold wider spread, and that is where the sizing bias came from: a one-band error moved a story's cost 3.0x under 2.x against the 1.34x the delivered record shows.",
+    "_what": "Delivered hours for one STORY, across every role billed to story work (dev, UX, BA's specification share, DevOps). NOT a manual-equivalent baseline, and NOT divided by anything: the 2.x model priced manual_baseline / compressibility, and neither of those was ever measured on a delivered project. These are. `measured_dev_h` on each band is the anchor's own scale — 1.165 h of DEV time per complexity point — and `likely` is that figure grossed up by 1.32 to cover the other roles billed to a story. The gross-up is the one fitted number here; the line is measured. THE SPREAD IS 32.7x, XS to 5XL, over NINE bands. Two different mistakes are being avoided at once. The 2.x bands ran 1 h to 90 h over five bands, so one band of error moved a story 3.0x — the range was right and the resolution was not. 3.0 answered that by cutting the range to 4.8x, which made a band slip cost 1.34x and made the scale unable to express anything larger than EPP's biggest story: the same scope written 5x coarser priced at 0.39x, so the number depended on who had sliced the document. Nine bands over 32.7x keeps the step at about 1.6x AND reaches the work. Points 1-5 are EPP's measured record and have not moved by a single hour; 8, 13, 21 and 34 are the same line extrapolated, and each says so on its own row.",
     "_anchor": {
       "samples": 1,
       "source": "EPP epics 1-9: docs/reference/phase-1-per-feature-estimate.csv weights all 75 stories on a 1-5 scale and reconciles to the measured total. Epics 1-7: 63 stories, 206 points, 240 dev h = 1.165 h/point. Re-run independently on Phase 2.1 (23 stories, 75 points, 88 dev h): 1.173 h/point, 0.7% apart, with mean points/story 3.27 vs 3.26. Applying the scale across epics 1-9 gives 237 points -> 276 h against the 300 h actual.",
@@ -119,7 +129,8 @@
       "not_the_discriminator": "Acceptance-criterion count does not separate the bands. Median ACs by band across EPP's 75 stories run 5 / 7 / 8.5 / 8 / 12 — M and L are indistinguishable. What does separate them is the number of distinct surfaces the story touches (median 1 / 2 / 3 / 3 / 4) plus whether it introduces a capability the codebase does not have.",
       "review_tier_is_not_size": "MEASURED, and it is the finding that most changes how these bands should be read: EPP's sensitive stories average 3.24 points against routine 3.08 — 1.05x — and 1.06x with every provider-touching story excluded. Criticality does not make a story bigger. It is priced in review_tier, at a multiplier that now reflects that.",
       "gross_up": 1.32,
-      "gross_up_why": "1.32. The measured 1.165 h/point is DEV time; a story also carries UX, the BA's specification share and DevOps. Fitted — the only fitted number in this block — by minimising relative error across EPP's five staffed non-DevOps role totals (dev 300 / UX 100 / BA 100 / QA 40 / architect 110), which lands them at 1.05x / 1.01x / 0.97x / 0.98x / 0.77x. n=1: EPP is the only anchor that staffed all six roles. DevOps is outside the fit on purpose — its 40 h went on pipelines and environments, which are standing_work and are in no story list."
+      "gross_up_why": "1.32. The measured 1.165 h/point is DEV time; a story also carries UX, the BA's specification share and DevOps. Fitted — the only fitted number in this block — by minimising relative error across EPP's five staffed non-DevOps role totals (dev 300 / UX 100 / BA 100 / QA 40 / architect 110), which lands them at 1.05x / 1.01x / 0.97x / 0.98x / 0.77x. n=1: EPP is the only anchor that staffed all six roles. DevOps is outside the fit on purpose — its 40 h went on pipelines and environments, which are standing_work and are in no story list.",
+      "measured_range": "The anchor measures points 1-5 ONLY. EPP's 75 stories run 1.2 to 5.8 dev hours, so its record carries no information about anything larger, and its `Hours` column is an allocation (points x 1.165) rather than a per-story measurement — the dispersion inside a band is the team's ordinal judgement and only the epic totals were measured. Bands XXL through 5XL are therefore an EXTRAPOLATION of the measured line, flagged `beyond_anchor` on each row. Read `distribution` and `not_the_discriminator` as statements about points 1-5, not about the scale."
     },
     "XS": {
       "points": 1,
@@ -198,6 +209,62 @@
         "EPP 3.4 'Paid event checkout, credits as discount' — credit debit and access grant as ONE atomic operation; its epic retro records four CRITICAL money/race bugs found in this story alone (5 pts)",
         "EPP 6.1 'One-way Zoho CRM sync' — largest spec in Phase 1: field mapping across four objects, queue and worker (5 pts)",
         "XL is still a signal to look for a split, and est-estimate prices a narrowing question for each one — but it is NOT an error. The 2.x model asserted the anchor left none XL; three of them were."
+      ]
+    },
+    "XXL": {
+      "points": 8,
+      "lo": 8.6,
+      "likely": 12.3,
+      "hi": 17.1,
+      "measured_dev_h": 9.32,
+      "beyond_anchor": true,
+      "why": "Two or three EPP-sized stories that have to ship together and were written as one row. At this size the band is no longer a feeling about difficulty — it is a count of the stories inside the row.",
+      "why_beyond_anchor": "BEYOND THE ANCHOR. EPP's measured record runs 1-5 points and stops there, because EPP had nothing bigger — not because nothing bigger exists. This band is the SAME measured line (1.165 dev h per point, grossed up 1.32) evaluated further out. What is asserted rather than measured is that h/point stays linear above 5 points; nothing else here is new. Confidence 4/10 on the level, 8/10 on the need for the reach: without it a row holding several stories is priced as one, which is the failure this scale was extended to remove.",
+      "exemplars": [
+        "A deposit hold on a card: placing the hold (L, 4), the capture-or-release path (M, 3), and the ladder that runs when the card declines (XS-S, 1). 4+3+1 = 8 points, counted rather than felt.",
+        "A first real-time transport plus the two screens that subscribe to it: the transport is L, each subscriber M. Counting gives 8; calling the whole thing XL would price it at 5."
+      ]
+    },
+    "3XL": {
+      "points": 13,
+      "lo": 13.9,
+      "likely": 20.0,
+      "hi": 27.8,
+      "measured_dev_h": 15.14,
+      "beyond_anchor": true,
+      "why": "A subsystem with a data model of its own. Roughly four EPP stories.",
+      "why_beyond_anchor": "BEYOND THE ANCHOR. EPP's measured record runs 1-5 points and stops there, because EPP had nothing bigger — not because nothing bigger exists. This band is the SAME measured line (1.165 dev h per point, grossed up 1.32) evaluated further out. What is asserted rather than measured is that h/point stays linear above 5 points; nothing else here is new. Confidence 4/10 on the level, 8/10 on the need for the reach: without it a row holding several stories is priced as one, which is the failure this scale was extended to remove.",
+      "exemplars": [
+        "A pricing engine: the rate table and its schema (L, 4), the build-up calculation (XL, 5), seasonal and length-of-stay modifiers (M, 3), and the surface that exposes it (XS, 1).",
+        "A document-generation pipeline: template model, merge engine, rendering, and the storage and retrieval around it."
+      ]
+    },
+    "4XL": {
+      "points": 21,
+      "lo": 22.5,
+      "likely": 32.3,
+      "hi": 44.9,
+      "measured_dev_h": 24.46,
+      "beyond_anchor": true,
+      "why": "A bounded context delivered whole — six or seven EPP stories under one heading.",
+      "why_beyond_anchor": "BEYOND THE ANCHOR. EPP's measured record runs 1-5 points and stops there, because EPP had nothing bigger — not because nothing bigger exists. This band is the SAME measured line (1.165 dev h per point, grossed up 1.32) evaluated further out. What is asserted rather than measured is that h/point stays linear above 5 points; nothing else here is new. Confidence 4/10 on the level, 8/10 on the need for the reach: without it a row holding several stories is priced as one, which is the failure this scale was extended to remove.",
+      "exemplars": [
+        "Multi-tenant billing as a single row: subscription lifecycle, invoicing, dunning, proration and the admin surface over all four.",
+        "An availability and booking calendar: the inventory model, the search over it, holds and expiry, overbooking rules, and the two surfaces that read it."
+      ]
+    },
+    "5XL": {
+      "points": 34,
+      "lo": 36.5,
+      "likely": 52.3,
+      "hi": 72.7,
+      "measured_dev_h": 39.61,
+      "beyond_anchor": true,
+      "why": "About ten EPP stories in one row, and the coarsest thing that should ever carry a single band. A row this size means a decomposition exists that nobody has written down yet — price it, and say so in the assumptions rather than pretending the row is a story.",
+      "why_beyond_anchor": "BEYOND THE ANCHOR. EPP's measured record runs 1-5 points and stops there, because EPP had nothing bigger — not because nothing bigger exists. This band is the SAME measured line (1.165 dev h per point, grossed up 1.32) evaluated further out. What is asserted rather than measured is that h/point stays linear above 5 points; nothing else here is new. Confidence 4/10 on the level, 8/10 on the need for the reach: without it a row holding several stories is priced as one, which is the failure this scale was extended to remove.",
+      "exemplars": [
+        "A channel-manager integration covering four external providers, each with its own rate, availability and reservation contract, plus reconciliation and a replay path.",
+        "If a row needs more than 34 points, it is not a story at any grain. Split it in the inventory instead of inventing a band above this one."
       ]
     }
   },

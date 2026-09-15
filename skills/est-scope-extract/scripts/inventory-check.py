@@ -40,7 +40,10 @@ SEED_MODEL_PATH = (Path(__file__).resolve().parent.parent.parent
                    / "est-estimate" / "assets" / "cost-model.seed.json")
 
 TAG_VOCABULARY = {
-    "size_band": ["XS", "S", "M", "L", "XL"],
+    # Nine bands, not five. XS-XL are EPP's measured 1-5 point scale; XXL-5XL extend the same
+    # line to 8/13/21/34 points, because a row holding several stories used to have nowhere
+    # above XL to go and was priced as one story.
+    "size_band": ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL"],
     "compressibility": ["high", "medium", "low", "none"],
     "review_tier": ["routine", "sensitive", "critical"],
     "clarity": ["high", "medium", "low"],
@@ -781,10 +784,16 @@ def check_sizing(features, bands, floor=20, impact=0.25, ratio=1.5):
 
     The thresholds also moved, because the arithmetic under them did. On the 2.x bands, which
     ran 1 h to 90 h of manual baseline, shifting an inventory's L share from 25% to 37% moved
-    the baseline 17%; on the measured delivered-hours bands, which run 1.6 h to 7.7 h, the same
-    shift moves it 2%. A threshold tuned to the first is noise against the second, so `impact`
-    rose from 0.10 to 0.25 — a deviation now has to be worth a quarter of the estimate before
-    it is worth a reader's attention.
+    the baseline 17%; on the measured delivered-hours bands, the same shift moves it 2%. A
+    threshold tuned to the first is noise against the second, so `impact` rose from 0.10 to
+    0.25 — a deviation now has to be worth a quarter of the estimate before it is worth a
+    reader's attention. The bands reach further now (nine of them, 1.6 h to 52.3 h), but the
+    step between adjacent bands is still ~1.6x, so the threshold stands.
+
+    One check here IS about the scale rather than the shape: `ceiling`. The anchor measures
+    points 1-5 and the scale continues to 34, so an inventory that piles stories at XL while
+    using nothing above it is the signature of a classifier that ran out of room rather than
+    one that measured the work. That failure used to be invisible, because XL WAS the top.
 
     Half of these need a volume proxy — how much of the client's own document each story
     absorbed — and that only exists once story synthesis has parked the source rows as `tasks`.
@@ -903,12 +912,53 @@ def check_sizing(features, bands, floor=20, impact=0.25, ratio=1.5):
             f"satisfied by re-slicing. check_granularity is the check that cannot be"
         )
 
+    ceiling = check_ceiling(counts, order, bands, expected, n, warnings)
+
     return warnings, {"row_shaped": row_shaped,
                       "baseline_h": round(baseline, 1),
                       f"baseline_h_per_{'source_line' if row_shaped else 'story'}": round(rate, 2),
                       "anchor_expects": round(want, 2) if want else None,
+                      "ceiling": ceiling,
                       "advisory_only": "no finding here is grounds on its own to re-band a story",
                       "skipped": skipped}
+
+
+def check_ceiling(counts, order, bands, expected, n, warnings):
+    """Did the classifier run out of scale, or measure the work?
+
+    The distinguishing fact is cheap: the scale reaches 34 points, so if stories are piled at
+    some band and EVERY band above it is empty, the top band is doing duty as "big" rather than
+    as a measurement. That is how a row holding several stories gets priced as one, and it was
+    undetectable while XL was the last band in the table.
+
+    Deliberately silent when the upper bands ARE in use, however lopsided the mix: an inventory
+    of genuinely large rows is a real thing, and this check exists to catch a missing vocabulary,
+    not an unusual project. Advisory like everything else here — the anchor measures points 1-5
+    and has nothing to say about the shape of a backlog above that.
+    """
+    used = [b for b in order if counts.get(b)]
+    if not used:
+        return {"skipped": "no story carries a size_band"}
+    top = used[-1]
+    above = order[order.index(top) + 1:]
+    share = len(counts[top]) / n
+    # The anchor's own share for the top band, where it has one. Above XL it has none, so the
+    # comparison falls back to the XL share — the point at which the anchor stopped measuring.
+    want = expected.get(top, expected.get("XL", 0.04))
+    pinned = bool(above) and share >= max(3 * want, 0.10)
+    if pinned:
+        warnings.append(
+            f"size_band: {share:.0%} of stories are {top} ({len(counts[top])} of {n}) and NOTHING "
+            f"is tagged above it, though the scale continues through "
+            f"{', '.join(above)} to {bands[above[-1]]['points']} points "
+            f"({bands[above[-1]]['likely']:.0f}h). The anchor's share at this band is {want:.1%}. "
+            f"A pile at the top band with an empty scale above it is what running out of room "
+            f"looks like: a row holding three stories priced as one story. Re-read the {top} "
+            f"rows and count the anchor-sized stories inside each — that count IS the band"
+        )
+    return {"top_band_used": top, "top_band_share": round(share, 3),
+            "anchor_expects": round(float(want), 3),
+            "bands_above_unused": above, "pinned_at_ceiling": pinned}
 
 
 def check_granularity(features, bands, floor=20, tol=1.6):
@@ -923,11 +973,17 @@ def check_granularity(features, bands, floor=20, tol=1.6):
 
     Surfaces per story is the one signal that cannot: it is an observation about what each story
     touches, and it separated the three anchors cleanly at 2.29 (EPP), 1.25 (memorial-healthcare)
-    and 1.12 (easyterms) while hours per surface-touch stayed inside 1.74x. The cost model is
-    fitted to EPP, so an inventory materially below the anchor's figure is sliced finer than the
-    bands assume and the estimate will run HIGH. Reported with its direction, never gated: a
-    genuinely fine-grained backlog is a real thing, and this is how it gets said out loud
-    instead of quietly multiplying.
+    and 1.12 (easyterms) while hours per surface-touch stayed inside 1.74x.
+
+    WHAT THIS MEASURES CHANGED WHEN THE SCALE WAS EXTENDED, and the wording below changed with
+    it. While the bands stopped at XL, grain moved the total directly: the anchor's own scope
+    re-sliced 5x coarser priced at 0.39x, because fused rows hit the ceiling and the surplus was
+    dropped. Over nine bands the same sweep gives 0.93x. So this is no longer a correction factor
+    waiting to be applied to the number — it is a question about the TAGGING. An inventory well
+    off the anchor's grain is being written in a different unit, and the bands have to be reached
+    for in that unit: coarse rows want XXL and above, fine rows want XS and S. The estimate goes
+    wrong when the grain of the writing and the grain of the banding disagree, not when the grain
+    differs from the anchor's. Reported with its direction, never gated.
     """
     anchor = (bands or {}).get("_anchor") or {}
     want = anchor.get("surfaces_per_story")
@@ -950,12 +1006,15 @@ def check_granularity(features, bands, floor=20, tol=1.6):
         finer = got < want
         warnings.append(
             f"granularity: this inventory averages {got:.2f} surfaces per story against "
-            f"{want:.2f} in the delivery anchor — sliced {want / got:.1f}x "
-            f"{'FINER' if finer else 'COARSER'}. The bands are fitted to the anchor's grain, so "
-            f"the estimate will run {'HIGH' if finer else 'LOW'} by roughly that factor. Either "
-            f"re-synthesise toward the anchor's unit or say in the extraction report that the "
-            f"grain is deliberate and the number is read with it. This is the ONE sizing signal "
-            f"the extraction cannot satisfy by re-slicing, which is why it is here"
+            f"{want:.2f} in the delivery anchor — written {(want / got if finer else got / want):.1f}x "
+            f"{'FINER' if finer else 'COARSER'} than the unit the anchor's exemplars are written "
+            f"in. This is NOT a correction to apply to the total; the nine-band scale reaches "
+            f"both units and holds the same scope inside 15% across a 5x change of grain. It is "
+            f"a warning about the BANDING: rows this "
+            f"{'small belong in XS and S, and any that landed on M by default are over-priced' if finer else 'large belong in XXL and above, and any that landed on XL by default are priced as one story when they hold several'}"
+            f". Check the band mix against the unit before accepting the number, or say in the "
+            f"extraction report that the grain is deliberate. This is the ONE sizing signal the "
+            f"extraction cannot satisfy by re-slicing, which is why it is here"
         )
     return warnings, {"surfaces_per_story": round(got, 2),
                       "anchor_expects": round(float(want), 2),

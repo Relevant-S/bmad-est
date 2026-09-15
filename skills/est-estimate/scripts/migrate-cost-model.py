@@ -15,6 +15,14 @@ Several things changed shape, and none of them can be carried across by arithmet
                  across would silently price a story at more than twice what the anchor says.
                  `review_rate` is gone with it: the tier is now a small multiplier on the
                  story total, measured at 1.05x, not a 3.5x swing on a review component.
+  THE REACH (3.1) The five bands XS-XL are the anchor's measured 1-5 point scale and have not
+                 moved by an hour. Four were APPENDED above them — XXL 8, 3XL 13, 4XL 21,
+                 5XL 34 points — because the scale used to stop at the largest story the
+                 anchor happened to deliver, so a row holding several stories was priced as
+                 one. Nothing converts here and nothing is re-based: a 3.0 model migrates by
+                 gaining four bands. A 3.0 classification is still valid, but re-read any row
+                 tagged XL: that tag used to mean "the top of the scale" as often as it meant
+                 five points.
   the architect  Had no component: its hours fell out of role weights on planning and
                  overhead, both of which scale with story count. It is now `setup + a capped
                  weekly rate`, which all three delivered projects fit exactly. A 2.x model has
@@ -146,7 +154,11 @@ def migrate(model, seed):
                 "If you are coming from 2.x: your size_bands were manual-equivalent hours and "
                 "the new ones are delivered hours. Any judgement you had recorded about a band "
                 "has to be re-made against the new unit — the numbers are not comparable, and "
-                "a 2.x band carried across by hand would price a story at roughly 2.4x."),
+                "a 2.x band carried across by hand would price a story at roughly 2.4x. "
+                "If you are coming from 3.0: XS-XL are unchanged and every existing estimate "
+                "reprices identically, but the scale now continues to 34 points. Re-read any "
+                "row tagged XL before quoting it — under 3.0 that was the top of the table, so "
+                "it collected rows that hold several stories as well as rows worth five points."),
     }
     return out, notes
 

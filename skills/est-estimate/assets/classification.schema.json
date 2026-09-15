@@ -52,7 +52,7 @@
         "properties": {
           "size_band": {
             "$ref": "#/$defs/tag",
-            "description": "XS/S/M/L/XL band of DELIVERED hours for the story. Not a manual-equivalent baseline — the 3.0 model stopped pricing one, because no delivered project ever recorded it."
+            "description": "XS/S/M/L/XL/XXL/3XL/4XL/5XL band of DELIVERED hours for the story, on a complexity-point scale of 1/2/3/4/5/8/13/21/34. Not a manual-equivalent baseline — the 3.0 model stopped pricing one, because no delivered project ever recorded it. XS-XL are the delivery anchor's own measured range; above XL the band is a COUNT of the anchor-sized stories inside the row, not a stronger adjective."
           },
           "compressibility": {
             "$ref": "#/$defs/tag",

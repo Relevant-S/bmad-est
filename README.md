@@ -22,7 +22,9 @@ Three properties make it different from a spreadsheet:
 
 **The coefficients are fitted to three delivered projects, and it says exactly how far each one goes.** 690 hours over 7 weeks, 360 over 3.5, 240 over 5 — all with per-role actuals. One of them also recorded effort **per story**, and that is what the size bands rest on: 206 complexity points to 240 developer hours, re-checked independently on a later slice and landing 0.7% apart. A shipped test re-prices all three from their own delivered story lists and holds the first to ±25%.
 
-It also records where they disagree instead of averaging it away. The same kind of scope was written as 9.2, 2.9 and 3.1 hours per delivered story across the three — a threefold spread that no unit available before a project starts resolves to better than about 1.7×. The model is fitted to the expensive end, the checker reports which end a given inventory sits at, and every coefficient carries a confidence score from 9/10 down to 2/10 with what would raise it.
+It also records where they disagree instead of averaging it away. The same kind of scope was written as 9.2, 2.9 and 3.1 hours per delivered story across the three — a threefold spread in how finely people write the same work down. The coefficients carry confidence scores from 9/10 down to 2/10, each with what would raise it, and the ones resting on nothing say so in those words.
+
+**How finely the document was written does not decide the price.** Story sizes run on a nine-band scale from 1 to 34 complexity points, so a row holding four stories is priced as four stories instead of being flattened into the largest band available. That matters more than it sounds: before the scale reached this far, taking the anchor project's own backlog and rewriting it five times coarser — the same scope, same complexity, fewer rows — produced **0.39×** the original estimate. A client whose BA wrote in paragraphs got a cheaper project than one whose BA wrote in bullet points. A shipped test now re-slices that backlog at 2×, 3× and 5× and holds every answer within 15%.
 
 **It learns from what you actually delivered.** When a project closes, you record the real hours. The calibrator backtests any proposed coefficient change against your delivery history and shows you "this would have improved 7 of your last 9 estimates" before you approve it. Nothing changes the model without a named human agreeing to it. **One delivered BMad project is enough to start** — it reads that project's own epics and stories for its shape, and stamps the resulting change `n=1` so nobody mistakes it for a trend.
 
@@ -337,7 +339,7 @@ A single project total with those three fields is enough to start calibrating ba
 ## Development
 
 ```bash
-# All suites (520 tests). Run through uv: est-setup's config tests need Python
+# All suites (767 tests). Run through uv: est-setup's config tests need Python
 # 3.11 for tomllib, the same requirement BMad's own config resolver carries.
 # -B matters too: macOS Python caches bytecode centrally, where a same-length
 # edit within one second can defeat cache invalidation and run stale code.

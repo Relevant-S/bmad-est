@@ -25,7 +25,7 @@ what decided *this* one, quoting the source where you can.
 
 Every story carries five tags plus an optional `manual_effort` list. They are the inputs to the cost model, so a wrong tag is a wrong estimate — and each needs a one-line `why`, because this module ships no coefficient a human cannot interrogate. `surfaces` is the field the model reads that is *not* set here: which kinds of work a story touches is an observation the extractor makes. It decides which roles are billed, and it is also the strongest single predictor of size in the anchor — so read it before you band anything.
 
-**Where the weight actually sits, so you spend your attention in the right place.** The band spread is 4.8x, so one band of error moves a story about a third. The story count moves the whole estimate one-for-one, and it varies threefold between projects writing the same kind of scope. Read `inventory-check.py`'s `granularity` block first; it is worth more than any individual band.
+**Where the weight actually sits, so you spend your attention in the right place.** One band of error moves a story between 1.2x and 1.9x depending where on the scale it sits — real, and affordable. What is not affordable is a band that cannot reach: a row holding four stories tagged at the top of a scale that stops at one story prices the four as one, and no later step recovers it. Spend your attention on rows that look bigger than a single story, and on whether the scale you are reaching for goes far enough.
 
 Tag from the evidence in front of you. When the source does not say, tag what it implies and say so in the `why` ("no volume given; assumed single-tenant"). Guessing silently is the failure; guessing visibly is the job.
 
@@ -54,18 +54,39 @@ is a table that has drifted.
 | `M` | 3 | ~4.6 | *Monorepo scaffold & shared contracts* — multi-surface, no domain logic |
 | `L` | 4 | ~6.2 | *Login / logout & persistent session* — DB, API, Redis and Web; refresh-token rotation in Redis Lua |
 | `XL` | 5 | ~7.7 | *Paid recurring membership* — Stripe Subscriptions, `invoice.paid` lifecycle, credit grant |
+| `XXL` | 8 | ~12.3 | **Above the anchor.** Two or three of the rows above, written as one |
+| `3XL` | 13 | ~20.0 | **Above the anchor.** A subsystem with a data model of its own |
+| `4XL` | 21 | ~32.3 | **Above the anchor.** A bounded context delivered whole |
+| `5XL` | 34 | ~52.3 | **Above the anchor.** ~10 anchor stories; the coarsest a single row should ever be |
 
-**The spread is 4.8x, and that is the single most important thing on this page.** Under the 2.x
-model the bands ran 1 h to 90 h, so one band of error moved a story's cost 3.0x. The delivered
-record says the step from M to L is **1.34x**. Getting a band wrong is a real error and a small
-one — which means two things for how you work. You do not need to agonise over M-versus-L. And
-you must not let the band become the place you express everything else you noticed about a story,
-because it no longer has the range to carry it.
+**The top five rows are measured. The bottom four are the same line extrapolated, and they exist
+because the scale used to stop at `XL`.** That ceiling was the module's binding error: a row
+holding several stories had nowhere to go, so it was priced as one story. Measured on the anchor's
+own backlog — fuse EPP's 75 stories into 15 coarser ones carrying the same complexity points, and
+under the five-band table the same scope priced at **0.39x**. Whether a client's BA wrote in
+bullet points or paragraphs decided the number. It no longer does.
 
-**What actually separates the bands: how many distinct surfaces the story touches.** Median
+**Below `XL`, relax.** The step from M to L is **1.34x**, from L to XL **1.24x**. A band wrong by
+one is a real error and a small one, so do not agonise over M-versus-L, and do not let the band
+become the place you express everything else you noticed about a story — that is what
+`review_tier`, `clarity` and `novelty` are for, and they are measured separately.
+
+**At `XL` and above, stop judging and start counting.** A point is 1.165 measured dev hours and an
+anchor story averages 3.16 points, so above the anchor's range the question is not "how hard does
+this feel" — it is **how many anchor-sized stories are inside this row**. Name them. Sum their
+points. That sum is the band. A deposit hold that needs the hold itself (L, 4), the capture-or-
+release path (M, 3) and a decline ladder (XS, 1) is 8 points — `XXL` — and you arrived there by
+listing three stories, not by feeling that it was bigger than the last thing you tagged `XL`.
+
+If the count exceeds 34 points, the row is not a story at any grain. Say so in the extraction
+report and split it in the inventory; do not invent a band above `5XL`.
+
+**What separates the measured bands: how many distinct surfaces the story touches.** Median
 surfaces per band across the anchor's 75 stories run 1 / 2 / 3 / 3 / 4. Median acceptance-criterion
 count runs 5 / 7 / 8.5 / 8 / 12 — which cannot tell M from L at all. Ask what the story has to
-touch, not how much was written about it.
+touch, not how much was written about it. **This discriminator describes points 1–5 only.** The
+anchor never delivered a row larger than 5 points, so it has nothing to say about telling `3XL`
+from `4XL`; up there, counting the stories inside is the only method available.
 
 **The question that still separates `M` from `L`: does this introduce a capability the codebase
 does not yet have?** The first OIDC integration is `L` — a new protocol, on every client. The
@@ -86,12 +107,16 @@ reason to raise the review tier, not the band.
 **And it is not the row count.** In the anchor the first-OIDC story carries **4** acceptance
 criteria and is `L`, while a routine configuration screen carries **7** and is `M`.
 
-Three calls that are made wrong most often:
+Four calls that are made wrong most often:
 
 - **CRUD over one entity is `M`**, however central the entity is to the product.
 - **A list plus its detail view is `M`**, however many other features read from it.
 - **A story you cannot describe without naming a protocol, a transport or an external system is
   `L`**, even when the source states it in one line.
+- **A row whose description joins several capabilities with "and" is not an `XL` — it is a
+  decomposition.** *"Deposit engine with card holds, a re-authorisation cycle and a fallback
+  ladder"* is three stories in one row. Tagging it `XL` prices three stories as one and is the
+  exact failure the upper bands were added to remove. Count the parts and use the sum.
 
 **`XS` and `XL` are both real, and both were denied by the 2.x model.** It claimed the anchor had
 neither and warned on the first tag of each — so the checker was pushing small work up a band and
@@ -99,9 +124,20 @@ large work down one. The anchor's own record has **2.7% XS** and **4.0% XL**. Ta
 are true. `XL` is still worth a second look for a split, and `est-estimate` prices a narrowing
 question for each one, but it is not an error.
 
+**`XS` is the one most often missed in the other direction.** A row worth an hour or two that
+lands on `M` because `M` is where uncertain rows go costs the project three hours it will not
+spend, on every such row. If the source names one field, one flag or one copy change, it is `XS`.
+
+**A pile at `XL` with nothing above it is now itself a finding.** `inventory-check.py` reports
+`sizing.ceiling`, and warns when stories collect at the top band in use while the scale above it
+sits empty — which is what running out of vocabulary looks like from the outside. If the rows
+really are that large, reach for `XXL` and up; if they are not, they were never `XL`.
+
 ### The anchor's shape, and what it is not
 
-The delivered mix is **XS 3% · S 17% · M 45% · L 31% · XL 4%**.
+The delivered mix, **across points 1–5 only**, is **XS 3% · S 17% · M 45% · L 31% · XL 4%**. The
+anchor delivered nothing above 5 points, so it offers no expectation at all for `XXL` and up — an
+inventory of large rows is not deviating from this shape, it is outside its range.
 
 **This is not a target, and `inventory-check.py` will not ask you to move toward it.** That
 matters because of how the 2.x pipeline went wrong: this page told the classifier to expect 64% M
@@ -112,16 +148,28 @@ the project — and all the real variance went into the story count, which nothi
 Read the shape to notice something you did not intend, then argue with it. A data-migration
 engagement or a design-led build legitimately sits elsewhere.
 
-### The thing that does move the number: how finely the inventory is sliced
+### How finely the inventory is sliced — and why that is now your problem, not the model's
 
 Everything downstream is linear in the story count, and the story count is a property of whoever
 wrote the document. Across the three delivered projects the same kind of scope was written at
-**9.2, 2.9 and 3.1 hours per delivered story** — a 3.2-fold spread. The bands are fitted to the
-first of those.
+**9.2, 2.9 and 3.1 hours per delivered story** — a 3.2-fold spread.
 
-`inventory-check.py` reports `granularity`: surfaces per story against the anchor's 2.29. Below it
-and the estimate runs high; above it and it runs low. That is the number to read before you worry
-about a band.
+That used to land on the number directly. Re-slicing the anchor's own backlog 5x coarser and
+re-pricing it gave **0.39x** the original, because the fused rows hit the `XL` ceiling and the
+surplus complexity was silently dropped. On the nine-band scale the same sweep gives **0.93x**,
+and `test-anchors.py` holds it inside ±15%.
+
+So the estimate no longer changes much with the grain — **provided the bands are tagged at the
+grain the inventory is actually written at.** That proviso is the whole job, and it is yours:
+
+- A coarse inventory is not wrong. It needs `XXL` and above, and if you tag it `L`/`XL` because
+  those are the bands you are used to, you have reintroduced the ceiling by hand.
+- A fine inventory is not wrong either. It needs `XS` and `S`, and rows that land on `M` by
+  default over-price it story by story.
+
+`inventory-check.py` reports `granularity` (surfaces per story against the anchor's 2.29) and
+`sizing.ceiling` (are stories piled at the top band in use). Read both as questions about **your
+tagging**, not as correction factors to apply to the total. Neither gates pricing.
 
 ## manual_effort
 

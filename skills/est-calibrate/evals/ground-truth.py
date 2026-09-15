@@ -243,6 +243,10 @@ def case_a_noisy_spread_estimate_does_not_move_the_band():
     variance is smaller again and 0.18 produces a spread of 0.70 — comfortably INSIDE the
     band, which tests nothing. 0.30 is the level that lands at 1.17.
 
+    Still 4.8x here after the 3.1 extension, deliberately: the synthetic inventory below is
+    banded XS-XL, so it exercises the measured range and the level above holds. A fixture
+    reaching XXL-5XL would carry more feature variance and need re-deriving from scratch.
+
     That the number keeps falling is itself the finding: each change made the model's own
     range a better description of real variation, so more real noise is needed before the
     calibrator sees anything worth reacting to. Raising it past ~0.40 tests that it reacts to

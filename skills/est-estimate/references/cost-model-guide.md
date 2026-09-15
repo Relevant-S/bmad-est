@@ -16,22 +16,34 @@ on a later slice at 1.173. `measured_dev_h` on each band is that raw figure; `li
 grossed up by 1.32 to cover the other roles a story bills, which is the one fitted number in the
 block.
 
-**The spread is 4.8x, and everything about how the module behaves follows from it.** The 2.x bands
-ran 1 h to 90 h, so one band of error moved a story 3.0x and a 12-point shift in an inventory's L
-share moved the estimate 17%. On the measured bands the same shift moves it 2%. That is why the
-sizing checks were re-tuned and demoted to informational in the same release: thresholds calibrated
-to a 90x spread manufacture findings against a 4.8x one, and every one of those findings pushed the
-classifier back toward the middle of the table.
+**Nine bands, 1 to 34 points, a 32.7x spread — and the two failures it sits between.** Too wide and
+a single mis-tag is expensive: the 2.x bands ran 1 h to 90 h over five bands, so one band of error
+moved a story 3.0x. Too narrow and the scale cannot reach: 3.0 answered 2.x by cutting the range to
+4.8x, and a row holding four stories then had nowhere above `XL` to go and was priced as one.
+That was measurable on the anchor's own backlog — fuse EPP's 75 stories into 15 carrying the same
+points, and the same scope priced at **0.39x**. Nine bands fix the reach while keeping every step
+at or below the widest step the measured bands already had (1.88x, `XS`→`S`). `test-anchors.py`
+holds the grain sweep inside ±15% and `test-estimate.py` holds the step size.
+
+**Points 1–5 are measured; 8, 13, 21 and 34 are not.** The anchor delivered nothing above 5 points,
+so the upper four bands are the same line (`points × 1.165 × 1.32`) extrapolated, each carrying
+`beyond_anchor: true` and a `why` naming the assumption. What is assumed is that hours stay linear
+in points above 5. One delivered project recording per-story effort on a story larger than six dev
+hours would settle it; nothing on file does. Read the `_anchor` block as a statement about points
+1–5 only — including `distribution`, which offers no expectation at all for `XXL` and above.
 
 Three sub-keys inside `size_bands` are documentation rather than arithmetic, and all are read by
-`est-scope-extract` at the moment a band is chosen: each band's **`exemplars`** are worked examples
-quoted from the delivered record; **`_anchor.distribution`** is the mix that project actually
-delivered (XS 3% · S 17% · M 45% · L 31% · XL 4% — the 2.x file claimed 64% M with no XS and no XL,
-and that claim was being enforced); and **`_anchor.surfaces_per_story`** is the granularity signal
-`check_granularity` compares an inventory against. They live here rather than in the extractor's
-guide so they move when the hours move. `inventory-check.py --bands` prints them; `apply.py` and
-`backtest.py` skip `_`-prefixed keys and touch only `lo`/`likely`/`hi`. If you recalibrate the
-bands, rewrite the exemplars in the same edit.
+`est-estimate` at the moment a band is chosen: each band's **`exemplars`** are worked examples —
+quoted from the delivered record for points 1–5, and describing the decomposition that produces the
+point count above it; **`_anchor.distribution`** is the mix that project actually delivered (XS 3% ·
+S 17% · M 45% · L 31% · XL 4% — the 2.x file claimed 64% M with no XS and no XL, and that claim was
+being enforced); and **`_anchor.surfaces_per_story`** is the granularity signal `check_granularity`
+compares an inventory against. They live here rather than in the extractor's guide so they move when
+the hours move. `inventory-check.py --bands` prints them. `apply.py` and `backtest.py` skip
+`_`-prefixed keys and touch `lo`/`likely`/`hi` — plus `measured_dev_h` and `_anchor.h_per_point_dev`,
+which state the same quantity in dev-only terms and would otherwise be left describing a rate the
+model no longer charges. `curate.py` refuses a hand edit that puts the ladder out of order. If you
+recalibrate the bands, rewrite the exemplars in the same edit.
 
 **`manual_effort_premium`** is additive hours for work whose cost is not the code — a payment rail,
 an external IdP, a device build. Additive rather than a band, because a provider account is the
@@ -101,7 +113,8 @@ part of the model as the numbers. Read them before you quote anything.
 | Block | Confidence | Resting on | What would raise it |
 | --- | --- | --- | --- |
 | `architect` | **9/10** | Three projects, exact fit, formula stated independently of the totals | A fourth project with a different engagement shape |
-| `size_bands` shape | **7/10** | One project's per-story record, re-validated on a second slice at 0.7% | The same weighting applied to an unseen project before its hours are known |
+| `size_bands` shape, points 1–5 | **7/10** | One project's per-story record, re-validated on a second slice at 0.7% | The same weighting applied to an unseen project before its hours are known |
+| `size_bands` reach, points 8–34 | **4/10** | Nothing measured. The same line extrapolated past the largest story the anchor delivered, on an assumption of linearity in points | One delivered project recording per-story effort on a story larger than six dev hours. Note the *need* for the reach is not in doubt — without it the same scope written coarsely priced at 0.39x — only the level of these four bands |
 | `review_tier` (sensitive) | **7/10** | Measured across 75 stories, and again with provider stories excluded | The same measurement on a second project |
 | `manual_effort_premium` money | **6/10** | n=4, consistent, corroborated by the epic retrospective | Tagging the same classes on the other two anchors |
 | `planning.split_factor` | **6/10** | Three projects, 1.52x / 1.98x / 1.56x | Nothing much — it is small and well-bounded |
