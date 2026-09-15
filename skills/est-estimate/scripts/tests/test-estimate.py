@@ -1008,5 +1008,223 @@ class CalibrationClaim(unittest.TestCase):
         self.assertEqual(reproduced["input_completeness"], 0.33)
 
 
+class RiskIsAttributedToWhoeverCarriesIt(unittest.TestCase):
+    """Schema 1.1: every role, every row and every task carries its share of the buffer.
+
+    A budget needs hours per role at the row level, because rates differ up to 3x between an
+    architect and a QA. Before this the whole systematic buffer was one project scalar —
+    `confidence.sd_from_model_risk` — which nobody could turn into money, because a role-hour
+    has no price until you know whose hour it is.
+
+    Two quantities are kept apart here and the tests say which is which. The RISK columns are
+    built on a LINEAR split and are additive: sum them down the sheet and the project figure
+    comes back. The BANDS are not, because variances combine in quadrature, and the class ends
+    by pinning that they are not, so nobody adds a band column up and quotes the answer.
+    """
+
+    def priced(self, **opt):
+        return hours(inventory([feature(fid="F1"), feature(fid="F2", size="L"),
+                                feature(fid="F3", size="XS", surfaces=("backend",))]), **opt)
+
+    def test_the_split_is_linear_so_the_parts_sum_to_the_whole(self):
+        """`risk_of` is the one definition and it is a plain multiplication. If it ever stops
+        being linear, every reconciliation in this class becomes approximate at the same moment
+        and the columns stop being addable — so the linearity is pinned on its own."""
+        m = model()
+        self.assertAlmostEqual(est.risk_of(10.0, m) + est.risk_of(30.0, m),
+                               est.risk_of(40.0, m), places=9)
+        self.assertAlmostEqual(est.risk_of(100.0, m),
+                               100.0 * m["uncertainty"]["model_risk"], places=9)
+
+    def test_every_role_says_how_much_of_its_own_total_is_model_risk(self):
+        for role, row in self.priced()["by_role"].items():
+            with self.subTest(role=role):
+                self.assertAlmostEqual(row["model_risk_hours"],
+                                       round(row["base_hours"] * 0.15, 1), delta=0.11)
+                self.assertAlmostEqual(row["risk_adjusted_hours"],
+                                       row["base_hours"] + row["model_risk_hours"], delta=0.11)
+
+    def test_the_role_risk_figures_sum_to_the_project_figure_exactly(self):
+        """Invariant 1, at the grain the linearity guarantees: the attribution cannot drift from
+        the headline however the roles are cut."""
+        priced = self.priced()
+        self.assertAlmostEqual(
+            priced["confidence"]["role_attribution"]["model_risk_hours_total"],
+            priced["confidence"]["sd_from_model_risk"], delta=0.05)
+
+    def test_a_row_adds_up_to_its_own_role_columns(self):
+        """Invariant 3. A row whose columns do not sum to its own total is the failure this
+        change exists to prevent — someone sums the sheet and gets a number that reconciles
+        with nothing."""
+        priced = self.priced()
+        rows = list(priced["features"]) + list(priced["project_components"].values())
+        self.assertGreater(len(rows), 5)
+        for row in rows:
+            with self.subTest(row=row.get("id") or row.get("hours")):
+                by_role = row["by_role"]
+                self.assertAlmostEqual(sum(v["model_risk_hours"] for v in by_role.values()),
+                                       row["model_risk_hours"], delta=0.05 * len(by_role) + 0.01)
+                self.assertAlmostEqual(row["risk_adjusted_hours"],
+                                       row["hours"] + row["model_risk_hours"], delta=0.11)
+
+    def test_summing_the_rows_reproduces_the_project_buffer(self):
+        """Invariant 2, computed the way a reader would: down the sheet, story rows and project
+        rows together. The residual is rounding and nothing else, so it is bounded by the number
+        of cells rather than fitted to what the code happens to produce."""
+        priced = self.priced()
+        cells = 0
+        total = 0.0
+        for row in list(priced["features"]) + list(priced["project_components"].values()):
+            for value in row["by_role"].values():
+                total += value["model_risk_hours"]
+                cells += 1
+        self.assertAlmostEqual(total, priced["confidence"]["sd_from_model_risk"],
+                               delta=0.05 * cells)
+        self.assertGreater(total, 0)
+
+    def test_planned_hours_are_narrower_than_the_band_they_are_not(self):
+        """`risk_adjusted_hours` is the mean plus ONE systematic sigma and nothing else. It
+        carries no feature variance and no widening for a thin brief, so reading it as a worst
+        case reads it as something wider than it is."""
+        for role, row in self.priced(completeness=0.4)["by_role"].items():
+            with self.subTest(role=role):
+                self.assertLess(row["risk_adjusted_hours"], row["band"]["high"])
+                self.assertGreater(row["risk_adjusted_hours"], row["band"]["likely"])
+
+    def test_the_role_bands_do_not_add_up_and_the_output_says_so(self):
+        """The other half of the distinction. Role half-bands sum to MORE than the project's,
+        because roles are correlated within a story and independent between stories, and
+        `role_attribution` reports the excess rather than leaving it to be discovered."""
+        attribution = self.priced()["confidence"]["role_attribution"]
+        self.assertGreater(attribution["half_band_roles_summed"],
+                           attribution["half_band_project"])
+        self.assertGreater(attribution["half_band_ratio"], 1.0)
+        # Minkowski: the project figure sits between the two ways of adding the role figures.
+        self.assertLessEqual(attribution["sd_features_roles_quadrature"],
+                             attribution["sd_features_project"] + 0.05)
+        self.assertGreaterEqual(attribution["sd_features_roles_linear"],
+                                attribution["sd_features_project"] - 0.05)
+
+    def test_no_row_carries_a_band_column_at_all(self):
+        """The band is reported once per role at project level and never per row. A per-row band
+        column is the thing someone would sum."""
+        priced = self.priced()
+        for row in priced["features"]:
+            for value in row["by_role"].values():
+                self.assertNotIn("band", value)
+                self.assertNotIn("sd", value)
+
+    def test_the_existing_fields_did_not_move(self):
+        """Purely additive. est-calibrate re-prices history from this file and est-agent-estimator
+        defends numbers out of it; a renamed field is a silently broken downstream."""
+        priced = self.priced()
+        for role, row in priced["by_role"].items():
+            with self.subTest(role=role):
+                for key in ("low", "likely", "high", "hours", "on_stories", "project_level"):
+                    self.assertIn(key, row)
+                self.assertAlmostEqual(row["on_stories"] + row["project_level"],
+                                       row["hours"], delta=0.2)
+                self.assertAlmostEqual(row["base_hours"], row["hours"], delta=0.11)
+        self.assertEqual(priced["schema_version"], "1.1")
+
+
+class TheRoleSplitIsExactlyAdditiveToTheStory(unittest.TestCase):
+    """The assumption the whole per-row attribution rests on, pinned rather than assumed.
+
+    `widen()` is geometric, and geometric widening is NOT additive across differently-shaped
+    intervals. The role split survives it only because every component of a story is a scaled
+    copy of one band triple, so every role's interval carries the same lo/likely and hi/likely
+    ratios and widening becomes homogeneous across them. A premium that added a differently
+    shaped interval to one component would break this silently — every row would still look
+    reasonable and would quietly stop summing to its own total.
+    """
+
+    def roles_sum_to_the_story(self, **kwargs):
+        m = model()
+        f = est.price_feature(feature(**kwargs), m, m["team_profiles"]["balanced"])
+        return (sum(est.pert(v)[0] for v in est.feature_roles(f, m).values()),
+                est.pert(f["total"])[0])
+
+    def test_on_a_plain_story(self):
+        got, want = self.roles_sum_to_the_story()
+        self.assertAlmostEqual(got, want, places=9)
+
+    def test_when_low_clarity_widens_the_story(self):
+        got, want = self.roles_sum_to_the_story(clarity="low")
+        self.assertAlmostEqual(got, want, places=9)
+        m = model()
+        f = est.price_feature(feature(clarity="low"), m, m["team_profiles"]["balanced"])
+        self.assertNotEqual(f["clarity_band_multiplier"], 1.0)
+
+    def test_when_a_money_rail_premium_is_on_the_story(self):
+        got, want = self.roles_sum_to_the_story(clarity="low", manual_effort=["money_rail"])
+        self.assertAlmostEqual(got, want, places=9)
+
+
+class TasksCarryAnAllocationAndSayThatIsWhatItIs(unittest.TestCase):
+    """The cost model prices STORIES. A task is a source row kept so a reviewer can check the
+    story against the client's own sentence, and no delivered project recorded what a task cost.
+    So the figures on a task row are allocated down from its parent under a rule named in the
+    output, and they sum back to the parent exactly."""
+
+    TASKS = [{"id": "T1", "name": "One", "citations": [{"source_id": "S1", "location": "§1",
+                                                        "quote": "first"}]},
+             {"id": "T2", "name": "Two", "citations": [{"source_id": "S1", "location": "§2",
+                                                        "quote": "second"}]},
+             {"id": "T3", "name": "Three", "citations": [{"source_id": "S1", "location": "§3",
+                                                          "quote": "third"}]}]
+
+    def priced(self):
+        return hours(inventory([feature(fid="F1", size="L", tasks=self.TASKS),
+                                feature(fid="F2", size="XS")]))
+
+    def test_the_rule_is_named_in_the_output_not_left_implicit(self):
+        allocation = self.priced()["task_allocation"]
+        self.assertEqual(allocation["rule"], "even")
+        # The label is the point: a task figure that does not say it is an allocation is a
+        # number someone negotiates line by line against no evidence at all.
+        self.assertIn("not estimation units", allocation["why"])
+        self.assertIn("sum back to the story", allocation["why"])
+
+    def test_the_tasks_sum_back_to_their_story_per_role(self):
+        """Invariant 4, and EXACTLY — at the precision the figures are published in, not within
+        a rounding tolerance. Three 0.25 h tasks rounded independently read 0.2 h each under a
+        0.8 h story, and a reader who adds the column up finds a hole that is in the display
+        rather than the estimate. Largest remainder decides which row carries the odd tenth."""
+        story = next(f for f in self.priced()["features"] if f["id"] == "F1")
+        self.assertEqual(len(story["tasks"]), 3)
+        for role, row in story["by_role"].items():
+            for field in ("hours", "model_risk_hours", "risk_adjusted_hours"):
+                with self.subTest(role=role, field=field):
+                    self.assertAlmostEqual(
+                        sum(t["by_role"][role][field] for t in story["tasks"]),
+                        row[field], places=6)
+        for field in ("hours", "model_risk_hours", "risk_adjusted_hours"):
+            self.assertAlmostEqual(sum(t[field] for t in story["tasks"]), story[field], places=6)
+
+    def test_an_odd_tenth_is_carried_by_a_row_rather_than_lost(self):
+        self.assertEqual(est.spread(0.7, 3), [0.3, 0.2, 0.2])
+        self.assertAlmostEqual(sum(est.spread(0.7, 3)), 0.7, places=6)
+        self.assertEqual(est.spread(0.0, 2), [0.0, 0.0])
+        self.assertAlmostEqual(sum(est.spread(12.3, 7)), 12.3, places=6)
+
+    def test_every_task_row_is_flagged_as_allocated(self):
+        story = next(f for f in self.priced()["features"] if f["id"] == "F1")
+        for task in story["tasks"]:
+            self.assertTrue(task["allocated"])
+            self.assertEqual(sorted(task["by_role"]), sorted(story["by_role"]))
+
+    def test_a_task_carries_its_citation_through_untouched(self):
+        """The reason tasks exist at all. Allocating hours onto them must not cost the quote a
+        reviewer reads them for."""
+        story = next(f for f in self.priced()["features"] if f["id"] == "F1")
+        self.assertEqual([t["citations"][0]["quote"] for t in story["tasks"]],
+                         ["first", "second", "third"])
+
+    def test_a_story_with_no_tasks_gets_no_invented_ones(self):
+        story = next(f for f in self.priced()["features"] if f["id"] == "F2")
+        self.assertEqual(story["tasks"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

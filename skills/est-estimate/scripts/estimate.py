@@ -102,21 +102,53 @@ def pert(value):
     return ((lo + 4 * likely + hi) / 6.0, (hi - lo) / 6.0)
 
 
+def completeness_multiplier(model, completeness):
+    """How much a thin brief widens the band. One formula, one place."""
+    cm = model["uncertainty"]["completeness_multiplier"]
+    return 1 + cm["k"] * (1 - completeness) ** cm["p"]
+
+
+def risk_of(mean, model):
+    """The systematic buffer carried by a mean — the ONE definition of the linear split.
+
+    `uncertainty.model_risk` is a share of the central estimate, and it is one standard
+    deviation of SYSTEMATIC error: the term that enters the band in quadrature beside the
+    feature variance. It is split linearly wherever it is attributed, because it is correlated
+    by definition — if the size-band calibration is off it is off for every role and every row
+    at once — so the parts sum to `model_risk * total_mean` exactly however the work is cut.
+
+    Every attribution in this file goes through here, and the JS mirror in
+    `assets/report-template.html` reproduces this one line. A second copy would let a budget
+    column drift from the band it is supposed to be a slice of.
+    """
+    return model["uncertainty"].get("model_risk", 0.0) * mean
+
+
+def band_of(components, model, multiplier):
+    """The band arithmetic, for ANY set of components — the whole project, or one role's slice.
+
+    Feature variance and systematic model error combine in quadrature, then the completeness
+    multiplier widens the result. Split out from `band_half_width` so a per-role band is the
+    same arithmetic rather than a second copy of it: a role band derived by hand would drift
+    from the headline, and a role table that disagrees with its own total is worse than one
+    carrying no bands at all.
+    """
+    mean, sd_features = combine(components)
+    sd_model = risk_of(mean, model)
+    sd = math.sqrt(sd_features ** 2 + sd_model ** 2)
+    return mean, sd_features, sd_model, sd, model["uncertainty"]["z"] * sd * multiplier
+
+
 def band_half_width(components, model, completeness):
     """The half-band, from one definition used everywhere.
 
-    Feature variance and systematic model error combine in quadrature, then the
-    completeness multiplier widens the result. Any caller that re-derives this by hand
-    will drift from the headline figure, which is how a sensitivity analysis ends up
-    reporting the gap between two formulas instead of the value of an answer.
+    Any caller that re-derives this by hand will drift from the headline figure, which is how a
+    sensitivity analysis ends up reporting the gap between two formulas instead of the value of
+    an answer.
     """
-    unc = model["uncertainty"]
-    mean, sd_features = combine(components)
-    sd_model = unc.get("model_risk", 0.0) * mean
-    sd = math.sqrt(sd_features ** 2 + sd_model ** 2)
-    multiplier = 1 + unc["completeness_multiplier"]["k"] * \
-        (1 - completeness) ** unc["completeness_multiplier"]["p"]
-    return mean, sd_features, sd_model, sd, multiplier, unc["z"] * sd * multiplier
+    multiplier = completeness_multiplier(model, completeness)
+    mean, sd_features, sd_model, sd, half = band_of(components, model, multiplier)
+    return mean, sd_features, sd_model, sd, multiplier, half
 
 
 def combine(components):
@@ -554,36 +586,248 @@ def feature_roles(feature, model):
     return {role: widen(value, band) for role, value in totals.items()}
 
 
-def by_role(priced, project, model):
-    """Project role totals: an interval per role, and the two sources it came from.
+def role_rows(roles, model, min_hours=0.0):
+    """One row's role split, with the systematic buffer attributed to each role.
+
+    Returns the roles that survived the floor, their published rows, and the row's own risk.
+    `model_risk_hours` is `risk_of(mean)` — one sigma of SYSTEMATIC error, the only risk
+    quantity in this model that is additive, which is what makes these columns summable into a
+    budget. `risk_adjusted_hours` is the mean plus that sigma and nothing else: it carries no
+    feature variance and no completeness widening, so it is NOT the top of the reported band.
+
+    Every published figure is derived from the published figures beside it, never from the
+    unrounded value rounded again. Rounding three numbers independently lets a row read
+    10.2 + 1.5 = 11.6, and a budget column a reader cannot add up in their head is a budget
+    column they stop trusting. The cost is at most 0.05 h per figure, well under the precision
+    anything here is quoted at; the reconciliation upstream of the rounding stays exact.
+
+    The row's risk is the sum of the roles actually published rather than `risk_of` of the row
+    mean, so a row always adds up to its own columns even when `min_hours` drops a role that
+    rounds to nothing. On all three anchors that floor drops nothing at all.
+    """
+    kept = {r: v for r, v in sorted(roles.items()) if pert(v)[0] >= min_hours}
+    rows = {}
+    for role, value in kept.items():
+        mean = pert(value)[0]
+        hours, risk = round(mean, 1), round(risk_of(mean, model), 1)
+        rows[role] = {"low": round(value[0], 1), "likely": round(value[1], 1),
+                      "high": round(value[2], 1), "hours": hours,
+                      "model_risk_hours": risk,
+                      "risk_adjusted_hours": round(hours + risk, 1)}
+    return kept, rows, round(sum(r["model_risk_hours"] for r in rows.values()), 1)
+
+
+def spread(total, n):
+    """Split a published figure across n rows so the rows sum back to it EXACTLY.
+
+    Largest remainder at the published precision of one decimal. An even split rounded
+    independently leaves two 0.25 h tasks reading 0.2 h each under a 0.6 h story — a gap a
+    reader finds by adding a column up, and reads as an error in the estimate rather than in
+    the display. The rule stays "even"; this only decides which rows absorb the odd tenth.
+    """
+    units = round(total * 10)
+    base, rest = divmod(abs(units), n)
+    sign = -1 if units < 0 else 1
+    return [round(sign * (base + (1 if i < rest else 0)) / 10.0, 1) for i in range(n)]
+
+
+def allocate_tasks(feature, role_figures, hours, risk):
+    """The story's hours spread down its task rows — ALLOCATED, never estimated.
+
+    The cost model prices STORIES. A task is a source row: the client's own sentence, kept so a
+    reviewer can check the story against the document it came from. The inventory schema is
+    explicit that "a spreadsheet line is an acceptance criterion, not an estimable unit; pricing
+    one per row multiplied a backlog into a project", and no anchor carries per-task effort, so
+    there is nothing here that was fitted to anything.
+
+    The rule is therefore the one that asserts least — an even split — and it is named in
+    `task_allocation` at the top of the estimate rather than left implicit. Weighting by text
+    length or citation count would look more considered and would encode an evidence claim
+    nothing supports. Every column sums back to the parent story exactly, per role, at the
+    precision it is published in. Treat a task figure as a share of a story, never as a number
+    to negotiate over.
+    """
+    tasks = feature.get("tasks") or []
+    if not tasks:
+        return tasks
+    n = len(tasks)
+    columns = {role: {field: spread(row[field], n)
+                      for field in ("hours", "model_risk_hours", "risk_adjusted_hours")}
+               for role, row in role_figures.items()}
+    row_hours, row_risk = spread(hours, n), spread(risk, n)
+    out = []
+    for i, task in enumerate(tasks):
+        by_role = {role: {field: values[i] for field, values in fields.items()}
+                   for role, fields in columns.items()}
+        out.append(dict(task, hours=row_hours[i], by_role=by_role,
+                        model_risk_hours=row_risk[i],
+                        risk_adjusted_hours=round(row_hours[i] + row_risk[i], 1),
+                        allocated=True))
+    return out
+
+
+def feature_row(f, model):
+    """One priced story as the estimate publishes it.
+
+    Its interval, its component split, its role split with each role's own systematic buffer,
+    and the task rows it was read from carrying their allocated share of the same.
+    """
+    _, rows, risk = role_rows(feature_roles(f, model), model, min_hours=0.05)
+    hours = round(pert(f["total"])[0], 1)
+    return {k: v for k, v in f.items() if k != "_raw"} | {
+        "hours": hours,
+        "sd": round(pert(f["total"])[1], 1),
+        # Every level of breakdown carries its interval. A point value is what the
+        # reader is meant to stop seeing.
+        "range": {"low": round(f["total"][0], 1), "likely": round(f["total"][1], 1),
+                  "high": round(f["total"][2], 1)},
+        "component_hours": {k: round(pert(v)[0], 1) for k, v in f["components"].items()},
+        "by_role": rows,
+        "model_risk_hours": risk,
+        "risk_adjusted_hours": round(hours + risk, 1),
+        "tasks": allocate_tasks(f, rows, hours, risk),
+    }
+
+
+def project_row(name, value, model):
+    """One project-level line, with the role split that lets a sheet's project rows reconcile
+    against the role table rather than sitting blank beside it."""
+    roles = {role: scale(value, share)
+             for role, share in component_roles(model, name, None).items()}
+    _, rows, risk = role_rows(roles, model)
+    hours = round(pert(value)[0], 1)
+    return {"hours": hours, "sd": round(pert(value)[1], 1),
+            "range": {"low": round(value[0], 1), "likely": round(value[1], 1),
+                      "high": round(value[2], 1)},
+            "by_role": rows, "model_risk_hours": risk,
+            "risk_adjusted_hours": round(hours + risk, 1)}
+
+
+def role_terms(priced, project, model):
+    """Every role's slice of the component list the project band is computed from.
+
+    One term per (story, role) and one per (project component, role) — the same grain as
+    `[f["total"] for f in priced] + list(project.values())`, which is what `band_half_width`
+    sees. Keeping the terms rather than only their sum is what lets a role carry a variance as
+    well as a total: variances add and standard deviations do not, so a role's band cannot be
+    recovered from a figure that has already been summed.
+    """
+    story, project_side = {}, {}
+    for feature in priced:
+        for role, value in feature_roles(feature, model).items():
+            story.setdefault(role, []).append(value)
+    for name, value in project.items():
+        for role, share in component_roles(model, name, None).items():
+            project_side.setdefault(role, []).append(scale(value, share))
+    return story, project_side
+
+
+def by_role(priced, project, model, multiplier):
+    """Project role totals: an interval per role, the two sources it came from, and each role's
+    share of the systematic buffer.
 
     This replaces the grand total as the estimate's headline, so it has to reconcile. Summing
     the story rows alone gave architect 0 and qa 0 against 170 h and 205 h in the table, because
     planning, planning-review, QA and overhead touch no story — 27% of a real project sitting
     outside every row a reader could add up. Both parts are reported, so the arithmetic is on
     the page rather than left as a gap to discover.
+
+    `low`/`likely`/`high` are the SUMMED interval — every hour of this role at its own worst at
+    once — and are unchanged, because other readers name them. `band` is the one derived the way
+    the project's is, and it is the one to quote.
+
+    **Model risk is split LINEARLY across roles, not in quadrature**, because it is correlated
+    across them by definition: if the size-band calibration is off it is off for every role at
+    once. `risk_of(mean_r)` therefore sums to `risk_of(total_mean)` exactly, so the attribution
+    cannot drift from the project figure however the roles are cut. That is what makes
+    `model_risk_hours` an ADDITIVE column a budget can be built from.
+
+    Feature variance is the opposite case — correlated WITHIN a story, whose hours are shares of
+    one number, and independent BETWEEN stories — so each role's own sd is exact while the role
+    sds do not combine with each other in quadrature, and the role BANDS are not additive at all.
+    `confidence.role_attribution` reports that residual in numbers rather than leaving a reader
+    to discover it by adding the bands up and getting the wrong answer.
     """
-    stories, project_side = {}, {}
-    for feature in priced:
-        for role, value in feature_roles(feature, model).items():
-            stories[role] = add(stories.get(role, (0.0, 0.0, 0.0)), value)
-    for name, value in project.items():
-        for role, share in component_roles(model, name, None).items():
-            project_side[role] = add(project_side.get(role, (0.0, 0.0, 0.0)),
-                                     scale(value, share))
+    story_terms, project_terms = role_terms(priced, project, model)
 
     out = {}
-    for role in sorted(set(stories) | set(project_side)):
-        on_stories = stories.get(role, (0.0, 0.0, 0.0))
-        project_level = project_side.get(role, (0.0, 0.0, 0.0))
+    for role in sorted(set(story_terms) | set(project_terms)):
+        story_side = story_terms.get(role, [])
+        project_side = project_terms.get(role, [])
+        on_stories, project_level = add(*story_side), add(*project_side)
         total = add(on_stories, project_level)
+        mean_r, sd_features, sd_model, sd, half = band_of(
+            story_side + project_side, model, multiplier)
+        systematic = 100 * (sd_model ** 2) / (sd ** 2) if sd else 0.0
         out[role] = {
             "low": round(total[0], 1), "likely": round(total[1], 1), "high": round(total[2], 1),
             "hours": round(pert(total)[0], 1),
             "on_stories": round(pert(on_stories)[0], 1),
             "project_level": round(pert(project_level)[0], 1),
+            "base_hours": round(mean_r, 1),
+            "model_risk_hours": round(sd_model, 1),
+            # The published parts added, so the row adds up on the page it is read on.
+            "risk_adjusted_hours": round(round(mean_r, 1) + round(sd_model, 1), 1),
+            "sd_features": round(sd_features, 1),
+            "sd_model": round(sd_model, 1),
+            "sd": round(sd, 1),
+            "band": {"low": round(max(mean_r - half, 0.0), 1), "likely": round(mean_r, 1),
+                     "high": round(mean_r + half, 1), "half_width": round(half, 1)},
+            "why": (f"{sd_model:,.1f} h of this role's {sd:,.1f} h standard deviation is "
+                    f"systematic model risk — {systematic:.0f}% of its variance; the rest is the "
+                    f"spread on its own work, which a better-specified brief narrows and this "
+                    f"does not. `risk_adjusted_hours` is the mean plus that ONE systematic sigma "
+                    f"and nothing else — it carries no feature variance and no completeness "
+                    f"widening, so it is narrower than `band.high` and is not a worst case. It is "
+                    f"the figure that adds up: the buffer is a share of this role's own mean, so "
+                    f"the role figures sum to the project's exactly."),
         }
     return out
+
+
+def role_attribution(priced, project, model, multiplier, sd_features, sd_model, half_band):
+    """The reconciliation between the role rows and the project band, as numbers.
+
+    Three claims are made here and all three are checkable by the reader:
+
+      * the role model-risk figures sum to the project's EXACTLY, because the split is linear;
+      * the role feature-variance figures sum to MORE than the project's when added straight and
+        LESS when added in quadrature, because roles are correlated within a story and
+        independent between stories — the project figure sits between the two by Minkowski;
+      * so the role half-bands add up to more than the project half-band, and that excess is the
+        diversification the project-level quadrature captures rather than an error.
+
+    Without this block a reader adds the role bands up, gets a wider number than the headline,
+    and has no way to tell a correct attribution from a broken one.
+    """
+    story_terms, project_terms = role_terms(priced, project, model)
+    rows = [band_of(story_terms.get(role, []) + project_terms.get(role, []), model, multiplier)
+            for role in sorted(set(story_terms) | set(project_terms))]
+    risk = sum(r[2] for r in rows)
+    linear = sum(r[1] for r in rows)
+    quadrature = math.sqrt(sum(r[1] ** 2 for r in rows))
+    summed_half = sum(r[4] for r in rows)
+    ratio = summed_half / half_band if half_band else None
+    return {
+        "model_risk_hours_total": round(risk, 1),
+        "sd_features_project": round(sd_features, 1),
+        "sd_features_roles_linear": round(linear, 1),
+        "sd_features_roles_quadrature": round(quadrature, 1),
+        "half_band_project": round(half_band, 1),
+        "half_band_roles_summed": round(summed_half, 1),
+        "half_band_ratio": round(ratio, 2) if ratio else None,
+        "why": (
+            f"Model risk is correlated across roles by definition — if the calibration is off it "
+            f"is off for every role at once — so it is split linearly and the split is exact: the "
+            f"role figures sum to {risk:,.1f} h, which is the project's own {sd_model:,.1f} h. "
+            f"That is the column to add up. Feature variance is the other case: a story's hours "
+            f"are shares of one number, so its roles move together, while separate stories do "
+            f"not. The role figures therefore bracket the project's {sd_features:,.1f} h rather "
+            f"than equalling it — {quadrature:,.1f} h added in quadrature, {linear:,.1f} h added "
+            f"straight. That is why the role half-bands sum to {summed_half:,.1f} h against the "
+            f"project's {half_band:,.1f} h: the difference is diversification across stories, not "
+            f"a discrepancy. Quote a role's own band; never add the bands up."),
+    }
 
 
 def by_phase(priced, project, model):
@@ -1032,7 +1276,12 @@ def build_estimate(inventory, model, options):
 
     calibrated_from = calibration_samples(model) if is_calibrated(model) else 0
     estimate = {
-        "schema_version": "1.0",
+        # 1.1 attributes systematic model risk. Purely additive: every role gains
+        # base_hours / model_risk_hours / risk_adjusted_hours / the sd decomposition / a band,
+        # every story, task and project line gains its own share of the same, and
+        # confidence.role_attribution says how the role figures reconcile with the project's.
+        # No existing field changes name or value.
+        "schema_version": "1.1",
         "project": inventory.get("project"),
         "granularity": options["granularity"],
         # The delivery structure, in build order, so every render can group and sort without
@@ -1072,6 +1321,11 @@ def build_estimate(inventory, model, options):
             "why": (f"Band width is computed, not chosen: an input completeness of {completeness} "
                     f"widens the interval by {multiplier:.2f}x. A thinner brief cannot produce a "
                     f"narrower range."),
+            # How the two sources above land on the roles, and how the role figures reconcile
+            # with these. A buffer nobody can attribute to a role cannot be budgeted, because a
+            # role-hour has no price until you know whose hour it is.
+            "role_attribution": role_attribution(priced, project, model, multiplier,
+                                                 sd_features, sd_model, half_band),
         },
         "assumptions": [
             f"Team profile: {options['team_name']} — modifiers applied to specification, review and rework only, not to build.",
@@ -1087,34 +1341,19 @@ def build_estimate(inventory, model, options):
         ] + [f"Classification quality: {w}" for w in options.get("inventory_warnings") or []]
           + inventory.get("assumptions", []),
         "planning_volume": volume,
-        "features": [
-            {k: v for k, v in f.items() if k != "_raw"} | {
-                "hours": round(pert(f["total"])[0], 1),
-                "sd": round(pert(f["total"])[1], 1),
-                # Every level of breakdown carries its interval. A point value is what the
-                # reader is meant to stop seeing.
-                "range": {"low": round(f["total"][0], 1), "likely": round(f["total"][1], 1),
-                          "high": round(f["total"][2], 1)},
-                "component_hours": {k: round(pert(v)[0], 1) for k, v in f["components"].items()},
-                "by_role": {r: {"low": round(v[0], 1), "likely": round(v[1], 1),
-                                "high": round(v[2], 1), "hours": round(pert(v)[0], 1)}
-                            for r, v in sorted(feature_roles(f, model).items())
-                            if pert(v)[0] >= 0.05},
-            }
-            for f in priced
-        ],
-        "project_components": {
-            name: {"hours": round(pert(value)[0], 1), "sd": round(pert(value)[1], 1),
-                   "range": {"low": round(value[0], 1), "likely": round(value[1], 1),
-                             "high": round(value[2], 1)},
-                   # The role split of each project line, so a sheet's project rows reconcile
-                   # against the role table rather than sitting blank beside it.
-                   "by_role": {role: {"low": round(value[0] * share, 1),
-                                      "likely": round(value[1] * share, 1),
-                                      "high": round(value[2] * share, 1),
-                                      "hours": round(pert(value)[0] * share, 1)}
-                               for role, share in component_roles(model, name, None).items()}}
-            for name, value in project.items()
+        "features": [feature_row(f, model) for f in priced],
+        "project_components": {name: project_row(name, value, model)
+                               for name, value in project.items()},
+        # Named in the output because a task figure is an ALLOCATION, not an estimate: the
+        # engine prices stories, and nothing in any anchor records what a task cost.
+        "task_allocation": {
+            "rule": "even",
+            "why": ("A story's hours are spread evenly across its task rows, per role, and sum "
+                    "back to the story exactly. Tasks are the client's own sentences kept for "
+                    "verification, not estimation units — no delivered project recorded per-task "
+                    "effort, so there is nothing to weight by. The columns exist so a reviewer "
+                    "can see roughly where a story's hours sit; they are not a number to "
+                    "negotiate line by line."),
         },
         "overhead_check": overhead_check(priced, project, span),
         "standing_work": {
@@ -1132,7 +1371,7 @@ def build_estimate(inventory, model, options):
             "selection": standing_selection,
         },
         "by_phase": by_phase(priced, project, model),
-        "by_role": by_role(priced, project, model),
+        "by_role": by_role(priced, project, model, multiplier),
         "scope_split": agreed_split(priced, project, model, options),
         "manual_equivalent": {
             "story_hours": round(pert(add(*[f["total"] for f in priced]))[0], 1) if priced else 0.0,

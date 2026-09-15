@@ -10,8 +10,10 @@ the JS once omitted the systematic model-risk term and rendered a band half the 
 width, under a headline that included it. Nothing caught it, because no test ran the JS.
 
 This executes the page's own computation block — extracted between the PARITY markers, so
-it is the same source the browser runs, not a copy — and compares the full interval plus
-every phase and role total.
+it is the same source the browser runs, not a copy — and compares the full interval, every
+phase and role total, each role's risk and planned hours, and the project lines' role split —
+the only per-row figures the page recomputes, because they are the only ones that move as scope
+is cut.
 
     uv run scripts/check-parity.py <estimate.json>
 
@@ -54,7 +56,8 @@ const M = E.cost_model_snapshot;
 {parity_block()}
 const r = compute(new Set(E.features.map(f => f.id)));
 console.log(JSON.stringify({{low: r.low, likely: r.mean, high: r.high,
-                            phases: r.phases, roles: r.roles}}));
+                            phases: r.phases, roles: r.roles, roleRisk: r.roleRisk,
+                            rolePlanned: r.rolePlanned, projectRoles: r.projectRoles}}));
 """
     # Handed to node as a file, never as `node -e`. The script embeds the whole estimate, and
     # a story-grained inventory runs to megabytes of JSON — well past the OS argv ceiling, which
@@ -99,6 +102,31 @@ def compare(estimate, js):
             if abs(a - c) > TOLERANCE:
                 drift.append({"field": f"by_role.{role}.{key}", "engine": round(a, 2),
                               "browser": round(c, 2), "delta": round(c - a, 2)})
+        # The budget pair. It is the column a reader sums, so a page that quoted a different
+        # buffer from the document would be wrong in the one place someone acts on.
+        if isinstance(row, dict):
+            for field, side in (("model_risk_hours", "roleRisk"),
+                                ("risk_adjusted_hours", "rolePlanned")):
+                a, c = row.get(field), (js.get(side) or {}).get(role)
+                if a is None:
+                    continue
+                if c is None or abs(a - c) > TOLERANCE:
+                    drift.append({"field": f"by_role.{role}.{field}", "engine": round(a, 2),
+                                  "browser": None if c is None else round(c, 2)})
+
+    # The project lines are the only rows on the sheet whose hours MOVE as scope is cut, so
+    # they are the only per-row figures the page recomputes and therefore the only ones that
+    # can drift from it. A story's own hours are read straight off the file.
+    project_roles = {}
+    for comp in (estimate.get("project_components") or {}).values():
+        for role, split in (comp.get("by_role") or {}).items():
+            project_roles[role] = project_roles.get(role, 0.0) + (split.get("hours") or 0.0)
+    for role, a in project_roles.items():
+        b = (js.get("projectRoles") or {}).get(role)
+        c = None if b is None else (b[0] + 4 * b[1] + b[2]) / 6.0
+        if c is None or abs(a - c) > TOLERANCE:
+            drift.append({"field": f"project_components.by_role.{role}.hours",
+                          "engine": round(a, 2), "browser": None if c is None else round(c, 2)})
     return drift
 
 
@@ -123,7 +151,9 @@ def main():
                "engagement": recorded.get("engagement", "standard"),
                "team_size": recorded.get("team_size")}
     drift = compare(estimate, run_js(estimate, options))
-    print(json.dumps({"ok": not drift, "checked": ["total_hours", "by_phase", "by_role"],
+    print(json.dumps({"ok": not drift, "checked": ["total_hours", "by_phase", "by_role",
+                                  "by_role.model_risk_hours", "by_role.risk_adjusted_hours",
+                                  "project_components.by_role"],
                       "drift": drift}, indent=2))
     return 1 if drift else 0
 

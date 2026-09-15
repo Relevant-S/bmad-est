@@ -20,6 +20,8 @@ Three properties make it different from a spreadsheet:
 
 **There is no project total.** A single summed number is meaningless when the work splits across roles, and it could not be reconciled anyway: adding up the story rows of a real estimate gave 1,752 h against a 2,414 h headline, because planning, QA and overhead touch no story. Every output leads with the role table instead, each role a range, showing how much of it traces to a story and how much the project pays regardless. **Nothing is a point value**: every story and every role carries low/likely/high, and the width says how well-specified the work is — a vague story reads wider than a detailed one.
 
+**The risk is attributed to whoever carries it — per role, and per row.** A budget needs hours by role at the row level, because rates differ up to 3× between an architect and a QA, and a buffer nobody can attribute to a role cannot be budgeted: a role-hour has no price until you know whose hour it is. So every story, every task and every project line carries `{role}_risk` — its own share of the model's systematic uncertainty — and `{role}_planned`, the two added. That split is **linear**, because systematic error is correlated by definition: if the size-band calibration is off it is off for every role and every row at once. The column therefore **adds up** — sum it down the sheet and the project figure comes back, and the estimate states that reconciliation in numbers. The *band* is the other quantity and it does not add up: variances combine in quadrature, so the role bands sum to about 1.1× the project's. Quote a role's own band; never add bands together. No per-row band column is written anywhere, precisely so there is nothing of that kind to sum.
+
 **The coefficients are fitted to three delivered projects, and it says exactly how far each one goes.** 690 hours over 7 weeks, 360 over 3.5, 240 over 5 — all with per-role actuals. One of them also recorded effort **per story**, and that is what the size bands rest on: 206 complexity points to 240 developer hours, re-checked independently on a later slice and landing 0.7% apart. A shipped test re-prices all three from their own delivered story lists and holds the first to ±25%.
 
 It also records where they disagree instead of averaging it away. The same kind of scope was written as 9.2, 2.9 and 3.1 hours per delivered story across the three — a threefold spread in how finely people write the same work down. The coefficients carry confidence scores from 9/10 down to 2/10, each with what would raise it, and the ones resting on nothing say so in those words.
@@ -242,7 +244,7 @@ _bmad/memory/est/               ← shared by all five skills
 ├── feature-inventory.csv       ← the same two tables in plain text, joined on story id
 │   + .tasks.csv
 ├── classification.json         ← what each story costs to build, keyed by story id
-├── estimate.json               ← the full estimate, with per-story role splits
+├── estimate.json               ← the full estimate, with per-story role splits and per-row risk
 ├── estimate.md / .html         ← the shareable renders, led by the role table
 ├── estimate.csv                ← the inventory's Stories columns, plus the priced ones
 │   + .tasks.csv / .xlsx        ← its Tasks columns, and both tabs in one workbook
@@ -339,7 +341,7 @@ A single project total with those three fields is enough to start calibrating ba
 ## Development
 
 ```bash
-# All suites (767 tests). Run through uv: est-setup's config tests need Python
+# All suites (804 tests). Run through uv: est-setup's config tests need Python
 # 3.11 for tomllib, the same requirement BMad's own config resolver carries.
 # -B matters too: macOS Python caches bytecode centrally, where a same-length
 # edit within one second can defeat cache invalidation and run stale code.

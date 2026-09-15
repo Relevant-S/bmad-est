@@ -32,7 +32,15 @@ total_hours → by_phase / features[].hours → features[].dominant_component
 
 The coefficient step lives in `estimate.json`, not the brief: `features[].component_hours` splits a feature into build, spec, review and rework, and `cost_model_snapshot` holds the rate each tag selected, with its own `why`. Reach for them when someone asks why a tag costs what it costs — that is the link the chain would otherwise skip.
 
-**"Who actually does this work?" is answered per story, not per project.** `features[].by_role` in the brief carries the split for each line, and a role missing from it is not a rounding artefact — it is a role the story's `surfaces` say is not on this work. A backend job bills no designer, and saying so is more convincing than a project-level pie chart. The architect never appears against a story: story review is developer work, and the architect's hours sit in `project_components` where the planning and coordination are.
+**"Who actually does this work?" is answered per story, not per project.** `features[].by_role` in the brief carries the split for each line, and a role missing from it is not a rounding artefact — it is a role the story's `surfaces` say is not on this work. A backend job bills no designer, and saying so is more convincing than a project-level pie chart. The architect never appears against a story: story review is developer work, and the architect's hours sit in `project_components` where the planning and coordination are. And **"how many QA hours do we budget"** is
+answered from the same place: every `by_role` row — project-level and per story — carries
+`model_risk_hours` and `risk_adjusted_hours` beside its interval. `risk_adjusted_hours` is the
+mean plus ONE standard deviation of systematic model risk and nothing else: it excludes the
+feature variance and the widening a thin brief adds, so it is NARROWER than that role's band and
+is not a worst case. It is the figure that adds up — the split is linear, so the story rows and
+the project lines sum to the project figure — which is exactly why it is the one a budget is
+built from. Never add the role BANDS together; `confidence.role_attribution` in `estimate.json`
+says why, in numbers.
 
 **Two kinds of line are not the client's scope, and both say so on their own row.** `origin: standing` is setup, pipeline, environment and release work that every project pays and no document describes — it is in `standing_work` with its own total, and `--no-standing-work` removes the whole block if the client is bringing a platform. Asked why a particular one is there, read `standing_work.selection`: it names what this project claimed, what it declined and the reason — including any item declined because an extracted story already covers it. An item under `unmentioned` was priced by default because the inventory never ruled on it, which is worth saying plainly rather than defending as a decision. `origin: implicit` is work this project's own source implies without stating; its `rationale` is what stands where a quote normally would. Neither is folded into the total silently, and neither should be offered as a scope cut.
 

@@ -92,6 +92,43 @@ class TestParity(unittest.TestCase):
         js["low"] += 0.04
         self.assertEqual(parity.compare(e, js), [])
 
+    @unittest.skipIf(shutil.which("node") is None, "node not available")
+    def test_parity_covers_the_budget_columns_the_client_is_quoted_from(self):
+        """The risk and planned figures are the ones a reader sums into a budget. A page that
+        recomputed a different buffer from the document would be wrong in the one place someone
+        acts on, which is worse than being wrong in the one they only read."""
+        e = self.wide_estimate()
+        js = parity.run_js(e, {"stack": "standard_saas", "qa_platform": "web",
+                               "engagement": "standard"})
+        self.assertEqual(set(js["roleRisk"]), set(e["by_role"]))
+        self.assertEqual(set(js["rolePlanned"]), set(e["by_role"]))
+        for role, row in e["by_role"].items():
+            self.assertAlmostEqual(js["roleRisk"][role], row["model_risk_hours"], delta=0.15)
+
+    @unittest.skipIf(shutil.which("node") is None, "node not available")
+    def test_a_divergent_buffer_is_reported_not_tolerated(self):
+        e = self.wide_estimate()
+        js = parity.run_js(e, {"stack": "standard_saas", "qa_platform": "web",
+                               "engagement": "standard"})
+        role = sorted(e["by_role"])[0]
+        js["roleRisk"][role] += 5.0
+        drift = parity.compare(e, js)
+        self.assertTrue(any(d["field"] == f"by_role.{role}.model_risk_hours" for d in drift))
+
+    @unittest.skipIf(shutil.which("node") is None, "node not available")
+    def test_parity_covers_the_project_rows_because_they_are_the_ones_that_move(self):
+        """A story's hours do not change when a different feature is unticked; the project lines
+        do. They are therefore the only per-row figures the page recomputes, and the only ones
+        that can drift from the document."""
+        e = self.wide_estimate()
+        js = parity.run_js(e, {"stack": "standard_saas", "qa_platform": "web",
+                               "engagement": "standard"})
+        self.assertTrue(js["projectRoles"])
+        js["projectRoles"] = {r: [v[0] + 20, v[1] + 20, v[2] + 20]
+                              for r, v in js["projectRoles"].items()}
+        drift = parity.compare(e, js)
+        self.assertTrue(any(d["field"].startswith("project_components.by_role") for d in drift))
+
 
 if __name__ == "__main__":
     unittest.main()
