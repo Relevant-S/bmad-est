@@ -523,5 +523,53 @@ class TestInteractiveHtml(unittest.TestCase):
         self.assertEqual(self.embedded(html)["features"][0]["citations"][0]["location"], "§1")
 
 
+
+class TheEstimateDoesNotAnswerHowLongItTakes(unittest.TestCase):
+    """That job moved to est-plan, and the move is the fix rather than the wording.
+
+    The report used to print a span derived from `hours / six people` under a heading that
+    called it derived and not a commitment, and clients quoted it back as a schedule. The span
+    is still computed — the architect and ceremony lines are priced against it — and its basis
+    is still stated as the premise of those numbers. What is gone is the figure.
+    """
+
+    def setUp(self):
+        self.est = estimate_for()
+
+    def test_the_markdown_offers_no_week_count_as_an_answer(self):
+        text = render.markdown(self.est)
+        self.assertNotIn("## Calendar duration", text)
+        self.assertIn("## How long will it take?", text)
+        self.assertIn("/est-plan", text)
+        weeks = self.est.get("duration", {}).get("weeks")
+        if weeks:
+            self.assertNotIn(f"**{weeks} weeks.**", text)
+
+    def test_the_basis_survives_because_it_is_a_premise_and_not_an_answer(self):
+        """Removing it would hide what the architect and overhead lines rest on, which the
+        module's traceability bar does not allow."""
+        joined = " ".join(self.est["assumptions"])
+        self.assertIn("ceremony", joined)
+        self.assertIn("NOMINAL", joined)
+        self.assertIn("/est-plan", joined)
+
+    def test_the_html_panel_points_at_the_planner_instead_of_printing_a_figure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "estimate.html"
+            render.write_html(self.est, target, {})
+            html = target.read_text(encoding="utf-8")
+        self.assertIn("How long will it take?", html)
+        self.assertNotIn("Calendar duration — derived, not a commitment", html)
+        self.assertIn("/est-plan", html)
+
+    def test_the_report_carries_the_brand_rather_than_a_palette_of_its_own(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "estimate.html"
+            render.write_html(self.est, target, {})
+            html = target.read_text(encoding="utf-8")
+        self.assertNotIn("__BRAND_CSS__", html)
+        self.assertIn("--brand: #002c8d", html)
+
+
 if __name__ == "__main__":
     unittest.main()

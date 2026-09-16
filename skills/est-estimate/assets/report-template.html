@@ -482,12 +482,16 @@ if (E.narrowing_questions && E.narrowing_questions.length) {
 }
 
 if (E.duration) {
-  document.getElementById('durationWrap').innerHTML = `<h2>Calendar duration — derived, not a commitment</h2>
-    <div class="panel"><div class="figure" style="font-size:28px">${E.duration.weeks} <small>weeks</small></div>
-    <div class="muted" style="margin-top:8px">${E.duration.basis}</div>
-    <div class="muted" style="margin-top:6px">Critical path ${h(E.duration.critical_path_hours)}h across
-    ${E.dependencies.chain.length} dependent features${E.duration.parallelism_ceiling ?
-      `; useful parallelism tops out around ${E.duration.parallelism_ceiling} people` : ''}.</div></div>`;
+  /* Deliberately not a figure. The span behind the architect and ceremony lines is derived
+     from hours over a nominal team, and shown as a number it read as a schedule — clients
+     quoted it back. The basis stays visible because it is the premise of hours on this page;
+     the answer lives in /est-plan, which schedules the work and prices each option. */
+  document.getElementById('durationWrap').innerHTML = `<h2>How long will it take?</h2>
+    <div class="panel"><div class="muted">Not answered here. The same scope delivered by three
+    people and by six is two different estimates, not one estimate with two dates — run
+    <strong>/est-plan</strong> for staffed options, each priced for the calendar it implies.</div>
+    <div class="muted" style="margin-top:8px">For the record, the ceremony and architect lines
+    above are priced against ${E.duration.basis}</div></div>`;
 }
 
 document.getElementById('assumptions').innerHTML =

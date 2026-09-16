@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "bmad-est",
-      "description": "Turns any project input — transcript, PRD, SOW, RFP or backlog workbook, in any format or language — into a traceable scope inventory and a defensible, ranged hour estimate for delivery with the BMad method. Band width is computed from how much the input actually said, so a thin brief cannot produce a confident number. Ships five skills: scope extraction with two-way traceability, the estimating engine, a calibrator that learns from delivered actuals, Nadia the conversational delivery estimator, and the module setup.",
+      "description": "Turns any project input — transcript, PRD, SOW, RFP or backlog workbook, in any format or language — into a traceable scope inventory and a defensible, ranged hour estimate for delivery with the BMad method. Band width is computed from how much the input actually said, so a thin brief cannot produce a confident number. Ships six skills: scope extraction with two-way traceability, the estimating engine, a planner that turns a priced estimate into staffed delivery options with a Gantt and a fresh estimate for each, a calibrator that learns from delivered actuals, Nadia the conversational delivery estimator, and the module setup.",
       "source": "./",
       "version": "1.0.0",
       "category": "productivity",
@@ -29,6 +29,7 @@
         "./skills/est-setup",
         "./skills/est-scope-extract",
         "./skills/est-estimate",
+        "./skills/est-plan",
         "./skills/est-calibrate",
         "./skills/est-agent-estimator"
       ]

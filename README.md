@@ -20,8 +20,6 @@ Three properties make it different from a spreadsheet:
 
 **There is no project total.** A single summed number is meaningless when the work splits across roles, and it could not be reconciled anyway: adding up the story rows of a real estimate gave 1,752 h against a 2,414 h headline, because planning, QA and overhead touch no story. Every output leads with the role table instead, each role a range, showing how much of it traces to a story and how much the project pays regardless. **Nothing is a point value**: every story and every role carries low/likely/high, and the width says how well-specified the work is — a vague story reads wider than a detailed one.
 
-**The risk is attributed to whoever carries it — per role, and per row.** A budget needs hours by role at the row level, because rates differ up to 3× between an architect and a QA, and a buffer nobody can attribute to a role cannot be budgeted: a role-hour has no price until you know whose hour it is. So every story, every task and every project line carries `{role}_risk` — its own share of the model's systematic uncertainty — and `{role}_planned`, the two added. That split is **linear**, because systematic error is correlated by definition: if the size-band calibration is off it is off for every role and every row at once. The column therefore **adds up** — sum it down the sheet and the project figure comes back, and the estimate states that reconciliation in numbers. The *band* is the other quantity and it does not add up: variances combine in quadrature, so the role bands sum to about 1.1× the project's. Quote a role's own band; never add bands together. No per-row band column is written anywhere, precisely so there is nothing of that kind to sum.
-
 **The coefficients are fitted to three delivered projects, and it says exactly how far each one goes.** 690 hours over 7 weeks, 360 over 3.5, 240 over 5 — all with per-role actuals. One of them also recorded effort **per story**, and that is what the size bands rest on: 206 complexity points to 240 developer hours, re-checked independently on a later slice and landing 0.7% apart. A shipped test re-prices all three from their own delivered story lists and holds the first to ±25%.
 
 It also records where they disagree instead of averaging it away. The same kind of scope was written as 9.2, 2.9 and 3.1 hours per delivered story across the three — a threefold spread in how finely people write the same work down. The coefficients carry confidence scores from 9/10 down to 2/10, each with what would raise it, and the ones resting on nothing say so in those words.
@@ -71,6 +69,9 @@ flowchart TB
     DELIVERED["📦 a delivered BMad project<br/>its own epics and stories"]
     MODEL[("cost-model.json<br/>your coefficients")]
 
+    PLAN["est-plan<br/>─────────────<br/>schedules the graph, staffs it,<br/>re-prices each option<br/>headcount is an OUTPUT"]
+    OPTIONS[("plan.json · plan.md<br/>Gantt tabs in estimate.xlsx")]
+
     NADIA["📐 Nadia — est-agent-estimator<br/>─────────────<br/>explain · defend · what-if<br/>cut to a budget · triage"]
 
     DOCS --> EXTRACT
@@ -79,6 +80,7 @@ flowchart TB
     ESTIMATE --> CLASS --> ESTIMATE
     STANDING -.->|"added openly, on its<br/>own lines"| ESTIMATE
     ESTIMATE --> OUTPUT
+    ESTIMATE --> PLAN --> OPTIONS
     ESTIMATE --> LEDGER
     LEDGER -->|"project delivers<br/>you record real hours"| CALIBRATE
     DELIVERED -.->|"anchor on one project<br/>when there is no ledger yet"| CALIBRATE
@@ -93,6 +95,7 @@ flowchart TB
     style MODEL fill:#fff8e6,stroke:#d9a441
     style STANDING fill:#fff8e6,stroke:#d9a441
     style OUTPUT fill:#eefaf0,stroke:#3fa45b
+    style OPTIONS fill:#eef2fb,stroke:#002c8d
 ```
 
 The loop at the bottom is the point: every delivered project makes the next estimate better, and the arrow into `cost-model.json` only ever moves when a human approves it.
@@ -206,17 +209,26 @@ Then ask her things a spreadsheet can't answer:
 
 ---
 
-## The five skills
+## The six skills
 
 | Skill | What you say | What you get |
 |---|---|---|
 | **est-scope-extract** | *"extract scope from this RFP"* | Epics → stories → the source rows each was built from, every one citing its own line, plus an explicit list of what wasn't treated as scope |
 | **est-estimate** | *"estimate this"* / *"quick gut-check"* | Ranged hours split by phase and by role, per story; markdown, CSV, and an interactive HTML report |
+| **est-plan** | *"what team do we need"* / *"how long with three devs"* | Staffed delivery options, each with its own estimate, a justified headcount and a Gantt in the same workbook |
 | **est-agent-estimator** (Nadia) | *"talk to Nadia"* | Explanation, defence, what-ifs, cut lines, portfolio triage, cost-model curation |
 | **est-calibrate** | *"how accurate are our estimates?"* | Accuracy report; backtested, human-approved coefficient changes — or an anchor fitted to one delivered project |
 | **est-setup** | *"install the estimator"* | Config, seeded memory, registered capabilities |
 
 Every skill runs standalone and headless (`-H`) except Nadia — batch twenty presale extractions overnight, and let a human triage the ones that need attention in the morning.
+
+### Hours here, schedule next door
+
+`est-estimate` answers what the work costs. It deliberately does **not** answer how long it takes — the same scope delivered by three people and by six is two different estimates, not one estimate with two dates. `est-plan` is where that question is answered: it schedules the backlog over its own dependency graph, decides how many people the work can actually keep busy, and re-prices every option against the calendar that option implies. The architect is `setup + a capped weekly rate` and ceremony is `rate × weeks × people`, so a longer plan genuinely costs more — and the plan shows which lines moved and which did not.
+
+Headcount is an **output**. The default assumption is that you can hire; a team you already have is a floor the sweep may add to, never a ceiling. Every addition is justified against the graph — *"291 h of developer work fills 100% of 2 × 4.8 weeks, and no dependencies cross the split"* — and every refusal names its numbers: *"2 UXs would be 41% occupied against a 75% floor — 115 idle hours."*
+
+Plans carry **relative weeks, never dates**. Week 1 is whenever you start.
 
 ### The interactive report
 
@@ -244,7 +256,7 @@ _bmad/memory/est/               ← shared by all five skills
 ├── feature-inventory.csv       ← the same two tables in plain text, joined on story id
 │   + .tasks.csv
 ├── classification.json         ← what each story costs to build, keyed by story id
-├── estimate.json               ← the full estimate, with per-story role splits and per-row risk
+├── estimate.json               ← the full estimate, with per-story role splits
 ├── estimate.md / .html         ← the shareable renders, led by the role table
 ├── estimate.csv                ← the inventory's Stories columns, plus the priced ones
 │   + .tasks.csv / .xlsx        ← its Tasks columns, and both tabs in one workbook
@@ -341,13 +353,15 @@ A single project total with those three fields is enough to start calibrating ba
 ## Development
 
 ```bash
-# All suites (804 tests). Run through uv: est-setup's config tests need Python
-# 3.11 for tomllib, the same requirement BMad's own config resolver carries.
+# All suites (855 tests). Run through uv: est-setup's config tests need Python
+# 3.11 for tomllib, the same requirement BMad's own config resolver carries, and
+# openpyxl for the workbook suites — without it they skip rather than fail, which
+# is how the xlsx tests once went a release without running.
 # -B matters too: macOS Python caches bytecode centrally, where a same-length
 # edit within one second can defeat cache invalidation and run stale code.
 for d in skills/*/scripts/tests; do
   for f in "$d"/test-*.py; do
-    (cd "$d" && uv run --python 3.11 --with pyyaml python -B "$(basename "$f")")
+    (cd "$d" && uv run --python 3.11 --with pyyaml --with openpyxl python -B "$(basename "$f")")
   done
 done
 
@@ -363,6 +377,11 @@ uv run skills/est-estimate/scripts/check-parity.py <workspace>/estimate.json
 # Adversarial whole-inventory shapes: a thin brief cannot look certain, compression
 # does not rescue a sensitive feature, adding people cannot beat a dependency chain.
 uv run skills/est-estimate/evals/run-cases.py
+
+# The same idea for planning: a chain that cannot be hired away, a bigger team
+# that is the wrong team, a roster that is a floor rather than a ceiling, and a
+# schedule that reprices the calendar without touching the scope.
+uv run skills/est-plan/evals/run-cases.py
 
 # Every file the module writes is declared. This names anything missing from a
 # workspace, or present in it that nothing declared.

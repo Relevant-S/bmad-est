@@ -43,6 +43,24 @@ def merge(target, source=SOURCE, extra=()):
         capture_output=True, text=True)
 
 
+# Derived from the asset, never written down. These assertions used to carry the catalogue's
+# size as a literal, so adding one capability to the module failed five tests that had nothing
+# to say about it — and the fix each time was to bump a number, which is not a test passing.
+OURS = len(SOURCE.read_text(encoding="utf-8").strip().splitlines()) - 1
+THEIRS = len(OTHER.strip().splitlines()) - 1
+
+
+def skills_in_source():
+    """Every skill the catalogue names, from the catalogue.
+
+    `_meta` is excluded: it is the module's own row and names no skill, which the test below
+    asserts separately.
+    """
+    with SOURCE.open(encoding="utf-8", newline="") as fh:
+        return sorted({r["skill"] for r in csv.DictReader(fh)
+                       if r.get("skill") and not r["skill"].startswith("_")})
+
+
 def rows(path):
     with Path(path).open(encoding="utf-8", newline="") as fh:
         return list(csv.DictReader(fh))
@@ -54,7 +72,7 @@ class Merging(unittest.TestCase):
             target = Path(tmp) / "bmad-help.csv"
             proc = merge(target)
             self.assertEqual(proc.returncode, 0, proc.stderr)
-            self.assertEqual(len(rows(target)), 11)
+            self.assertEqual(len(rows(target)), OURS)
 
     def test_other_modules_survive(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -71,8 +89,8 @@ class Merging(unittest.TestCase):
             for _ in range(3):
                 merge(target)
             ours = [r for r in rows(target) if r["module"] == "BMad Delivery Estimator"]
-            self.assertEqual(len(ours), 11)
-            self.assertEqual(len(rows(target)), 13)
+            self.assertEqual(len(ours), OURS)
+            self.assertEqual(len(rows(target)), OURS + THEIRS)
 
     def test_a_removed_capability_does_not_survive_a_rerun(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -82,7 +100,7 @@ class Merging(unittest.TestCase):
             lines = SOURCE.read_text(encoding="utf-8").splitlines()
             trimmed.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
             merge(target, source=trimmed)
-            self.assertEqual(len(rows(target)), 10)
+            self.assertEqual(len(rows(target)), OURS - 1)
 
     def test_the_header_matches_the_installed_catalog(self):
         installed = PROJECT / "_bmad" / "_config" / "bmad-help.csv"
@@ -106,9 +124,7 @@ class Merging(unittest.TestCase):
         header, source_rows = registrar.read_csv_rows(str(SOURCE))
         self.assertEqual(registrar.locate_skills(header, source_rows), [])
         unresolved = registrar.locate_skills(header, source_rows, skills_dir="/nowhere")
-        self.assertEqual(sorted({u["skill"] for u in unresolved}),
-                         ["est-agent-estimator", "est-calibrate", "est-estimate",
-                          "est-scope-extract", "est-setup"])
+        self.assertEqual(sorted({u["skill"] for u in unresolved}), skills_in_source())
         self.assertTrue(all(u["looked_in"] == ["/nowhere"] for u in unresolved))
 
     def test_the_meta_row_is_not_expected_to_be_a_skill(self):
@@ -162,7 +178,7 @@ class LegacyHazard(unittest.TestCase):
 
             merge(target)
             self.assertTrue(core_csv.exists())
-            self.assertEqual(len(rows(target)), 13)
+            self.assertEqual(len(rows(target)), OURS + THEIRS)
 
 
 if __name__ == "__main__":

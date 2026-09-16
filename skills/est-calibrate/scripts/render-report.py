@@ -12,9 +12,30 @@ produced it.
 
 import argparse
 import html
+import importlib.util
 import json
 import sys
 from pathlib import Path
+
+
+def brand():
+    """The company palette, from the one file that holds it.
+
+    This module used to declare six of the same tokens by hand and had already lost three of
+    them — it never gained the warn, danger and soft colours the estimate report added, so an
+    accuracy report and an estimate opened side by side were visibly different documents.
+    """
+    global _BRAND
+    try:
+        return _BRAND
+    except NameError:
+        pass
+    path = (Path(__file__).resolve().parents[2] / "est-estimate" / "scripts" / "brand.py")
+    spec = importlib.util.spec_from_file_location("brand", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _BRAND = mod
+    return mod
 
 
 def verdict_line(acc):
@@ -169,6 +190,7 @@ def brief(analysis):
 
 def to_html(markdown_text, title):
     """A deliberately plain rendering: no recomputation, no embedded model, nothing to drift."""
+    brand_css = brand().css().rstrip("\n")
     body, in_table, in_list = [], False, False
     for line in markdown_text.splitlines():
         stripped = line.strip()
@@ -214,11 +236,9 @@ def to_html(markdown_text, title):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{html.escape(title)}</title>
 <style>
- :root {{ --bg:#fbfbf9; --panel:#fff; --ink:#1a1a1a; --muted:#6b6b6b; --line:#e3e3df; --accent:#1f5f4f; }}
- @media (prefers-color-scheme: dark) {{ :root {{ --bg:#16171a; --panel:#1e1f23; --ink:#ececed;
-   --muted:#9a9a9e; --line:#31323a; --accent:#6fc0a6; }} }}
- body {{ margin:0; background:var(--bg); color:var(--ink);
-   font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }}
+{brand_css}
+{brand_css}
+ body {{ margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 var(--font); }}
  main {{ max-width:900px; margin:0 auto; padding:32px 20px 80px; }}
  h1 {{ font-size:26px; letter-spacing:-0.01em; }}
  h2 {{ font-size:14px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted);
@@ -228,7 +248,7 @@ def to_html(markdown_text, title):
    border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
  th,td {{ text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); }}
  th {{ color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }}
- blockquote {{ margin:12px 0; padding:12px 16px; background:var(--panel); border-left:3px solid var(--accent);
+ blockquote {{ margin:12px 0; padding:12px 16px; background:var(--panel); border-left:3px solid var(--brand);
    border-radius:0 6px 6px 0; }}
  code {{ background:var(--panel); padding:1px 5px; border-radius:4px; border:1px solid var(--line); }}
  li {{ margin:3px 0; }}

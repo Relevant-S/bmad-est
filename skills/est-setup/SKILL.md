@@ -7,7 +7,7 @@ description: Installs and configures the BMad Delivery Estimator. Use when the u
 
 ## Overview
 
-Registers the Delivery Estimator into a project: writes its settings, scaffolds the module memory the four skills share, seeds the cost model, and checks the document converters. Run it again any time to reconfigure — it is idempotent.
+Registers the Delivery Estimator into a project: writes its settings, scaffolds the module memory the other skills share, seeds the cost model, and checks the document converters. Run it again any time to reconfigure — it is idempotent.
 
 `module-code: est`
 
@@ -70,7 +70,7 @@ Two things change. **Never overwrite an existing `{memory}/cost-model.json`**, w
   "module": "est",
   "config": "{project-root}/_bmad/custom/config.toml",
   "settings_written": 10,
-  "help_entries": 11,
+  "help_entries": 12,
   "cost_model": "seeded | already present",
   "converters_missing": ["pdftotext"],
   "needs_attention": [
@@ -84,7 +84,7 @@ Two things change. **Never overwrite an existing `{memory}/cost-model.json`**, w
 
 ## Scaffold the module memory
 
-The four skills share one memory at `{memory}`, and three of them expect it to exist. Create `{memory}/ledger/` and the configured `est_output_folder`.
+The skills share one memory at `{memory}`, and most of them expect it to exist. Create `{memory}/ledger/` and the configured `est_output_folder`.
 
 Scaffold `{est_output_folder}` while you are here — it is `modules.est.est_output_folder`, which every est skill now resolves as the root of its per-project workspace. It defaults to `{output_folder}/estimates`, so with the defaults it is the same directory either way; the point is that when someone changes it, the skills follow rather than writing to a path setup never created.
 

@@ -196,10 +196,16 @@ def markdown(est, show_manual_baseline=False):
             out.append(f"| {q['question']} | {q.get('assumes', '')} | "
                        f"−{q['band_reduction_hours']:,.0f}h ({q['band_reduction_pct']}%) |")
 
+    # No duration section. The estimate answers what the work costs; what it takes to deliver
+    # depends on a team shape nobody has chosen yet, and printing a span derived from
+    # `hours / six people` invited a reader to treat a placeholder as a schedule. /est-plan
+    # produces real ones, staffed, and prices each of them for the calendar it implies.
     if est.get("duration"):
-        d = est["duration"]
-        out += ["", "## Calendar duration — derived, not a commitment", "",
-                f"**{d['weeks']} weeks.** {d['basis']}", ""]
+        out += ["", "## How long will it take?", "",
+                "Not answered here, and deliberately. Duration depends on the team you put on "
+                "it — the same scope delivered by three people and by six is two different "
+                "estimates, not one estimate with two dates. Run `/est-plan` against this "
+                "estimate for staffed options, each with its own hours.", ""]
 
     # Role columns are the point of the table, not a decoration: "9h" invites a haggle,
     # "9h = dev 6.1, ba 1.5, ux 1.4" invites a conversation about who is doing what. Each one

@@ -1,5 +1,5 @@
 {
-  "schema_version": "3.1",
+  "schema_version": "3.2",
   "seeded_from": "Three delivered BMad projects, re-derived 2026-09-09. EPP carries the only per-story measured record — docs/reference/phase-1-per-feature-estimate.csv — and it is what the size bands are fitted to. memorial-healthcare and easyterms carry per-role totals only, and are used to check the fit rather than to make it.",
   "calibration_status": "THREE ANCHORS AT PROJECT LEVEL, ONE AT STORY LEVEL (n=3 / n=1). Per-role actuals: EPP epics 1-9 = 690 h (dev 300 / architect 110 / BA 100 / UX 100 / QA 40 / DevOps 40) over 7 weeks; memorial-healthcare epics 1-9.7 = 360 h (dev 140 / architect 60 / BA 80 / UX 80, no QA, no DevOps) over 3.5 weeks; easyterms epics 1-5+8 = 240 h (dev 160 / architect 80, no other role staffed) over 5 weeks. ONLY EPP recorded effort per story, so the size bands rest on it alone; the other two can falsify the fit at project level and do not contribute to it. Say n=3 for the shape and n=1 for the bands whenever a client asks how these numbers were arrived at. SUPERSEDES the 540 h EPP figure the 2.x model was fitted to: the same scope is now recorded at 690 h (architect +80, BA +60, dev +20, DevOps +10, UX -20), so every 2.x coefficient carrying '540 h actual' was fitted 22% low against its own anchor.",
   "calibration_history": [
@@ -94,6 +94,14 @@
       "samples": 1,
       "project": "EPP Phase 1 (epics 1-9), recorded at 540 h",
       "why": "Retained so a reader can tell which coefficients were fitted to which figure. The 2.x model fitted size_bands, review_rate, clarity, qa and role_weights against 540 h actual (dev 280 / UX 120 / QA 40 / BA 40 / DevOps 30 / architect 30). The same scope is now recorded at 690 h. Nothing in the 2.x fit survives into 3.0 unchanged."
+    },
+    {
+      "date": "2026-09-16",
+      "kind": "scale-extension",
+      "change": "Added the `staffing` block and bumped 3.1 -> 3.2. No existing coefficient moved.",
+      "why": "est-plan turns a priced estimate into staffed delivery options, and deciding how many people to put on the work needs two things the model had never held: what a person costs before they deliver, and what they cost everybody else once they arrive. Without both, a sweep over team shapes can only ever recommend the biggest team the parallelism cap allows.",
+      "evidence": "None from the anchors — they recorded role totals, never composition over time. The shape is the standard communication-paths one (n(n-1)/2) and QSM's project database puts the productive band at 3-7, which is where this curve turns over.",
+      "not_evidence": "No delivered project of this company's was measured for any figure in the block. Every coefficient carries beyond_anchor or a 3/10 confidence, and the anchors are asserted to be unmoved by its presence."
     }
   ],
   "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
@@ -1003,6 +1011,50 @@
     "hours_per_person_week_why": "Six hours of focused delivery a day, five days a week. CHECKS OUT against two of the three anchors: EPP ran 690 h over 7 weeks = 98.6 h/week, and memorial-healthcare 360 h over 3.5 weeks = 102.9 h/week — both about 3.3 people at this rate. easyterms ran 240 h over 5 weeks = 48 h/week, a one-to-two person project. Confidence 6/10.",
     "max_useful_parallelism": 6,
     "max_useful_parallelism_why": "Beyond roughly six people on one workstream, coordination cost grows faster than throughput. The critical path, not the headcount, sets the floor on duration."
+  },
+  "staffing": {
+    "_what": "How many people, and what it costs to add one. UNDERIVABLE FROM THE ANCHORS: none of the three delivered projects recorded who was on it in which week, only role totals at the end, so every coefficient below is an ASSERTION and is labelled one. Confidence 3/10; raise it with a single project that records its team composition over time. What IS defensible is the SHAPE — that a person costs something before they deliver anything, and that the cost of keeping everyone aligned grows with how many people there are. A model without that shape cannot do anything but recommend the largest team allowed, which is not advice.",
+    "_how_this_is_used": "est-plan sweeps team shapes and prices each one. These coefficients decide when it stops adding people. They never touch an estimate that has no plan: est-estimate does not read this block at all.",
+    "ramp_hours": {
+      "lo": 8,
+      "likely": 16,
+      "hi": 32
+    },
+    "ramp_hours_why": "Charged once per person who is not already on the project: reading the codebase and the architecture artefact, environment setup, the first review round that teaches the conventions. Paid out of that person's own capacity BEFORE their first delivery week, which is why a late addition to a short project can cost more than it returns. It is also the yardstick the marginal gate uses: a person is refused when they shorten the plan by less calendar than they spend arriving. The likely figure is half a person-week at the model's own 30 h/week. A roster the user supplies as already on the project pays nothing — they have already ramped.",
+    "ramp_hours_beyond_anchor": true,
+    "coordination_drag": {
+      "lo": 0.02,
+      "likely": 0.035,
+      "hi": 0.06
+    },
+    "coordination_drag_why": "Throughput lost per additional person beyond the first, applied to each person's own capacity, so a team of n delivers n x (1 - drag x (n-1)) person-weeks per week rather than n. At the likely value a team of 4 loses 10.5% each and a team of 6 loses 17.5% each, which is what makes the sweep able to show a LARGER team finishing LATER. The shape is the standard one: communication paths grow n(n-1)/2, so the cost is linear per person and quadratic for the team. QSM's project database puts the productive band at 3-7 people, and this curve turns over inside that band, which is the only external agreement claimed.",
+    "coordination_drag_not_evidence": "Neither Brooks nor QSM measured THIS company's projects, this company's stack, or a team working through BMad agents — which is the whole variable the rest of this model exists to capture. Treat the number as a placeholder with the right sign and roughly the right magnitude, and do not quote it to a client as a finding.",
+    "coordination_drag_beyond_anchor": true,
+    "utilisation_floor": {
+      "likely": 0.75
+    },
+    "utilisation_floor_why": "The share of an EVEN split of a role's work that the least-loaded person in that role must actually receive in a simulated schedule. Two developers on a strict dependency chain look fine on hours and come out 26 h and 18 h once the graph is walked; this is what catches that. It is deliberately NOT a test of how occupied the team is across the calendar — that is a trade-off against duration and belongs in the fit score, where it is visible and weighted, rather than in a gate that silently decides it. An earlier version did test occupancy, against a span derived from the bottleneck role, so the one role anybody ever wants more of came back at exactly 100% occupied every time and could never be refused.",
+    "collision_threshold": {
+      "likely": 0.25
+    },
+    "collision_threshold_why": "The share of an assignee's stories that may depend on, or be depended on by, stories owned by somebody else. Above it the two are working the same seam and the plan is buying merge conflicts and blocked mornings rather than parallelism. Measured off the dependency graph the inventory already carries and validates, plus shared surfaces, so it costs no new judgement.",
+    "max_added_per_role": {
+      "likely": 4
+    },
+    "max_added_per_role_why": "An outer bound on the sweep so it terminates and so its output stays readable. It is NOT a claim that a fifth developer is impossible — the guardrail above is what refuses people, and it usually refuses well before this. `calendar.max_useful_parallelism` remains the bound on the whole team.",
+    "scoring": {
+      "_what": "Weights for the fit score. They are here rather than in code because a recommendation nobody can re-weight is a recommendation nobody can argue with, and every option's sub-scores are printed beside the total so the arithmetic is on the page.",
+      "weights": {
+        "duration": 0.25,
+        "cost": 0.25,
+        "utilisation": 0.15,
+        "coordination": 0.1,
+        "drift": 0.15,
+        "confidence": 0.1
+      },
+      "weights_why": "Duration and cost carry equal, largest weight because they are the two things the client actually chose between. Drift is weighted above coordination because rework is realised as scope, which the client pays for, while coordination load is realised as friction, which the team absorbs. Confidence is smallest because it moves least between options — the same scope is being priced every time."
+    },
+    "_confidence": "3/10 on the levels, 7/10 on the shape. `ramp_hours` carries the most weight of the three, because the marginal gate compares a calendar saving against it directly — a project where people ramp in a day rather than half a week would justify teams this refuses. Nothing here moves an estimate that has no plan, and the three delivered anchors reprice identically with this block present or absent — asserted by test-anchors.py, which is the check that keeps an unmeasured coefficient from leaking into a measured number."
   },
   "surfaces": {
     "_what": "Which kinds of work a story touches. Two jobs. It decides WHICH ROLES are on the story: a role whose `requires` surface is absent is dropped from that story's split, so a background job bills no UX and a screen bills no devops. And it is the strongest single PREDICTOR OF SIZE in the anchor — median surfaces per band across EPP's 75 stories run 1 / 2 / 3 / 3 / 4, where median acceptance-criterion count runs 5 / 7 / 8.5 / 8 / 12 and cannot tell M from L. Tagged per story at extraction. A story with no surfaces tag is treated as unknown, and unknown keeps every role in — silence must not quietly discount.",

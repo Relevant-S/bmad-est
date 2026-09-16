@@ -23,6 +23,14 @@ Several things changed shape, and none of them can be carried across by arithmet
                  gaining four bands. A 3.0 classification is still valid, but re-read any row
                  tagged XL: that tag used to mean "the top of the scale" as often as it meant
                  five points.
+  THE STAFFING   Added in 3.2, and purely additive: a `staffing` block holding what a person
+  BLOCK (3.2)    costs before they deliver (`ramp_hours`) and what they cost everyone else once
+                 they arrive (`coordination_drag`), plus the floors est-plan uses to refuse a
+                 headcount it cannot justify. Nothing converts and nothing is re-based — a 3.1
+                 model migrates by gaining the block, and every estimate it has ever produced
+                 reprices to the hour, because est-estimate never reads it. The coefficients are
+                 ASSERTED, not measured: no delivered project of this company's recorded who was
+                 on it in which week. Read `staffing._what` before quoting any of it.
   the architect  Had no component: its hours fell out of role weights on planning and
                  overhead, both of which scale with story count. It is now `setup + a capped
                  weekly rate`, which all three delivered projects fit exactly. A 2.x model has
@@ -158,7 +166,11 @@ def migrate(model, seed):
                 "If you are coming from 3.0: XS-XL are unchanged and every existing estimate "
                 "reprices identically, but the scale now continues to 34 points. Re-read any "
                 "row tagged XL before quoting it — under 3.0 that was the top of the table, so "
-                "it collected rows that hold several stories as well as rows worth five points."),
+                "it collected rows that hold several stories as well as rows worth five points. "
+                "If you are coming from 3.1: nothing reprices. The `staffing` block is new and "
+                "only est-plan reads it, so your estimates are unchanged to the hour — but the "
+                "block is asserted rather than measured, and the first plan you show a client "
+                "rests on it."),
     }
     return out, notes
 

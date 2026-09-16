@@ -105,6 +105,22 @@ est-estimate:
     - path: "{memory}/cost-model.json"
       when: first run only, seeded from the module asset
 
+est-plan:
+  workspace: "{est_output_folder}/{project-slug}"
+  required:
+    - path: plan.json
+      role: source of truth — every option with its schedule, its staffing decisions and
+            its own complete estimate. The estimate is never rewritten; an option's hours
+            are that option's, and are labelled as such.
+  optional:
+    - path: plan.md
+      when: the run rendered; the document a human reads
+  also_writes:
+    - path: estimate.xlsx
+      role: extended in place with an Options tab and one Gantt tab per schedule offered.
+            est-plan appends to the workbook est-estimate wrote rather than producing a
+            second one, so a bar and the story it covers live in the same file.
+
 est-calibrate:
   workspace: "{output_folder}/calibration/{date}"
   required:

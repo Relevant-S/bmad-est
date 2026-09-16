@@ -1109,7 +1109,7 @@ def build_estimate(inventory, model, options):
             f"Team profile: {options['team_name']} — modifiers applied to specification, review and rework only, not to build.",
             f"Stack profile: {options['stack']}. QA profile: {options['qa_platform']}. Engagement model: {options['engagement']}.",
             f"Planning volume: {volume['epics']} epics ({volume['epics_from']}), {volume['stories']} stories, documents: {', '.join(volume['documents']) or 'none (inherited from the running project)'}.",
-            f"Overhead priced as {span['weeks']} weeks ({span['weeks_range'][0]}–{span['weeks_range'][1]}) x {span['assumed_team_size']} people of ceremony, not as a share of scope.",
+            f"Overhead priced as {span['weeks']} weeks ({span['weeks_range'][0]}–{span['weeks_range'][1]}) x {span['assumed_team_size']} people of ceremony, not as a share of scope. That team shape is NOMINAL — nobody has chosen it — so read this as the basis of a number rather than as a schedule. /est-plan prices real ones.",
             (f"Cost model calibrated against {calibrated_from} delivered "
              f"{'project' if calibrated_from == 1 else 'projects'}; a single anchor is a weak "
              f"statistical base and the coefficients say so in their own why lines."
