@@ -36,26 +36,117 @@ COMPONENT_STAGE = {"spec": 0, "build": 1, "review": 2, "rework": 3}
 NAMES = ("sequential", "foundation", "pipelined")
 
 
-def epic_dependency_counts(estimate):
-    """How many other epics wait on each epic, from the story graph rolled up.
+def epic_predecessors(estimate):
+    """The epic ordering graph: `{epic: {predecessor: why}}`, and the cycles it had to break.
 
-    Story-level `depends_on` is where most of this lives; `depends_on_epics` adds the
-    ordering no story records. Both are validated upstream by inventory-check.py, so this
-    reads a graph somebody already checked rather than deducing one.
+    Returns `(predecessors, broken)`.
+
+    A cross-epic story dependency is a claim about the two EPICS, not only about the two
+    stories. Treating it as story-local is what let the plan build epic 23 before epic 3: on a
+    real backlog only a fraction of an epic's stories carry a cross-epic edge — Kitespire's
+    Authentication epic had one in eight, and Foundation had none in seven — so the rest float
+    free and go to whichever developer is idle. Every declared story edge was honoured and the
+    build order was still nonsense, with 95 of 253 epic pairs running against the stated
+    sequence.
+
+    So the edges are rolled up: if any story in E09 depends on any story in E06, E06 comes
+    before E09 for all of E09. `depends_on_epics` adds the orderings no story records, and
+    those were being read in exactly one place — `foundation_epics()` — and never scheduled
+    against, so all three of Kitespire's declared orderings were violated in the shipped plan.
+
+    `why` is kept per edge because the plan has to answer where a piece of work belongs and on
+    what grounds. For a declared edge it is the inventory's own sentence; for a rolled-up one
+    it names the story pair that caused it.
     """
-    epic_of = {f["id"]: f.get("epic_id") for f in estimate.get("features", [])}
-    waiters = collections.defaultdict(set)
+    epic_of = {f["id"]: f.get("epic_id") for f in estimate.get("features", [])
+               if f.get("origin") != "standing"}
+    pred = collections.defaultdict(dict)
+    weight = collections.Counter()
     for feature in estimate.get("features", []):
+        if feature.get("origin") == "standing":
+            continue
         mine = feature.get("epic_id")
         for dep in feature.get("depends_on") or []:
             theirs = epic_of.get(dep)
             if theirs and mine and theirs != mine:
-                waiters[theirs].add(mine)
+                weight[(mine, theirs)] += 1
+                pred[mine].setdefault(theirs, f"{feature['id']} depends on {dep}")
     for epic in estimate.get("epics") or []:
         for row in epic.get("depends_on_epics") or []:
             target = row.get("epic_id") if isinstance(row, dict) else row
             if target and target != epic.get("id"):
-                waiters[target].add(epic.get("id"))
+                # A declared edge outranks an inferred one, so it overwrites rather than
+                # setdefault, and it carries the sentence somebody wrote for it.
+                pred[epic["id"]][target] = (row.get("why") if isinstance(row, dict) else None) \
+                    or f"{epic['id']} is recorded as depending on {target}"
+                weight[(epic["id"], target)] += 1000
+    return _break_cycles(pred, weight, estimate)
+
+
+def _break_cycles(pred, weight, estimate):
+    """Rolling story edges up can make an epic cycle out of an acyclic story graph.
+
+    Two epics that each hold one story depending on the other are perfectly schedulable at the
+    story level and a deadlock at the epic level. The scheduler must not hang on that, and it
+    must not silently pick a winner either: the weaker edge is dropped — fewest underlying
+    story edges, ties to the one whose dependant has the earlier `sequence`, since that is the
+    direction the inventory already claims — and every drop is returned so the plan can report
+    it the way `inventory-check.find_cycles` reports rather than repairs.
+    """
+    seq = {e.get("id"): e.get("sequence") or 0 for e in estimate.get("epics") or []}
+    broken = []
+    while True:
+        cycle = _find_cycle(pred)
+        if not cycle:
+            return {k: dict(v) for k, v in pred.items() if v}, broken
+        edges = [(cycle[i + 1], cycle[i]) for i in range(len(cycle) - 1)]  # (dependant, pred)
+        loser = min(edges, key=lambda e: (weight[e], seq.get(e[0], 0)))
+        broken.append({"epic": loser[0], "waits_on": loser[1],
+                       "why": pred[loser[0]].get(loser[1]),
+                       "dropped": "these two epics each hold a story depending on the other, "
+                                  "so rolled up to the epic they deadlock. The edge resting on "
+                                  "fewer stories was dropped; the story dependencies themselves "
+                                  "are still scheduled."})
+        del pred[loser[0]][loser[1]]
+
+
+def _find_cycle(pred):
+    """One cycle as a list of epic ids, predecessor-first, or None. Iterative — an epic graph
+    is small but a recursive walk over a pathological one would blow the stack."""
+    colour = {}
+    for start in list(pred):
+        if colour.get(start):
+            continue
+        stack = [(start, iter(list(pred.get(start, ()))))]
+        colour[start], path = 1, [start]
+        while stack:
+            node, nxt = stack[-1]
+            for child in nxt:
+                if colour.get(child) == 1:
+                    return path[path.index(child):] + [child]
+                if not colour.get(child):
+                    colour[child] = 1
+                    path.append(child)
+                    stack.append((child, iter(list(pred.get(child, ())))))
+                    break
+            else:
+                colour[node] = 2
+                stack.pop()
+                path.pop()
+    return None
+
+
+def epic_dependency_counts(estimate):
+    """How many other epics wait on each epic — the predecessor graph, inverted.
+
+    Inverted rather than walked a second time, so `foundation_epics()` and the scheduler
+    cannot end up disagreeing about what the graph is.
+    """
+    pred, _ = epic_predecessors(estimate)
+    waiters = collections.defaultdict(set)
+    for epic, befores in pred.items():
+        for before in befores:
+            waiters[before].add(epic)
     return {epic: len(who) for epic, who in waiters.items()}
 
 

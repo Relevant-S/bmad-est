@@ -96,6 +96,33 @@ def markdown(plan):
                        + " ".join(d["refusals"]))
         out.append("")
 
+    order = plan.get("build_order") or {}
+    if order.get("epics"):
+        out += ["## Build order", "",
+                "What each epic stands on, and why. Every schedule below respects this — the "
+                "same graph gates the calendar, so a bar cannot start before what it depends "
+                "on, whatever the archetype.", "",
+                order.get("how", ""), "",
+                "| # | Epic | Waits for | Why |", "| ---: | --- | --- | --- |"]
+        for row in order["epics"]:
+            waits = row.get("waits_for") or []
+            out.append(f"| {row.get('sequence')} | {row.get('name') or row['epic_id']} | "
+                       + (", ".join(w["epic_id"] for w in waits) or "—") + " | "
+                       + (waits[-1]["why"] if waits else "nothing precedes it") + " |")
+        out.append("")
+        for row in order.get("cycles_broken") or []:
+            out += [f"> **{row['epic']} and {row['waits_on']} depend on each other.** "
+                    f"{row['dropped']} The dropped edge was: {row['why']}.", ""]
+
+    audit = plan.get("ordering_check") or {}
+    if audit and not audit.get("ok"):
+        out += ["> **This plan's calendar contradicts its own dependency graph.** "
+                + f"{len(audit.get('findings') or [])} orderings are violated. "
+                  "It is printed so it can be argued with, and it is not shippable.", ""]
+        for finding in (audit.get("findings") or [])[:8]:
+            out.append(f"> - {finding['detail']}")
+        out.append("")
+
     out += ["## The options", "",
             "| # | Option | Weeks | Likely h | Range | Fit |",
             "| --- | --- | ---: | ---: | --- | ---: |"]
@@ -199,9 +226,18 @@ def packets(person, weeks):
                                   else "—")
         row = rows.setdefault(key, {"epic_id": key, "hours": 0.0,
                                     "stories": [], "occupied": set(),
+                                    "by_component": {},
+                                    "component": item["component"],
                                     "start_week": item["start_week"],
                                     "finish_week": item["finish_week"]})
         row["hours"] += item["hours"]
+        row["by_component"][item["component"]] = (row["by_component"].get(item["component"], 0.0)
+                                                  + item["hours"])
+        # The component that OPENS the packet, which is the one the Starts column is showing.
+        # Taking the biggest instead quoted a build gate beside an analyst's spec start — two
+        # true statements about different moments, which reads as a contradiction.
+        if item["start_week"] <= row["start_week"]:
+            row["component"] = item["component"]
         if item["story_id"] and item["story_id"] not in row["stories"]:
             row["stories"].append(item["story_id"])
         row["start_week"] = min(row["start_week"], item["start_week"])
@@ -248,7 +284,34 @@ def story_index(workbook):
             if sheet.cell(row=r, column=column).value}
 
 
-def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None):
+def gates(plan, option):
+    """Per epic: the epics it stands on and the week the last of them clears.
+
+    So a reader can answer "why is this here" off the chart itself. The graph comes from
+    `plan["build_order"]`, which plan.py wrote from the same `epic_predecessors` the scheduler
+    was given — quoting a different graph on the chart from the one the calendar was built
+    against is the failure this whole change exists to remove.
+    """
+    done = {"spec": {}, "build": {}}
+    for person in option["schedule"]["team"]:
+        for item in person["items"]:
+            key, component = item.get("epic_id"), item.get("component")
+            if key and component in done:
+                done[component][key] = max(done[component].get(key, 0.0), item["finish_week"])
+    out = {}
+    for row in (plan.get("build_order") or {}).get("epics") or []:
+        waits = [w["epic_id"] for w in row.get("waits_for") or []]
+        if not waits:
+            continue
+        for component, table in done.items():
+            clears = max((table[w] for w in waits if w in table), default=None)
+            out[(row["epic_id"], component)] = (
+                ", ".join(waits)
+                + (f" (clears W{max(1, -(-clears // 1)):.0f})" if clears else ""))
+    return out
+
+
+def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None, waits=None):
     from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.hyperlink import Hyperlink
 
@@ -259,7 +322,7 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None)
     sheet.sheet_view.showGridLines = False
 
     weeks = max(1, int(option["schedule"]["weeks"] + 0.999))
-    labels = ["Who / what", "Hours", "Joins", "Starts", "Ends"]
+    labels = ["Who / what", "Hours", "Joins", "Starts", "Ends", "Waits for"]
     first_week = len(labels) + 1
 
     sheet.cell(row=1, column=1, value=f"{option['archetype'].title()} — "
@@ -344,6 +407,9 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None)
                 sheet.cell(row=row, column=2, value=round(pkt["hours"], 1)).font = style["muted_font"]
                 sheet.cell(row=row, column=4, value=f"W{int(pkt['start_week']) + 1}").font = style["muted_font"]
                 sheet.cell(row=row, column=5, value=f"W{max(1, -(-pkt['finish_week'] // 1)):.0f}").font = style["muted_font"]
+                gate = (waits or {}).get((key, pkt.get("component")))
+                if gate:
+                    sheet.cell(row=row, column=6, value=gate).font = style["muted_font"]
                 _paint(sheet, row, first_week, pkt["occupied"], style["role_fill"].get(role))
                 row += 1
 
@@ -381,7 +447,7 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None)
     row += 1
     sheet.cell(row=row, column=1, value="Drawn above").font = style["band_font"]
     sheet.cell(row=row, column=2, value=round(scheduled + calendar_priced, 1)).font = style["band_font"]
-    sheet.cell(row=row, column=6, value=(
+    sheet.cell(row=row, column=first_week, value=(
         f"Scheduled {scheduled:.0f} h + architect and ceremony {calendar_priced:.0f} h "
         f"= {scheduled + calendar_priced:.0f} h, against {priced:.0f} h on the estimate "
         f"({(scheduled + calendar_priced) / priced:.0%}). Hours here are expected values (PERT "
@@ -497,12 +563,14 @@ def extend_workbook(plan, path, per="archetype"):
                    if best is not None and best["id"] != baseline["id"] else "")
         draw_gantt(workbook, baseline, plan.get("epics") or [], index, style,
                    title="Gantt — Baseline (1 each)",
-                   subtitle=baseline.get("baseline_note", "") + against)
+                   subtitle=baseline.get("baseline_note", "") + against,
+                   waits=gates(plan, baseline))
         drawn.append(baseline["id"] + " (baseline)")
         chosen = [o for o in chosen if o["id"] != baseline["id"]]
 
     for option in chosen:
-        draw_gantt(workbook, option, plan.get("epics") or [], index, style)
+        draw_gantt(workbook, option, plan.get("epics") or [], index, style,
+                   waits=gates(plan, option))
         drawn.append(option["id"])
     workbook.save(path)
     return True, drawn

@@ -21,6 +21,17 @@ plan that says "20 October" quietly breaks it.
 """
 
 import collections
+import importlib.util
+from pathlib import Path
+
+# The epic ordering graph lives in archetypes.py, beside the other epic-level reading of the
+# dependency data, and is loaded rather than duplicated so the scheduler and the archetypes
+# cannot disagree about what the graph is. archetypes imports nothing from here, so there is
+# no cycle; this is the same by-path load render-plan.py uses for brand.py.
+_SPEC = importlib.util.spec_from_file_location(
+    "est_archetypes", Path(__file__).resolve().parent / "archetypes.py")
+archetypes = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(archetypes)
 
 COMPONENTS = ("spec", "build", "review", "rework")
 
@@ -324,11 +335,47 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                               "feature": feature, "component": component,
                               "owners": sorted(owners)})
 
+    # The epic ordering graph. A cross-epic story dependency is a claim about the two EPICS,
+    # and treating it as story-local is what let a real plan build epic 23 before epic 3 while
+    # violating no story edge at all: only a fraction of an epic's stories carry a cross-epic
+    # gate, so the rest floated to whoever was idle.
+    epic_pred, epic_cycles = archetypes.epic_predecessors(estimate)
+    epic_stories = collections.defaultdict(set)
+    for feature in features:
+        if feature.get("epic_id"):
+            epic_stories[feature["epic_id"]].add(feature["id"])
+    # Which stories in each epic actually carry each component. A story whose surfaces leave it
+    # with no owner for a component has no item for it, and must not hold its epic open.
+    epic_needs = collections.defaultdict(set)
+    for item in items:
+        if item["feature"].get("epic_id"):
+            epic_needs[(item["feature"]["epic_id"], item["component"])].add(item["feature"]["id"])
+
     finished = {}          # (story_id, component) -> finish week
     spec_done = {}         # story_id -> when its specification stopped moving
     story_done = {}        # story_id -> build finish, what dependants actually wait for
-    unresolved = []
+    epic_spec_done = {}    # epic_id -> when the LAST of its stories was specified
+    epic_built = {}        # epic_id -> when the last of its stories finished building
+    unresolved = [dict(row, story=None, waits_on=row["waits_on"]) for row in epic_cycles]
     scheduled = set()
+
+    def epic_gate(epic, table, earliest):
+        """Push `earliest` out past every predecessor epic, or say we are still waiting.
+
+        Returns `(earliest, waiting)`. A predecessor that has not finished the component we are
+        gating on is a wait rather than a zero — `max` over a missing entry would read an epic
+        that has not started as one that finished in week zero, which is the exact shape of the
+        bug this replaces.
+        """
+        waiting = False
+        for before in epic_pred.get(epic) or ():
+            if not epic_stories.get(before):
+                continue                       # an epic with no stories gates nothing
+            if before in table:
+                earliest = max(earliest, table[before])
+            else:
+                waiting = True
+        return earliest, waiting
 
     for stage in sorted({i["stage"] for i in items}):
         pending = [i for i in items if i["stage"] == stage]
@@ -349,20 +396,42 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                     continue
                 earliest = max(barrier, finished.get((fid, previous), 0.0))
                 waiting = False
+                mine = item["feature"].get("epic_id")
                 # Dependencies gate the BUILD, not the specification. A BA can write F102 while
                 # F101 is still being built — what F102 cannot do is be built against an F101
-                # that does not exist. Gating spec too made the pipelined archetype come out
-                # SLOWER than the sequential one, because sequential's spec stage had no
-                # dependants in flight to wait for and the pipeline's did.
+                # that does not exist. Gating spec on story-level BUILD completion made the
+                # pipelined archetype come out SLOWER than the sequential one, because
+                # sequential's spec stage had no dependants in flight to wait for and the
+                # pipeline's did.
                 if item["component"] != "spec":
                     for dep in item["feature"].get("depends_on") or []:
                         if dep in story_done:
                             earliest = max(earliest, story_done[dep])
                         elif dep in known and dep != fid and (dep, "build") in in_stage:
                             waiting = True
+                    # And the epic the story sits in waits for the epics it stands on. Without
+                    # this the plan built `Phase 2 AI — Module 2` in week 5.3 and the
+                    # prerequisites epic it is recorded as depending on in week 9.3.
+                    if mine:
+                        earliest, blocked = epic_gate(mine, epic_built, earliest)
+                        waiting = waiting or blocked
+                elif mine:
+                    # Specification is ordered by the epic graph too, but against the
+                    # predecessors' SPECIFICATION rather than their build — so Phase 2 analysis
+                    # cannot start before the Phase 2 prerequisites are written down, and no
+                    # analyst ever waits on a developer. Before this every one of 23 epics
+                    # began its specification inside the same fifth of a week, which is what a
+                    # reader saw as "Phase 2 starts alongside Phase 1".
+                    earliest, blocked = epic_gate(mine, epic_spec_done, earliest)
+                    waiting = waiting or blocked
                 if waiting:
                     continue
-                ready.append((earliest, item["order"], COMPONENT_ORDER[item["component"]], item))
+                # `earliest` is bucketed to the tenth of a week before `order` is consulted, so
+                # an epic the inventory sequences first is not beaten by one that happens to
+                # come free four minutes sooner. Comparing raw floats made `order` — the only
+                # place `sequence` appears — a tiebreak that never actually decided anything.
+                ready.append((round(earliest, 1), item["order"],
+                              COMPONENT_ORDER[item["component"]], earliest, item))
             if not ready:
                 # Everything left is waiting on something that will never arrive in this stage:
                 # a dependency the stated epic sequence puts after its own dependant. The
@@ -373,9 +442,19 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                         if dep in known and dep not in story_done and dep != item["feature"]["id"]:
                             unresolved.append({"story": item["feature"]["id"], "waits_on": dep,
                                                "why": "dependency is sequenced after this story"})
-                ready = [(barrier, i["order"], COMPONENT_ORDER[i["component"]], i) for i in pending]
+                    mine = item["feature"].get("epic_id")
+                    table = epic_spec_done if item["component"] == "spec" else epic_built
+                    for before in epic_pred.get(mine) or ():
+                        if epic_stories.get(before) and before not in table:
+                            unresolved.append({
+                                "story": item["feature"]["id"], "waits_on": before,
+                                "why": "the epic this story stands on does not complete in "
+                                       "this stage — the archetype's staging contradicts the "
+                                       "epic ordering"})
+                ready = [(barrier, i["order"], COMPONENT_ORDER[i["component"]], barrier, i)
+                         for i in pending]
 
-            earliest, _, _, item = min(ready, key=lambda r: (r[0], r[1], r[2]))
+            *_, earliest, item = min(ready, key=lambda r: (r[0], r[1], r[2]))
             feature, component = item["feature"], item["component"]
             fid, epic = feature["id"], feature.get("epic_id")
             ends = []
@@ -412,6 +491,16 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                     qa.sweep(finished, barrier)
             scheduled.add((fid, component))
             pending.remove(item)
+            # An epic completes a component when the LAST of its stories does, which is what a
+            # dependant epic waits for. `epic_needs` is the set of stories that actually carry
+            # this component — a story whose surfaces give it no owner for one has no item and
+            # must not hold its epic open forever.
+            if epic and component in ("spec", "build"):
+                want = epic_needs.get((epic, component)) or set()
+                if want and all((s, component) in scheduled for s in want):
+                    table = epic_spec_done if component == "spec" else epic_built
+                    table[epic] = max(finished[(s, component)] for s in want
+                                      if (s, component) in finished)
         barrier = stage_end
         for person in team:
             person.ready = max(person.ready, barrier)

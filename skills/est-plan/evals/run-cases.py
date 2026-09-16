@@ -245,7 +245,53 @@ def case_no_plan_hardens_into_a_date():
     ]
 
 
+def case_a_late_epic_does_not_build_before_an_early_one():
+    """The failure that shipped. Every story-level dependency honoured, and the calendar still
+    built the last epic before the third.
+
+    A cross-epic dependency binds the one story that declares it. On a real backlog only a
+    fraction of an epic's stories carry one — Kitespire's Authentication epic had one in eight —
+    so the rest go to whoever is idle and the epic order dissolves. Here each epic has four
+    stories and only the first names its predecessor, which is the same shape.
+    """
+    features = []
+    for layer in range(1, 6):
+        for i in range(1, 5):
+            features.append(feature(f"F{layer}{i:02d}", epic=f"E{layer}", size="L",
+                                    depends_on=(f"F{layer - 1}01",) if layer > 1 and i == 1 else ()))
+    estimate = priced(features)
+    plan = plan_mod.build_plan(estimate, MODEL)
+
+    def window(option, component):
+        out = {}
+        for person in option["schedule"]["team"]:
+            for item in person["items"]:
+                key = item.get("epic_id")
+                if key and item.get("component") == component:
+                    lo, hi = out.get(key, (1e9, 0.0))
+                    out[key] = (min(lo, item["start_week"]), max(hi, item["finish_week"]))
+        return out
+
+    ordered, specced = [], []
+    for option in plan["options"]:
+        build, spec = window(option, "build"), window(option, "spec")
+        ordered.append(all(build[f"E{n}"][0] + 1e-6 >= build[f"E{n - 1}"][1]
+                           for n in range(2, 6) if f"E{n}" in build))
+        specced.append(all(spec[f"E{n}"][0] + 1e-6 >= spec[f"E{n - 1}"][1]
+                           for n in range(2, 6) if f"E{n}" in spec))
+    return plan, [
+        ("no option builds an epic before the epic it stands on", all(ordered)),
+        ("no option specifies an epic before its predecessors are specified", all(specced)),
+        ("the plan audits its own ordering and passes", plan["ordering_check"]["ok"]),
+        ("the audit compared a non-zero number of epic edges",
+         plan["ordering_check"]["edges"] > 0),
+        ("every epic records what it waits for and why",
+         all(w.get("why") for e in plan["build_order"]["epics"] for w in e["waits_for"])),
+    ]
+
+
 CASES = {
+    "a-late-epic-does-not-build-before-an-early-one": case_a_late_epic_does_not_build_before_an_early_one,
     "a-chain-cannot-be-hired-away": case_a_chain_cannot_be_hired_away,
     "a-bigger-team-can-be-the-wrong-team": case_a_bigger_team_can_be_the_wrong_team,
     "the-roster-is-a-floor-not-a-ceiling": case_the_roster_is_a_floor_not_a_ceiling,

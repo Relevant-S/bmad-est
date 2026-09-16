@@ -40,6 +40,7 @@ est = _load("estimate", EST / "estimate.py")
 schedule = _load("schedule", HERE / "schedule.py")
 staffing = _load("staffing", HERE / "staffing.py")
 archetypes = _load("archetypes", HERE / "archetypes.py")
+check_order = _load("check_order", HERE / "check-order.py")
 
 ROLE_LABEL = {"ba": "BA", "ux": "UX", "dev": "Dev", "qa": "QA",
               "devops": "DevOps", "architect": "Architect"}
@@ -268,8 +269,8 @@ def build_plan(estimate, model, roster=None, deadline=None, only=None):
                else "The simplest schedule this backlog admits, and the reading every other "
                     "option should be compared against."))
 
-    return {
-        "schema_version": "1.0",
+    out = {
+        "schema_version": "1.1",
         "project": estimate.get("project"),
         # Carried so the renderer can name an epic on a Gantt row without reopening the
         # estimate beside it — the same reason estimate.json carries them for its own renders.
@@ -295,6 +296,28 @@ def build_plan(estimate, model, roster=None, deadline=None, only=None):
         "baseline": baseline,
         "options": sorted(options, key=lambda o: -o["score"]["fit"]),
     }
+    # The epic graph, carried so the renderer and the checker can say WHY a piece of work sits
+    # where it does without rebuilding it, and so a reader of plan.json can see the ordering
+    # the calendar was built against rather than having to infer it from the bars.
+    predecessors, broken = archetypes.epic_predecessors(estimate)
+    out["build_order"] = {
+        "epics": [{"epic_id": e.get("id"), "name": e.get("name"),
+                   "sequence": e.get("sequence"),
+                   "waits_for": [{"epic_id": k, "why": w}
+                                 for k, w in sorted((predecessors.get(e.get("id")) or {}).items())]}
+                  for e in sorted(estimate.get("epics") or [],
+                                  key=lambda e: (e.get("sequence") is None, e.get("sequence") or 0))],
+        "cycles_broken": broken,
+        "how": ("A cross-epic story dependency orders the two EPICS, not only the two stories. "
+                "Only a fraction of an epic's stories usually carry one — on this backlog "
+                "Authentication had one in eight — so binding them story-locally let late "
+                "epics build before early ones while violating no single edge."),
+    }
+    # Checked here rather than left to the renderer: a plan whose calendar contradicts its own
+    # dependency graph is not a presentation problem, and it has shipped before.
+    audit = check_order.audit(out, estimate)
+    out["ordering_check"] = audit
+    return out
 
 
 def parse_team(value):
@@ -337,13 +360,22 @@ def main():
 
     plan = build_plan(estimate, model, parse_team(args.team), args.deadline, args.archetype)
     text = json.dumps(plan, indent=2, ensure_ascii=False)
+    audit = plan["ordering_check"]
     if args.output:
         Path(args.output).write_text(text + "\n", encoding="utf-8")
-        print(json.dumps({"ok": True, "options": len(plan["options"]),
+        print(json.dumps({"ok": audit["ok"], "options": len(plan["options"]),
                           "recommended": plan["recommended"],
-                          "written": args.output}, indent=2))
+                          "written": args.output,
+                          "ordering": (audit["checked"] if audit["ok"] else
+                                       [f["detail"] for f in audit["findings"][:5]])},
+                         indent=2, ensure_ascii=False))
     else:
         print(text)
+    # A calendar that contradicts its own dependency graph is not a plan, whatever it scores.
+    # The plan is still written, because a reader needs to see what was produced in order to
+    # argue with it — but the exit code says it is not shippable.
+    if not audit["ok"]:
+        return 2
     return 0 if plan["recommended"] else 1
 
 

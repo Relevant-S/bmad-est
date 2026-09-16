@@ -104,6 +104,41 @@ def chain(n=14, size="L"):
             for i in range(1, n + 1)]
 
 
+def layered(per=4, layers=4, size="L"):
+    """Epics in a chain, but only ONE story per epic carrying the cross-epic edge.
+
+    The shape that broke the real plan. Every story-level dependency can be honoured and the
+    epics still build in the wrong order, because the other `per - 1` stories in each epic are
+    unconstrained and go to whoever is idle. Kitespire's Authentication epic had one gated
+    story in eight.
+    """
+    out = []
+    for layer in range(1, layers + 1):
+        epic = f"E{layer}"
+        for i in range(1, per + 1):
+            fid = f"F{layer}{i:02d}"
+            # Only the first story of each epic names its predecessor.
+            deps = (f"F{layer - 1}01",) if layer > 1 and i == 1 else ()
+            out.append(feature(fid, epic=epic, size=size, depends_on=deps))
+    return out
+
+
+def declared_only(per=3, size="M"):
+    """Two epics ordered by `depends_on_epics` alone, with no story edge between them.
+
+    The ordering `depends_on_epics` exists to record — Kitespire's three were violated in the
+    shipped plan because nothing but `foundation_epics()` ever read them.
+    """
+    features = [feature(f"F{n}{i}", epic=f"E{n}", size=size)
+                for n in (1, 2) for i in range(1, per + 1)]
+    epics = [{"id": "E1", "name": "Ground", "origin": "source", "sequence": 1,
+              "sequence_why": "stated", "citations": []},
+             {"id": "E2", "name": "Upper", "origin": "source", "sequence": 2,
+              "sequence_why": "stated", "citations": [],
+              "depends_on_epics": [{"epic_id": "E1", "why": "the SOW says so"}]}]
+    return features, epics
+
+
 def two_streams(per=10, size="L"):
     """Two independent chains in two epics — the shape a second developer is FOR."""
     out = []

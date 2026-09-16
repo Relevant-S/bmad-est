@@ -383,5 +383,107 @@ class PeopleArriveWhenTheWorkDoes(unittest.TestCase):
         self.assertLess(F.schedule.mean_concurrent_headcount(sched), len(sched["team"]))
 
 
+
+
+class TheEpicOrderingIsHonoured(unittest.TestCase):
+    """A cross-epic story dependency orders the two EPICS, not only the two stories.
+
+    Treating it as story-local is what let a real plan build `Phase 2 AI — Module 2` in week
+    5.3 against a prerequisites epic that finished in week 9.3, while violating none of its 190
+    story edges: only a fraction of an epic's stories carry a cross-epic gate — Kitespire's
+    Authentication epic had one in eight — and the rest floated to whoever was idle. 94 of 253
+    epic pairs ran against the stated build order.
+    """
+
+    def windows(self, sched, component):
+        out = {}
+        for person in sched["team"]:
+            for item in person["items"]:
+                key = item.get("epic_id")
+                if key and item.get("component") == component:
+                    lo, hi = out.get(key, (1e9, 0.0))
+                    out[key] = (min(lo, item["start_week"]), max(hi, item["finish_week"]))
+        return out
+
+    def test_an_epic_is_not_built_before_the_epic_it_stands_on(self):
+        estimate = F.priced(F.layered(per=4, layers=4))
+        for archetype in ("sequential", "foundation", "pipelined"):
+            sched = F.run(estimate, dict(FULL, dev=3), archetype=archetype)
+            built = self.windows(sched, "build")
+            for n in range(2, 5):
+                self.assertGreaterEqual(
+                    built[f"E{n}"][0] + 1e-6, built[f"E{n - 1}"][1],
+                    f"{archetype}: E{n} builds at {built[f'E{n}'][0]:.2f} before E{n - 1} "
+                    f"finishes at {built[f'E{n - 1}'][1]:.2f}")
+
+    def test_the_unconstrained_stories_are_carried_too(self):
+        """The whole point. Only story F201 names F101; F202..F204 name nothing, and before
+        this they were built alongside epic 1."""
+        estimate = F.priced(F.layered(per=4, layers=3))
+        sched = F.run(estimate, dict(FULL, dev=3))
+        first = {}
+        for person in sched["team"]:
+            for item in person["items"]:
+                if item.get("component") == "build" and item.get("story_id"):
+                    first[item["story_id"]] = min(first.get(item["story_id"], 1e9),
+                                                  item["start_week"])
+        last_of_one = max(w for s, w in first.items() if s.startswith("F1"))
+        for story in ("F202", "F203", "F204"):
+            self.assertGreaterEqual(first[story], last_of_one - 1e-6,
+                                    f"{story} carries no dependency of its own and was built "
+                                    f"before epic 1 finished")
+
+    def test_a_declared_epic_dependency_is_scheduled_not_just_read(self):
+        """`depends_on_epics` was read in exactly one place — `foundation_epics()` — and never
+        scheduled against, so all three of Kitespire's declared orderings were violated."""
+        features, epics = F.declared_only()
+        estimate = F.priced(features, epics=epics)
+        built = self.windows(F.run(estimate, dict(FULL, dev=2)), "build")
+        self.assertGreaterEqual(built["E2"][0] + 1e-6, built["E1"][1])
+
+    def test_specification_is_ordered_by_the_epic_graph_too(self):
+        """Every one of 23 epics began its specification inside the same fifth of a week, which
+        is what a reader saw as `Phase 2 starts alongside Phase 1`. Spec waits for its
+        predecessors to be SPECIFIED, never built, so no analyst waits on a developer."""
+        estimate = F.priced(F.layered(per=4, layers=4))
+        sched = F.run(estimate, dict(FULL, dev=3))
+        spec, build = self.windows(sched, "spec"), self.windows(sched, "build")
+        for n in range(2, 5):
+            self.assertGreaterEqual(spec[f"E{n}"][0] + 1e-6, spec[f"E{n - 1}"][1])
+            self.assertLess(spec[f"E{n}"][0], build[f"E{n - 1}"][1],
+                            f"E{n}'s specification waited for E{n - 1} to be BUILT — that is "
+                            f"the rule that made pipelined slower than sequential")
+
+    def test_the_archetypes_still_differ(self):
+        """If the epic gate collapses all three onto one answer it has over-constrained, and
+        the module would be offering a choice that is not a choice.
+
+        Two values, not three: on a pure chain of epics every epic but the last is foundational,
+        so `foundation`'s single barrier falls where the epic gate already puts it and it comes
+        out identical to `pipelined`. That is the fixture being a chain, not the gate flattening
+        anything — the real Kitespire backlog separates all three (14.0 / 12.8 / 12.4 weeks).
+        What must not happen is sequential collapsing too, since it is the baseline the other
+        two are read against.
+        """
+        estimate = F.priced(F.layered(per=5, layers=4))
+        spans = {a: F.run(estimate, dict(FULL, dev=3), archetype=a)["weeks"]
+                 for a in ("sequential", "foundation", "pipelined")}
+        self.assertGreaterEqual(len(set(spans.values())), 2, spans)
+        self.assertGreater(spans["sequential"], spans["pipelined"], spans)
+
+    def test_an_epic_cycle_is_reported_rather_than_hung_on(self):
+        """Rolling story edges up can make an epic cycle out of an acyclic story graph. The
+        scheduler must not deadlock, and must not silently pick a winner either."""
+        features = [F.feature("A1", epic="EA", depends_on=("B1",)),
+                    F.feature("A2", epic="EA"),
+                    F.feature("B1", epic="EB", depends_on=("A2",)),
+                    F.feature("B2", epic="EB")]
+        sched = F.run(F.priced(features), dict(FULL, dev=2))
+        self.assertGreater(sched["weeks"], 0)
+        dropped = [r for r in sched["unresolved_dependencies"] if r.get("dropped")]
+        self.assertTrue(dropped, "the broken epic edge was not reported")
+        self.assertIn(dropped[0]["waits_on"], ("EA", "EB"))
+
+
 if __name__ == "__main__":
     unittest.main()

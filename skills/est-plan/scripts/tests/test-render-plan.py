@@ -69,6 +69,28 @@ class TheMarkdown(unittest.TestCase):
         self.assertIn("Weeks are relative", self.text)
         self.assertIsNone(re.search(r"\b\d{4}-\d{2}-\d{2}\b", self.text))
 
+    def test_the_markdown_carries_the_build_order_and_its_evidence(self):
+        """Every edge prints the reason it exists — the inventory's own sentence where there is
+        one, and the story pair that caused it where there is not."""
+        estimate = F.priced(F.layered(per=4, layers=4))
+        plan = F.plan_mod.build_plan(estimate, F.model())
+        text = render.markdown(plan)
+        self.assertIn("## Build order", text)
+        edges = [w for e in plan["build_order"]["epics"] for w in e["waits_for"]]
+        self.assertTrue(edges, "the fixture recorded no ordering to print")
+        for wait in edges:
+            self.assertIn(wait["why"][:40], text)
+
+    def test_a_plan_whose_calendar_contradicts_its_graph_says_so_loudly(self):
+        plan = json.loads(json.dumps(self.plan))
+        plan["ordering_check"] = {"ok": False, "findings": [
+            {"kind": "epic_build_order",
+             "detail": "E4 is built before E3, invented for the test"}]}
+        text = render.markdown(plan)
+        self.assertIn("contradicts its own dependency graph", text)
+        self.assertIn("invented for the test", text)
+        self.assertIn("not shippable", text)
+
     def test_an_infeasible_option_is_marked_in_the_table_not_quietly_listed(self):
         plan = json.loads(json.dumps(self.plan))
         plan["options"][0]["feasibility"] = {"feasible": False, "checks": [],
@@ -157,14 +179,14 @@ class TheWorkbookRoundTrip(unittest.TestCase):
                 option = o
                 break
         weeks = max(1, int(option["schedule"]["weeks"] + 0.999))
-        # Five label columns now: Who / what, Hours, Joins, Starts, Ends. `Joins` is the one
-        # that was added — people arrive when their role's demand justifies them, and a chart
-        # that draws a stagger without naming the arrival week makes a reader measure it.
-        self.assertEqual([sheet.cell(row=4, column=c).value for c in range(1, 6)],
-                         ["Who / what", "Hours", "Joins", "Starts", "Ends"])
-        self.assertEqual(sheet.cell(row=4, column=6).value, "W1")
-        self.assertEqual(sheet.cell(row=4, column=5 + weeks).value, f"W{weeks}")
-        self.assertEqual(sheet.freeze_panes, "F5")
+        # Six label columns. `Joins` says when each person arrives; `Waits for` says what an
+        # epic stands on and when that clears, which is how the chart answers "why is this
+        # here" without a reader reverse-engineering it from the bars.
+        self.assertEqual([sheet.cell(row=4, column=c).value for c in range(1, 7)],
+                         ["Who / what", "Hours", "Joins", "Starts", "Ends", "Waits for"])
+        self.assertEqual(sheet.cell(row=4, column=7).value, "W1")
+        self.assertEqual(sheet.cell(row=4, column=6 + weeks).value, f"W{weeks}")
+        self.assertEqual(sheet.freeze_panes, "G5")
 
     def test_the_rows_are_grouped_so_a_reader_sees_roles_before_stories(self):
         sheet = self.extend()[[n for n in self.extend().sheetnames if n.startswith("Gantt")][0]]
@@ -177,7 +199,7 @@ class TheWorkbookRoundTrip(unittest.TestCase):
         brand = F.load("brand", F.EST / "scripts" / "brand.py")
         wanted = {brand._hex(c) for r, c in brand.load()["roles"].items() if not r.startswith("_")}
         painted = {sheet.cell(row=r, column=c).fill.fgColor.rgb
-                   for r in range(5, sheet.max_row + 1) for c in range(6, sheet.max_column + 1)}
+                   for r in range(5, sheet.max_row + 1) for c in range(7, sheet.max_column + 1)}
         painted = {p[2:] if isinstance(p, str) and len(p) == 8 else p for p in painted}
         self.assertTrue(wanted & painted, "no bar used a role colour from brand.json")
 
@@ -201,7 +223,7 @@ class TheWorkbookRoundTrip(unittest.TestCase):
                 if depth == 1:
                     level, claimed = sheet.cell(row=r, column=1).value, {}
                 elif depth == 2:
-                    for c in range(6, sheet.max_column + 1):
+                    for c in range(7, sheet.max_column + 1):
                         if sheet.cell(row=r, column=c).fill.fgColor.rgb not in (None, "00000000"):
                             self.assertNotIn(c, claimed,
                                              f"{name}: {level} is drawn on two epics in column "
@@ -226,7 +248,7 @@ class TheWorkbookRoundTrip(unittest.TestCase):
         note = None
         for r in range(5, sheet.max_row + 1):
             if sheet.cell(row=r, column=1).value == "Drawn above":
-                note = sheet.cell(row=r, column=6).value
+                note = sheet.cell(row=r, column=7).value
                 drawn = sheet.cell(row=r, column=2).value
         self.assertIsNotNone(note, "no reconciliation row on the chart")
         self.assertIn("against", note)
@@ -294,6 +316,37 @@ class TheWorkbookRoundTrip(unittest.TestCase):
                  if sheet.row_dimensions[r].outlineLevel == 1]
         self.assertTrue(joins, "no person rows on the chart")
         self.assertTrue(all(j is None or str(j).startswith("W") for j in joins))
+
+    def test_the_chart_says_what_each_epic_waits_for(self):
+        """The plan has to answer where a piece of work belongs and on what grounds, off the
+        chart rather than by reverse-engineering the bars.
+
+        On an ordered backlog: the default fixture has no dependencies at all, so it has no
+        build order to draw and would let this pass without drawing anything.
+        """
+        estimate = F.priced(F.layered(per=4, layers=4))
+        plan = F.plan_mod.build_plan(estimate, F.model())
+        book = Path(self.dir.name) / "ordered.xlsx"
+        self.assertTrue(render_estimate.write_xlsx(estimate, book))
+        ok, _ = render.extend_workbook(plan, book, "archetype")
+        self.assertTrue(ok)
+        from openpyxl import load_workbook
+        after = load_workbook(book)
+        sheet = after[[n for n in after.sheetnames if n.startswith("Gantt")][-1]]
+        self.assertEqual(sheet.cell(row=4, column=6).value, "Waits for")
+        gates = [(sheet.cell(row=r, column=4).value, sheet.cell(row=r, column=6).value)
+                 for r in range(5, sheet.max_row + 1)
+                 if sheet.row_dimensions[r].outlineLevel == 2 and sheet.cell(row=r, column=6).value]
+        self.assertTrue(gates, "no epic row names what it stands on")
+        for starts, gate in gates:
+            self.assertRegex(gate, r"^E\S+")
+            if "clears W" in gate:
+                # The gate quoted is the one the row's own start waited on, so a row can never
+                # begin before it. Quoting the build gate beside an analyst's spec start put
+                # "E01 (clears W4)" next to a correct W3 and read as a contradiction.
+                self.assertGreaterEqual(int(str(starts).lstrip("W")),
+                                        int(gate.split("clears W")[1].rstrip(")")),
+                                        f"{starts} starts before its stated gate {gate}")
 
     def test_a_missing_workbook_is_reported_rather_than_created(self):
         """est-plan extends the estimate's workbook. Creating one would hand a client a second
