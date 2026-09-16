@@ -237,7 +237,6 @@ def to_html(markdown_text, title):
 <title>{html.escape(title)}</title>
 <style>
 {brand_css}
-{brand_css}
  body {{ margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 var(--font); }}
  main {{ max-width:900px; margin:0 auto; padding:32px 20px 80px; }}
  h1 {{ font-size:26px; letter-spacing:-0.01em; }}

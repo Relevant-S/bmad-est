@@ -63,7 +63,8 @@ class TestMarkdown(unittest.TestCase):
 
     def test_every_role_is_a_range_with_its_two_sources_shown(self):
         md = render.markdown(estimate_for())
-        self.assertIn("| Role | Low | Likely | High | On stories | Project-level |", md)
+        self.assertIn("| Role | Low | Likely | High | Hours | On stories | Project-level | "
+                      "Risk | Planned |", md)
         self.assertIn("architect", md)
 
     def test_every_story_row_carries_a_range_not_a_point(self):
@@ -522,6 +523,63 @@ class TestInteractiveHtml(unittest.TestCase):
         _, html = self.build([feature("F1", "Login")])
         self.assertEqual(self.embedded(html)["features"][0]["citations"][0]["location"], "§1")
 
+
+
+
+class TheBudgetColumnsAddUp(unittest.TestCase):
+    """The per-role risk and planned block, restored on 2026-09-16.
+
+    It was added, then removed by a commit whose subject was about something else, and the
+    removal missed three files — `check-parity.py` and its test kept comparing fields nothing
+    emitted any more, so the parity check passed by skipping every comparison, and the module's
+    own outputs contract went on promising columns that did not exist. These tests exist so the
+    next removal has to be deliberate.
+
+    The claim that makes the columns worth having is that they ADD UP: a band does not, because
+    variances combine in quadrature, but systematic risk is correlated by definition and splits
+    linearly. A reader can sum the Risk column down the sheet and get the project's figure.
+    """
+
+    def setUp(self):
+        self.est = estimate_for()
+
+    def test_every_role_row_reconciles_with_itself(self):
+        for role, row in self.est["by_role"].items():
+            with self.subTest(role=role):
+                self.assertAlmostEqual(row["hours"],
+                                       row["on_stories"] + row["project_level"], delta=0.15)
+                self.assertAlmostEqual(row["risk_adjusted_hours"],
+                                       row["hours"] + row["model_risk_hours"], delta=0.15)
+
+    def test_planned_is_narrower_than_the_band_it_sits_beside(self):
+        """It is a budget line, not a worst case. Quoting it as the top of the range is the
+        specific misreading the column's own note exists to prevent."""
+        for role, row in self.est["by_role"].items():
+            with self.subTest(role=role):
+                self.assertLess(row["risk_adjusted_hours"], row["high"] + 0.15)
+
+    def test_the_risk_column_sums_down_the_sheet(self):
+        """The property a budget needs and a band cannot give."""
+        total = sum(r["model_risk_hours"] for r in self.est["by_role"].values())
+        attribution = self.est["confidence"].get("role_attribution") or {}
+        self.assertTrue(attribution, "role_attribution is how the reconciliation is published")
+        self.assertAlmostEqual(total, attribution.get("model_risk_hours", total), delta=0.3)
+
+    def test_the_csv_carries_the_budget_block_per_role(self):
+        columns = render.estimate_columns(self.est)
+        for role in self.est["by_role"]:
+            for suffix in ("_low", "_likely", "_high", "_hours", "_risk", "_planned"):
+                self.assertIn(f"{role}{suffix}", columns)
+        self.assertIn("risk_hours", columns)
+        self.assertIn("planned_hours", columns)
+
+    def test_the_estimate_declares_how_task_figures_were_allocated(self):
+        """Tasks are source rows, not estimable units, and no anchor carries per-task effort.
+        The split is therefore the rule that asserts least — and it is named rather than
+        implied, so nobody negotiates over a task figure as though it were estimated."""
+        allocation = self.est.get("task_allocation")
+        self.assertTrue(allocation)
+        self.assertIn("even", json.dumps(allocation).lower())
 
 
 class TheEstimateDoesNotAnswerHowLongItTakes(unittest.TestCase):

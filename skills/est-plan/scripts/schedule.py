@@ -29,6 +29,12 @@ COMPONENTS = ("spec", "build", "review", "rework")
 # thing role_weights does not state.
 COMPONENT_ORDER = {name: i for i, name in enumerate(COMPONENTS)}
 
+# The share of QA held back for a regression pass over the whole scope, after the last build.
+# A per-epic sweep alone asserts that every defect is found inside the epic that caused it,
+# which is the assumption integration testing exists because nobody believes. Asserted, not
+# measured: no anchor recorded when its QA hours were spent.
+REGRESSION_SHARE = 0.25
+
 
 class Assignee:
     """One person: a role, a name, and the weeks they are already committed to.
@@ -48,10 +54,25 @@ class Assignee:
         self.busy = 0.0          # delivered hours, ramp excluded
         self.ramp_charged = False
         self.ramp_until = 0.0    # the week they become able to deliver at all
+        self.blocked = 0.0       # weeks spent free but unable to start: waiting on somebody
+        self.items = []
+
+    def reset(self, rate):
+        """Put this person back at week zero at a new rate, for the second pass."""
+        self.rate = rate
+        self.ready = 0.0
+        self.busy = 0.0
+        self.ramp_charged = False
+        self.ramp_until = 0.0
+        self.blocked = 0.0
         self.items = []
 
     def take(self, hours, earliest, label, story_id=None, epic_id=None, component=None):
         """Book `hours` of this person's time, not starting before `earliest`."""
+        # Time this person was free and could not start. It is the honest measure of whether
+        # the backlog really splits: two developers whose work interleaves cleanly wait for
+        # nobody, and two working the same seam spend the plan watching each other.
+        self.blocked += max(0.0, earliest - self.ready)
         start = max(self.ready, earliest)
         if not self.ramp_charged and self.ramp:
             # The ramp is real occupancy: it fills the person's calendar and delays their
@@ -115,7 +136,7 @@ def plan_prefix(estimate, people, model, rate):
     return hours / (rate * seats) if rate else 0.0, list(roles)
 
 
-def simulate(estimate, model, team, policy, staffing=None):
+def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
     """The forward pass. Returns the schedule and everything a plan needs to be judged.
 
     `team` is a list of Assignee. `policy` is the archetype: it answers, for one unit of work,
@@ -135,21 +156,61 @@ def simulate(estimate, model, team, policy, staffing=None):
     # Coordination drag is realised as reduced throughput per person, so it is applied to the
     # rate rather than added as a lump of hours. A team of n loses drag x (n-1) each, which is
     # how a bigger team can finish later: every extra pair of hands slows every other pair.
-    size = len(team)
-    effective = rate * max(0.25, 1.0 - drag * max(0, size - 1))
+    #
+    # `n` is the people actually WORKING AT ONCE, not the roster. Charging it to the roster
+    # billed a five-role team 14% each on a plan where four of those roles sat under 20%
+    # utilisation — a DevOps engineer with 39 h of work across forty weeks was being counted as
+    # a full coordination partner for everybody. And concurrency is an output of the schedule,
+    # not an input, so it takes two passes: measure it at the nominal rate, then charge against
+    # what was measured. The second pass is the one that is returned.
+    if concurrency is None:
+        first = simulate(estimate, model, team, policy, staffing, concurrency=len(team) or 1)
+        concurrency = max(1.0, mean_concurrent_headcount(first))
+        for person in team:
+            person.reset(rate)
+
+    effective = rate * max(0.25, 1.0 - drag * max(0.0, concurrency - 1))
     for person in team:
         person.rate = effective
 
     features = [f for f in estimate.get("features", []) if f.get("origin") != "standing"]
+    setup = [f for f in estimate.get("features", []) if f.get("origin") == "standing"]
     epic_seq = {e.get("id"): e.get("sequence") or 0 for e in estimate.get("epics") or []}
     order = sorted(features, key=lambda f: (epic_seq.get(f.get("epic_id"), 0), str(f["id"])))
     known = {f["id"] for f in features}
 
     prefix_weeks, prefix_roles = plan_prefix(estimate, team, model, effective)
+    # Planning is BOOKED, not merely waited out. Modelling it as a delay left 46 h of priced
+    # BA and UX time on nobody's calendar — the Gantt accounted for 68% of the hours the deal
+    # was being sold on, and a reader adding up the chart got a different number from the one
+    # on the estimate. It is still a serial prefix: nothing else starts until it closes.
+    for key in ("planning_agent", "planning_review"):
+        component = (estimate.get("project_components") or {}).get(key) or {}
+        for role, row in sorted((component.get("by_role") or {}).items()):
+            person = _pick(team, role)
+            if person is not None and (row.get("hours") or 0.0) > 0:
+                person.take(row["hours"], 0.0, key.replace("_", " "), None, None, "planning")
     for person in team:
         if person.role in prefix_roles:
             person.ready = max(person.ready, prefix_weeks)
-    barrier = 0.0
+    # The planning prefix gates ALL story work, not only the roles performing it. Lifting
+    # `ready` for BA and UX alone left dev — which carries `spec` at w=0.28 — starting at week
+    # zero: a real plan had the developer writing story specifications in week 0.6 and the BA
+    # arriving in week 2.9. Until there is a brief and a PRD there is nothing to specify
+    # against, and what dev can legitimately do first is project setup, which is standing work.
+    # Standing work — the repository, the pipeline, the environments, the release process —
+    # goes FIRST and is not gated by the planning prefix. It is what a developer can honestly
+    # do while the analyst is still writing, and it is the answer to "dev has nothing to do
+    # until BA finishes". It was previously filtered out of the schedule entirely: priced,
+    # billed, and assigned to nobody on any calendar.
+    for feature in sorted(setup, key=lambda f: -(f.get("hours") or 0.0)):
+        for (component, role), hours in sorted(story_role_hours(feature, model).items()):
+            person = _pick(team, role)
+            if person is not None:
+                person.take(hours, 0.0, feature.get("name") or feature["id"],
+                            feature["id"], None, component)
+    barrier = max(prefix_weeks, 0.0)
+    qa = QaPasses(estimate, team, features)
 
     items = []
     for n, feature in enumerate(order):
@@ -216,12 +277,24 @@ def simulate(estimate, model, team, policy, staffing=None):
             feature, component = item["feature"], item["component"]
             fid, epic = feature["id"], feature.get("epic_id")
             ends = []
-            for role, hours in item["owners"]:
+            # Within a story's SPECIFICATION the analyst leads and the others read what they
+            # wrote. `role_weights.spec` puts ba at 0.42, dev at 0.28 and ux at 0.30, and
+            # booking all three from the same instant had a developer specifying a story
+            # nobody had written a line of yet. The ordering is applied to spec only: a build
+            # is genuinely concurrent across the surfaces it touches.
+            owners = item["owners"]
+            if component == "spec":
+                owners = sorted(owners, key=lambda o: (o[0] != "ba", o[0]))
+            leader_done = None
+            for role, hours in owners:
                 person = _pick(team, role)
                 if person is None:
                     continue
-                start, end = person.take(hours, earliest, feature.get("name") or fid,
+                at = earliest if leader_done is None else max(earliest, leader_done)
+                start, end = person.take(hours, at, feature.get("name") or fid,
                                          fid, epic, component)
+                if component == "spec" and role == "ba":
+                    leader_done = end
                 ends.append(end)
             if ends:
                 finished[(fid, component)] = max(ends)
@@ -230,13 +303,25 @@ def simulate(estimate, model, team, policy, staffing=None):
                     spec_done[fid] = max(ends)
                 if component == "build":
                     story_done[fid] = max(ends)
+                    # Sweep as each epic closes, not only at stage boundaries. The pipelined
+                    # archetype has ONE stage, so a stage-end sweep put its QA after the last
+                    # build in the backlog — the very archetype that is supposed to overlap
+                    # most. `sweep` is idempotent per epic, so calling it often is free.
+                    qa.sweep(finished, barrier)
             scheduled.add((fid, component))
             pending.remove(item)
         barrier = stage_end
         for person in team:
             person.ready = max(person.ready, barrier)
+        # QA for every epic this stage finished building — inside the loop, on that epic's own
+        # build finish. Called once after the loop with the final barrier, as it was, QA could
+        # not start before the last story in the backlog was built, in any archetype: one run
+        # put the first QA hour in week 36 of 41. Late QA is not a presentation problem. It
+        # lets a defect propagate through everything built after it, architectural ones
+        # included, which are the most expensive to undo.
+        qa.sweep(finished, barrier)
 
-    schedule_qa(estimate, team, features, finished, barrier)
+    qa.regression(barrier)
     drift_hours = drift(team, features, spec_done)
 
     for feature in features:
@@ -247,10 +332,13 @@ def simulate(estimate, model, team, policy, staffing=None):
         "weeks": round(span, 2),
         "planning_prefix_weeks": round(prefix_weeks, 2),
         "effective_hours_per_person_week": round(effective, 2),
-        "coordination_drag_applied": round(drag * max(0, size - 1), 4),
+        "nominal_hours_per_person_week": rate,
+        "concurrent_people_charged": round(concurrency, 2),
+        "coordination_drag_applied": round(drag * max(0.0, concurrency - 1), 4),
         "stages": len({i["stage"] for i in items}),
         "team": [{"role": p.role, "name": p.name, "on_project": p.on_project,
                   "delivered_hours": round(p.busy, 1), "ramp_hours": round(p.ramp, 1),
+                  "blocked_weeks": round(p.blocked, 3),
                   "ramp_until_week": round(p.ramp_until, 3),
                   "starts_week": round(min([i["start_week"] for i in p.items], default=0.0), 3),
                   "finishes_week": round(p.ready, 2),
@@ -262,44 +350,86 @@ def simulate(estimate, model, team, policy, staffing=None):
     }
 
 
-def schedule_qa(estimate, team, features, finished, barrier):
-    """QA, per epic, trailing that epic's build.
+class QaPasses:
+    """QA as passes against completed slices, not as a tail bolted onto the end.
 
-    QA is priced as a share of the story total, so its hours live on `project_components`
-    rather than on any story — which meant the QA engineer was staffed, counted in the team,
-    charged coordination drag, and given nothing to do. The guardrail caught it by refusing a
-    second QA engineer on the grounds that the first one delivered zero hours.
+    One pass per epic, run as soon as that epic's build closes, sized by that epic's share of
+    the story work — so the number of passes scales with the scope, because a larger scope has
+    more epics. Then a regression pass over everything, last.
 
-    It is scheduled rather than merely added because QA runs on the calendar alongside the
-    build: `duration()` in estimate.py makes the same point, having once left QA out and put
-    EPP at 5.7 weeks against a recorded 7. Allocated per epic in proportion to that epic's
-    story hours, and gated on that epic's last build, because that is when there is something
-    to test.
+    It replaced a single call made after the stage loop with the FINAL barrier, which floored
+    every epic's QA — including the first epic's — at the finish of all story work. QA could
+    not overlap the build in any archetype, and a real run put the first QA hour in week 36 of
+    41 while the function's own docstring claimed it ran "alongside the build". Late QA is not
+    a scheduling nicety: it lets a defect propagate through everything built after it, and the
+    architectural ones are the most expensive to undo.
+
+    QA's hours are priced as a share of the story total and live on `project_components`, not
+    on any story, which is why they have to be placed here rather than falling out of the
+    per-story pass.
     """
-    component = (estimate.get("project_components") or {}).get("qa")
-    if not component:
-        return
-    hours = component.get("hours") or 0.0
-    if hours <= 0:
-        return
-    weight, built = {}, {}
-    for feature in features:
-        epic = feature.get("epic_id") or "—"
-        weight[epic] = weight.get(epic, 0.0) + (feature.get("hours") or 0.0)
-        end = finished.get((feature["id"], "build"), finished.get((feature["id"], "spec")))
-        if end is not None:
-            built[epic] = max(built.get(epic, 0.0), end)
-    total = sum(weight.values())
-    if not total:
-        return
-    for role, row in (component.get("by_role") or {}).items():
-        share = (row.get("hours") or 0.0)
-        for epic, w in sorted(weight.items(), key=lambda kv: built.get(kv[0], 0.0)):
-            person = _pick(team, role)
-            if person is None or not w:
+
+    def __init__(self, estimate, team, features):
+        self._epic_of = {f["id"]: (f.get("epic_id") or "—") for f in features}
+        self._stories = {}
+        for feature in features:
+            self._stories.setdefault(feature.get("epic_id") or "—", []).append(feature["id"])
+        component = (estimate.get("project_components") or {}).get("qa") or {}
+        self.by_role = {r: (row.get("hours") or 0.0)
+                        for r, row in (component.get("by_role") or {}).items()}
+        self.team = team
+        self.weight, self.done = {}, set()
+        for feature in features:
+            epic = feature.get("epic_id") or "—"
+            self.weight[epic] = self.weight.get(epic, 0.0) + (feature.get("hours") or 0.0)
+        self.total = sum(self.weight.values())
+        # Held back for the regression pass. A per-epic sweep alone says every defect is found
+        # inside the epic that caused it, which is the assumption integration testing exists
+        # because nobody believes.
+        self.regression_share = float(REGRESSION_SHARE)
+
+    def _book(self, epic, share_of_total, earliest, label):
+        for role, hours in self.by_role.items():
+            person = _pick(self.team, role)
+            if person is None or not hours:
                 continue
-            person.take(share * w / total, max(barrier, built.get(epic, 0.0)),
-                        f"QA · {epic}", None, epic, "qa")
+            person.take(hours * share_of_total, earliest, label, None, epic, "qa")
+
+    def sweep(self, finished, barrier):
+        """QA every epic whose build has closed and which has not been tested yet."""
+        if not self.total:
+            return
+        built = {}
+        for (story_id, component), end in finished.items():
+            if component != "build":
+                continue
+            epic = self._epic_of.get(story_id)
+            if epic is not None:
+                built[epic] = max(built.get(epic, 0.0), end)
+        for epic in sorted(built, key=lambda e: built[e]):
+            if epic in self.done or epic not in self.weight:
+                continue
+            if not self._fully_built(epic, finished):
+                continue
+            self.done.add(epic)
+            share = (self.weight[epic] / self.total) * (1.0 - self.regression_share)
+            self._book(epic, share, built[epic], f"QA pass · {epic}")
+
+    def regression(self, barrier):
+        """The last pass, over everything, after the final build."""
+        if not self.total:
+            return
+        # Anything never swept — an epic with no build, or one the stages finished together —
+        # is picked up here rather than dropped. Hours that are priced and scheduled to nobody
+        # are the failure this whole area is being corrected for.
+        missed = sum(self.weight[e] for e in self.weight if e not in self.done)
+        share = self.regression_share + (missed / self.total if self.total else 0.0) \
+            * (1.0 - self.regression_share)
+        self._book(None, share, barrier, "QA regression pass")
+
+    def _fully_built(self, epic, finished):
+        return all((story, "build") in finished or (story, "spec") in finished
+                   for story in self._stories.get(epic, ()))
 
 
 def drift(team, features, spec_done):

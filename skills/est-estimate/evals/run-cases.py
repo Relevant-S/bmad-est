@@ -174,7 +174,13 @@ def case_deep_dependency_chain():
         ("the critical path runs the full chain", len(large["dependencies"]["chain"]) == 12),
         ("tripling the team does not triple the speed",
          large["duration"]["weeks"] > small["duration"]["weeks"] / 3),
-        ("duration is never reported without its basis", "not a commitment" in large["duration"]["basis"]),
+        # The basis used to end "not a commitment". It now names the role that sets the span
+        # and says the team is NOMINAL, which is the same claim made specifically enough to
+        # act on — the old wording survived a formula that returned the same answer for every
+        # project, which is the failure it was supposed to guard against.
+        ("duration is never reported without its basis",
+         all(s in large["duration"]["basis"] for s in ("NOMINAL", "/est-plan"))
+         and large["duration"]["bottleneck_role"] in large["duration"]["basis"]),
     ]
 
 

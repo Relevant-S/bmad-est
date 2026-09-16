@@ -599,8 +599,15 @@ class Workbook(unittest.TestCase):
         tk = self.book()["Tasks"]
         header = [c.value for c in tk[1]]
         cell = tk.cell(row=2, column=header.index("link") + 1)
-        self.assertTrue(cell.value.endswith("#L7"), cell.value)
+        # The VISIBLE text is the task's name; the address lives in the hyperlink. The cell
+        # used to display the href itself, so a whole column read
+        # "normalized/S1-sow.md#L7" where a reader wanted to know what the row was.
         self.assertIsNotNone(cell.hyperlink)
+        href = getattr(cell.hyperlink, "target", None) or getattr(cell.hyperlink, "ref", None) \
+            or str(cell.hyperlink)
+        self.assertTrue(str(href).endswith("#L7"), href)
+        self.assertEqual(cell.value, inv["features"][0]["tasks"][0]["name"])
+        self.assertNotIn("#L", str(cell.value))
 
 
 class WithoutOpenpyxl(unittest.TestCase):

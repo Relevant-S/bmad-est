@@ -563,7 +563,23 @@ WIDE = {"description": 70, "quotes": 90, "text": 90, "depends_on": 50, "open_que
 WRAP = ("description", "quotes", "text", "depends_on", "open_questions", "why")
 
 
-def write_workbook(sheets, target, links=()):
+def brand_style():
+    """The company palette, if it is reachable. Returns None rather than failing.
+
+    est-scope-extract can be installed without est-estimate beside it, and an inventory
+    workbook that refuses to render because a colour file is missing would be a bad trade.
+    """
+    try:
+        path = (Path(__file__).resolve().parents[2] / "est-estimate" / "scripts" / "brand.py")
+        spec = importlib.util.spec_from_file_location("brand", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.xlsx()
+    except Exception:
+        return None
+
+
+def write_workbook(sheets, target, links=(), style=None):
     """Write one workbook from a list of (title, columns, rows), with the cross-links.
 
     Shared with est-estimate, which puts the priced estimate on the same two tabs. Two writers
@@ -582,6 +598,8 @@ def write_workbook(sheets, target, links=()):
     except ImportError:
         return False
 
+    if style is None:
+        style = brand_style()
     wb = Workbook()
     made = {}
     for n, (title, columns, rows) in enumerate(sheets):
@@ -590,7 +608,13 @@ def write_workbook(sheets, target, links=()):
         made[title] = (sheet, columns, rows)
         sheet.append(list(columns))
         for cell in sheet[1]:
-            cell.font = Font(bold=True)
+            # Branded where the palette is reachable, bold where it is not. The Options and
+            # Gantt tabs est-plan appends to this same workbook were fully branded while the
+            # Stories and Tasks tabs beside them were default Calibri — one file, two looks.
+            if style:
+                cell.fill, cell.font = style["header_fill"], style["header_font"]
+            else:
+                cell.font = Font(bold=True)
         for row in rows:
             sheet.append([row.get(c, "") for c in columns])
         sheet.freeze_panes = "A2"
@@ -614,14 +638,25 @@ def write_workbook(sheets, target, links=()):
         for i, row in enumerate(rows, start=2):
             cell = sheet.cell(row=i, column=col)
             if to_sheet is None:                      # an external link, in the cell's own value
-                if row.get(from_column):
-                    cell.hyperlink = row[from_column]
-                    cell.style = "Hyperlink"
+                href = row.get(from_column)
+                if href:
+                    # The NAME is what a reader sees; the address lives in the hyperlink. The
+                    # cell used to display the href itself, so a column of rows read
+                    # "normalized/S1-sow.md#L42" where a human wanted the story's title. The
+                    # Gantt tabs in this same workbook already do it this way.
+                    cell.value = (row.get("name") or row.get("feature_name")
+                                  or row.get("id") or "source")
+                    cell.hyperlink = href
+                    cell.font = style["link_font"] if style else cell.font
+                    if not style:
+                        cell.style = "Hyperlink"
                 continue
             at = index.get(row.get(key_column))
             if at:
                 cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"{to_sheet}!A{at}")
-                cell.style = "Hyperlink"
+                cell.font = style["link_font"] if style else cell.font
+                if not style:
+                    cell.style = "Hyperlink"
 
     wb.save(target)
     return True

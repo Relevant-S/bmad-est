@@ -913,14 +913,84 @@ def check_sizing(features, bands, floor=20, impact=0.25, ratio=1.5):
         )
 
     ceiling = check_ceiling(counts, order, bands, expected, n, warnings)
+    evidence = check_evidence(features, order, rate, want, unit, n, row_shaped)
 
     return warnings, {"row_shaped": row_shaped,
                       "baseline_h": round(baseline, 1),
                       f"baseline_h_per_{'source_line' if row_shaped else 'story'}": round(rate, 2),
                       "anchor_expects": round(want, 2) if want else None,
                       "ceiling": ceiling,
-                      "advisory_only": "no finding here is grounds on its own to re-band a story",
+                      "evidence": evidence,
+                      "advisory_only": ("no finding here is grounds on its own to re-band a "
+                                        "story — except `evidence`, which is about whether the "
+                                        "extraction recorded enough to band anything at all"),
                       "skipped": skipped}
+
+
+# How far outside the anchor's hours-per-source-line the bands may sit before the inventory is
+# refused rather than merely flagged. Deliberately generous: one delivered project's own runs
+# vary, and a run measured at 1.4x the anchor was fine. The failure this exists to stop was
+# 13.4x.
+EVIDENCE_RATIO_LIMIT = 4.0
+# A story whose whole justification is one quoted line cannot be shown to contain several
+# stories. Above this share of such stories among those banded past the anchor's measured
+# range, the classification is reading importance rather than counting parts.
+THIN_EVIDENCE_SHARE = 0.25
+
+
+def check_evidence(features, order, rate, want, unit, n, row_shaped):
+    """Can the extraction's evidence support the bands the classification put on it?
+
+    Every other check in this file asks whether the SHAPE of the distribution looks like a
+    delivered project's. This one asks something prior and harder to argue with: whether enough
+    of the client's document was recorded to justify banding a story above the range the anchor
+    actually measured.
+
+    It exists because of a run that shipped. A partition bug meant 2.6% of a 6,233-line PRD was
+    ever read; every story came back citing a single line; the classification guide's rule for
+    the upper bands is to COUNT the stories inside a row, so the classifier counted parts it
+    could not see and put 54 of 96 stories above XL. The bands then assigned 7.8 h per source
+    line against the anchor's 0.58 — 13.4x — and the estimate came out at roughly twice what
+    the same two documents produced on a run that had partitioned them properly. The checker
+    reported all of this, in `warnings`, and `ok` stayed true.
+
+    So these are FINDINGS. est-estimate refuses to price an inventory that carries findings,
+    which is the correct outcome: the fix is to extract more, or to say in writing what is being
+    assumed, not to price a judgement nothing supports.
+    """
+    findings = []
+    beyond = [f for f in features if band_of(f) in order[5:]]
+    thin = [f.get("id") for f in beyond if source_lines(f) <= 1]
+
+    if want and rate and rate / want >= EVIDENCE_RATIO_LIMIT:
+        findings.append(
+            f"size_band: the bands assign {rate:.1f}h per {unit} against {want:.1f}h in the "
+            f"delivery anchor — {rate / want:.1f}x. At that distance the classification is not "
+            f"reading the same kind of document the anchor measured. Either the extraction "
+            f"recorded far less than the source says, or the bands are reading importance "
+            f"rather than size. Re-read the sources before pricing this, or state in writing "
+            f"what each oversized story is assumed to contain."
+        )
+
+    if beyond and len(thin) >= max(3, THIN_EVIDENCE_SHARE * len(beyond)):
+        findings.append(
+            f"size_band: {len(thin)} of {len(beyond)} stories banded above XL cite a single "
+            f"source line (e.g. {', '.join(str(i) for i in thin[:3])}). The rule for those "
+            f"bands is to name and count the anchor-sized stories inside the row — which cannot "
+            f"be done from one line. Either cite the parts being counted, or band it within the "
+            f"measured range and carry the uncertainty in `clarity`."
+        )
+
+    return {"stories_beyond_the_measured_range": len(beyond),
+            "of_those_citing_one_source_line": len(thin),
+            "hours_per_unit": round(rate, 2) if rate else None,
+            "anchor_hours_per_unit": round(want, 2) if want else None,
+            "ratio_to_anchor": round(rate / want, 2) if (rate and want) else None,
+            "limit": EVIDENCE_RATIO_LIMIT,
+            "findings": findings,
+            "why": ("Unlike the rest of `sizing`, these block pricing. They are not about the "
+                    "shape of the distribution but about whether the extraction recorded enough "
+                    "to justify any band above the range the anchor measured.")}
 
 
 def check_ceiling(counts, order, bands, expected, n, warnings):
@@ -1473,6 +1543,10 @@ def main():
     else:
         bands, band_path, band_source = load_bands(args.cost_model)
         sizing_warnings, sizing = check_sizing(inv.get("features", []), bands)
+        # The evidence gate is the one part of `sizing` that blocks. Everything else there
+        # describes the shape of a distribution and is explicitly not grounds to re-band a
+        # story; this asks whether the extraction recorded enough to band anything at all.
+        findings += (sizing.get("evidence") or {}).get("findings", [])
     if classified and args.cost_model and band_path != Path(args.cost_model):
         # The project has its own model and the bands were read from somewhere else. If that
         # model has ever been recalibrated, the reference class being applied here is the wrong

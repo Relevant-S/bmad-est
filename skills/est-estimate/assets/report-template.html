@@ -191,59 +191,7 @@ function compute(ids) {
      make cutting scope look like it cancels meetings that still happen. Mirrors
      critical_path(), duration() and overhead_cost() in estimate.py, rounding where they
      round, since the rounded weeks are what the hours are multiplied by. */
-  const cal = M.calendar;
-  const people = Math.min(opts.team_size || cal.max_useful_parallelism, cal.max_useful_parallelism);
-  /* Standing work is out of the dependency graph: nothing waits on a CI pipeline, and at
-     story-scale bands the largest setup item otherwise became a one-node "critical path". */
-  const chainable = feats.filter(f => f.origin !== 'standing');
-  const weight = {}, deps = {};
-  for (const f of chainable) weight[f.id] = TP.mean(f.total);
-  for (const f of chainable) deps[f.id] = (f.depends_on || []).filter(d => d in weight);
-  const memo = {}, visiting = new Set();
-  const longest = id => {
-    if (id in memo) return memo[id];
-    if (visiting.has(id)) return 0;
-    visiting.add(id);
-    let best = 0;
-    for (const parent of deps[id] || []) best = Math.max(best, longest(parent));
-    visiting.delete(id);
-    return (memo[id] = best + weight[id]);
-  };
-  const pathHours = chainable.length
-    ? Math.round(Math.max(...chainable.map(f => longest(f.id))) * 10) / 10 : 0;
-  /* Three-point weeks, because a longer project holds more ceremony: collapsing the schedule
-     to one number would give overhead a certainty the schedule does not have. */
-  const planningTP = add(project.planning_agent, project.planning_review);
-  /* QA runs on the calendar alongside the build, so it is part of the parallel work. Leaving
-     it out put the anchor at 5.7 weeks against a recorded 7, and the architect — priced per
-     week — inherited the whole of that error. */
-  const scheduled = add(featureTotal, project.qa);
-  const weeks = [0,1,2].map(i =>
-    (planningTP[i] / Math.min(people, 2)
-     + (people ? Math.max(pathHours, scheduled[i] / people) : scheduled[i]))
-    / cal.hours_per_person_week);
-  project.overhead = mul(t(M.overhead_rate[opts.engagement]), scale(weeks, people));
-  /* The architect is setup plus a capped weekly rate, not a share of anything — so unticking
-     features shortens the project and buys less support, but never less setup. Mirrors
-     architect_cost() in estimate.py. */
-  const arch = M.architect, cap = arch.weekly_cap || arch.weekly_h.hi;
-  const weekly = t(arch.weekly_h).map(w => Math.min(w, cap));
-  project.architect = add(t(arch.setup_h), mul(weekly, weeks));
 
-  const all = [...feats.map(f => f.total), ...Object.values(project)];
-  const mean = all.reduce((s,v) => s + TP.mean(v), 0);
-  /* Must mirror band_half_width() in estimate.py exactly. Feature variance alone omits the
-     systematic model error, which on an uncalibrated model is the larger of the two terms —
-     a page missing it shows roughly half the real range under a headline that included it. */
-  const sdFeatures = Math.sqrt(all.reduce((s,v) => s + TP.sd(v)**2, 0));
-  const sdModel = (M.uncertainty.model_risk || 0) * mean;
-  const sd = Math.hypot(sdFeatures, sdModel);
-  /* Derive the multiplier from the model's own formula rather than the published
-     confidence figure, which is rounded for display. Reading the rounded value back put
-     the page a third of an hour off the document at both bounds. */
-  const cm = M.uncertainty.completeness_multiplier;
-  const multiplier = 1 + cm.k * Math.pow(1 - E.confidence.input_completeness, cm.p);
-  const half = M.uncertainty.z * sd * multiplier;
 
   const phases = {}, roles = {};
   const putPhase = (v, comp) => {
@@ -295,14 +243,124 @@ function compute(ids) {
     }
     widenInto(band);
   }
-  for (const [name, v] of Object.entries(project)) { putPhase(v, name); putRole(v, name, null, 1); }
+  /* ---- the calendar, and the two components priced against it -------------------------
+     Deliberately positioned AFTER the per-role totals above, because the span is set by the
+     role carrying the most work and that number does not exist until they are summed. Mirrors
+     role_demand() and duration() in estimate.py.
+
+     What this replaced divided every hour by a flat headcount, which assumes a QA engineer can
+     absorb developer work. Against the three delivered anchors' recorded durations — 7, 3.5 and
+     5 weeks — it returned 4.4, 4.3 and 4.5: the same answer for every project, fed to the
+     architect coefficient, which is priced per week. */
+  const cal = M.calendar;
+  const people = Math.min(opts.team_size || cal.nominal_team_size || 1,
+                          cal.max_useful_parallelism);
+  /* Standing work is out of the dependency graph: nothing waits on a CI pipeline, and at
+     story-scale bands the largest setup item otherwise became a one-node "critical path". */
+  const chainable = feats.filter(f => f.origin !== 'standing');
+  const weight = {}, deps = {};
+  for (const f of chainable) weight[f.id] = TP.mean(f.total);
+  for (const f of chainable) deps[f.id] = (f.depends_on || []).filter(d => d in weight);
+  const memo = {}, visiting = new Set();
+  const longest = id => {
+    if (id in memo) return memo[id];
+    if (visiting.has(id)) return 0;
+    visiting.add(id);
+    let best = 0;
+    for (const parent of deps[id] || []) best = Math.max(best, longest(parent));
+    visiting.delete(id);
+    return (memo[id] = best + weight[id]);
+  };
+  const pathHours = chainable.length
+    ? Math.round(Math.max(...chainable.map(f => longest(f.id))) * 10) / 10 : 0;
+
+  /* Delivery hours by role: the stories, plus QA, which runs on the calendar beside them.
+     Planning is a serial prefix and overhead and architect are priced FROM the span, so
+     including them would make the span a function of itself. */
+  /* Demand is the WIDENED per-role total, because `feature_roles` in estimate.py applies each
+     story's clarity band before `role_demand` sums it. Mirroring the raw components instead
+     left the browser 3.7 h under the engine on the bottleneck role — 0.08% of the total, and
+     exactly the kind of quiet disagreement this check exists to refuse. */
+  const demand = {};
+  for (const [role, v] of Object.entries(roles)) demand[role] = TP.mean(v);
+  for (const [role, share] of Object.entries(shares('qa', null)))
+    demand[role] = (demand[role] || 0) + TP.mean(project.qa) * share;
+  const bottleneck = Object.keys(demand).reduce(
+    (a, b) => (demand[b] > (demand[a] || 0) ? b : a), null);
+  const bottleneckHours = bottleneck ? demand[bottleneck] : 0;
+  const totalDemand = Object.values(demand).reduce((a, b) => a + b, 0) || 1;
+  /* The team is spread across the roles in proportion to the work each carries, so the busiest
+     role gets most of it. Reading team_size as "this many developers" instead put a recorded
+     team of three onto the dev line alone and halved the span. */
+  const seats = Math.max(1, people * (bottleneckHours / totalDemand));
+  const planningTP = add(project.planning_agent, project.planning_review);
+  const floorWeeks = pathHours / cal.hours_per_person_week;
+  const spanAt = (i, onBottleneck) =>
+    planningTP[i] / (cal.hours_per_person_week * 2)
+    + Math.max(floorWeeks, bottleneckHours / (onBottleneck * cal.hours_per_person_week));
+  let weeks = [spanAt(0, seats + 1), spanAt(1, seats), spanAt(2, Math.max(1, seats - 0.5))];
+  weeks = [Math.min(...weeks), weeks[1], Math.max(weeks[1], weeks[2])];
+
+  project.overhead = mul(t(M.overhead_rate[opts.engagement]), scale(weeks, people));
+  /* The architect is setup plus a capped weekly rate, not a share of anything — so unticking
+     features shortens the project and buys less support, but never less setup. Mirrors
+     architect_cost() in estimate.py. */
+  const arch = M.architect, cap = arch.weekly_cap || arch.weekly_h.hi;
+  const weekly = t(arch.weekly_h).map(w => Math.min(w, cap));
+  project.architect = add(t(arch.setup_h), mul(weekly, weeks));
+
+  /* Project components are role-split too, and kept separately so the page can show what a
+     story cut does and does not move. Demand is closed first: the span is already priced and
+     planning, overhead and architect are not story work. */
+  /* The band is computed HERE, after the calendar block above, because `project` is not
+     complete until overhead and architect are in it — they are priced from the span, and the
+     span is set by the busiest role, which is not known until the roles are summed. Computing
+     it earlier left both out of `all`: the page showed a total 52 h under the document's, on
+     every bound, which is what check-parity caught the first time it had two real answers to
+     compare. */
+  const all = [...feats.map(f => f.total), ...Object.values(project)];
+  const mean = all.reduce((s,v) => s + TP.mean(v), 0);
+  /* Must mirror band_half_width() in estimate.py exactly. Feature variance alone omits the
+     systematic model error, which on an uncalibrated model is the larger of the two terms —
+     a page missing it shows roughly half the real range under a headline that included it. */
+  const sdFeatures = Math.sqrt(all.reduce((s,v) => s + TP.sd(v)**2, 0));
+  const sdModel = (M.uncertainty.model_risk || 0) * mean;
+  const sd = Math.hypot(sdFeatures, sdModel);
+  /* Derive the multiplier from the model's own formula rather than the published
+     confidence figure, which is rounded for display. Reading the rounded value back put
+     the page a third of an hour off the document at both bounds. */
+  const cm = M.uncertainty.completeness_multiplier;
+  const multiplier = 1 + cm.k * Math.pow(1 - E.confidence.input_completeness, cm.p);
+  const half = M.uncertainty.z * sd * multiplier;
+
+  collectingDemand = false;
+  const projectRoles = {};
+  for (const [name, v] of Object.entries(project)) {
+    putPhase(v, name);
+    putRole(v, name, null, 1);
+    for (const [role, share] of Object.entries(shares(name, null)))
+      projectRoles[role] = add(projectRoles[role] || [0,0,0], scale(v, share));
+  }
+
+  /* The budget pair, mirroring risk_of() in estimate.py. Systematic model risk is correlated
+     across roles by definition, so it is split LINEARLY and the parts sum to sdModel exactly.
+     `planned` is the mean plus that one sigma and nothing else — not the top of the band.
+     This block was removed with the rest of the feature and restored on 2026-09-16; while it
+     was gone check-parity.py went on comparing these two fields against nothing, found None on
+     both sides, and skipped every comparison while reporting them as checked. */
+  const roleRisk = {}, rolePlanned = {};
+  for (const [role, v] of Object.entries(roles)) {
+    roleRisk[role] = (M.uncertainty.model_risk || 0) * TP.mean(v);
+    rolePlanned[role] = TP.mean(v) + roleRisk[role];
+  }
 
   const scope = {};
   for (const f of feats) {
     const k = f.scope_status || 'in_agreed_scope';
     scope[k] = (scope[k] || 0) + TP.mean(f.total);
   }
-  return { mean, half, phases, roles, scope, features: feats.length,
+  return { mean, half, phases, roles, roleRisk, rolePlanned, projectRoles, scope,
+           features: feats.length,
            low: Math.max(mean - half, 0), high: mean + half };
 }
 

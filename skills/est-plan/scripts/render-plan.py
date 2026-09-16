@@ -160,17 +160,37 @@ def packets(person, weeks):
     """
     rows = {}
     for item in person["items"]:
-        key = item["epic_id"] or "—"
-        row = rows.setdefault(key, {"epic_id": item["epic_id"], "hours": 0.0,
+        # Planning and project setup belong to no epic. They are real work on the calendar and
+        # naming them "unassigned" tells a reader nothing — worse, it reads as a mistake.
+        key = item["epic_id"] or ("planning" if item["component"] == "planning"
+                                  else "setup" if str(item["story_id"] or "").startswith("SW-")
+                                  else "—")
+        row = rows.setdefault(key, {"epic_id": key, "hours": 0.0,
                                     "stories": [], "occupied": set(),
                                     "start_week": item["start_week"],
                                     "finish_week": item["finish_week"]})
         row["hours"] += item["hours"]
-        if item["story_id"] not in row["stories"]:
+        if item["story_id"] and item["story_id"] not in row["stories"]:
             row["stories"].append(item["story_id"])
         row["start_week"] = min(row["start_week"], item["start_week"])
         row["finish_week"] = max(row["finish_week"], item["finish_week"])
-        row["occupied"] |= span_weeks(item["start_week"], item["finish_week"], weeks)
+        for w in span_weeks(item["start_week"], item["finish_week"], weeks):
+            row.setdefault("load", {})
+            row["load"][w] = row["load"].get(w, 0.0) + item["hours"]
+
+    # ONE OWNING EPIC PER WEEK. A person can only do one thing at a time — `take()` guarantees
+    # it — but the chart did not: each epic row painted every week it touched, so a developer
+    # dipping between four epics inside week 3 appeared on all four rows for that week, and the
+    # plan read as one person working four epics at once for the whole project. The week goes
+    # to whichever epic holds most of that person's hours in it; the others leave it blank and
+    # the reader can still see the run from the Starts/Ends columns.
+    owner = {}
+    for key, row in rows.items():
+        for week, load in (row.get("load") or {}).items():
+            if load > owner.get(week, (0.0, None))[0]:
+                owner[week] = (load, key)
+    for key, row in rows.items():
+        row["occupied"] = {w for w, (_, holder) in owner.items() if holder == key}
     return sorted(rows.values(), key=lambda r: r["start_week"])
 
 
@@ -262,11 +282,15 @@ def draw_gantt(workbook, option, epics, index, style):
             for pkt in rows:
                 sheet.row_dimensions[row].outlineLevel = 2
                 sheet.row_dimensions[row].hidden = True
-                name = epic_name.get(pkt["epic_id"]) or pkt["epic_id"] or "unassigned"
-                n = len(pkt["stories"])
-                cell = sheet.cell(row=row, column=1,
-                                  value=f"      {name} · {n} stor{'y' if n == 1 else 'ies'}")
-                at = index.get(pkt["stories"][0])
+                key = pkt["epic_id"]
+                name = epic_name.get(key) or {"planning": "Planning artefacts",
+                                              "setup": "Project setup",
+                                              "—": "Unassigned"}.get(key, key)
+                n = len([s for s in pkt["stories"] if s])
+                label = (f"{name} · {n} stor{'y' if n == 1 else 'ies'}" if n
+                         else name)
+                cell = sheet.cell(row=row, column=1, value=f"      {label}")
+                at = index.get(pkt["stories"][0]) if pkt["stories"] else None
                 if at:
                     cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"Stories!A{at}")
                     cell.font = style["link_font"]
@@ -277,6 +301,48 @@ def draw_gantt(workbook, option, epics, index, style):
                 sheet.cell(row=row, column=4, value=f"W{max(1, -(-pkt['finish_week'] // 1)):.0f}").font = style["muted_font"]
                 _paint(sheet, row, first_week, pkt["occupied"], style["role_fill"].get(role))
                 row += 1
+
+    # The two calendar-priced roles. Neither is on the team: the architect is `setup + a capped
+    # weekly rate` so a second one cannot be priced, and overhead is ceremony charged per person
+    # per week. Both are drawn from THIS option's own estimate and span the plan, because that
+    # is exactly what they are — and leaving them off meant the chart accounted for about half
+    # the hours the deal was being sold on, with the Architect band never drawn at all.
+    for name, key in (("Architect", "architect"), ("Ceremony", "overhead")):
+        component = (option["estimate"].get("project_components") or {}).get(key) or {}
+        hours = component.get("hours") or 0.0
+        if hours <= 0:
+            continue
+        cell = sheet.cell(row=row, column=1, value=name)
+        cell.fill, cell.font = style["band_fill"], style["band_font"]
+        sheet.cell(row=row, column=2, value=round(hours, 1)).font = style["band_font"]
+        sheet.cell(row=row, column=3, value="W1").font = style["band_font"]
+        sheet.cell(row=row, column=4, value=f"W{weeks}").font = style["band_font"]
+        _paint(sheet, row, first_week, range(weeks), style["role_fill"].get(key)
+               or style["band_fill"])
+        row += 1
+        sheet.row_dimensions[row].outlineLevel = 1
+        sheet.cell(row=row, column=1, value=(
+            f"  {'setup plus a capped weekly rate, across the plan' if key == 'architect' else 'ceremony, per person per week'}"
+        )).font = style["muted_font"]
+        row += 1
+
+    # Reconciliation. The chart and the estimate are two views of one number and a reader is
+    # entitled to check that they agree — three different dev figures once sat in one workbook
+    # with nothing saying which was which.
+    scheduled = sum(p["delivered_hours"] for p in option["schedule"]["team"])
+    calendar_priced = sum((option["estimate"]["project_components"].get(k) or {}).get("hours", 0.0)
+                          for k in ("architect", "overhead"))
+    priced = sum(r["hours"] for r in option["estimate"]["by_role"].values())
+    row += 1
+    sheet.cell(row=row, column=1, value="Drawn above").font = style["band_font"]
+    sheet.cell(row=row, column=2, value=round(scheduled + calendar_priced, 1)).font = style["band_font"]
+    sheet.cell(row=row, column=5, value=(
+        f"Scheduled {scheduled:.0f} h + architect and ceremony {calendar_priced:.0f} h "
+        f"= {scheduled + calendar_priced:.0f} h, against {priced:.0f} h on the estimate "
+        f"({(scheduled + calendar_priced) / priced:.0%}). Hours here are expected values (PERT "
+        f"means); the Stories tab quotes the mode of each interval, which is a different and "
+        f"slightly smaller figure.")).font = style["muted_font"]
+    row += 1
 
     sheet.freeze_panes = sheet.cell(row=head + 1, column=first_week)
     sheet.column_dimensions["A"].width = 46

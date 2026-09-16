@@ -102,6 +102,14 @@
       "why": "est-plan turns a priced estimate into staffed delivery options, and deciding how many people to put on the work needs two things the model had never held: what a person costs before they deliver, and what they cost everybody else once they arrive. Without both, a sweep over team shapes can only ever recommend the biggest team the parallelism cap allows.",
       "evidence": "None from the anchors — they recorded role totals, never composition over time. The shape is the standard communication-paths one (n(n-1)/2) and QSM's project database puts the productive band at 3-7, which is where this curve turns over.",
       "not_evidence": "No delivered project of this company's was measured for any figure in the block. Every coefficient carries beyond_anchor or a 3/10 confidence, and the anchors are asserted to be unmoved by its presence."
+    },
+    {
+      "date": "2026-09-16",
+      "kind": "correction",
+      "change": "calendar.hours_per_person_week 30 -> 40.",
+      "why": "Ceremony is priced as its own component and was also being deducted from capacity — the same cost twice. The 30 was never measured: headcount was not recorded on any anchor, so its supporting arithmetic derived people from the rate.",
+      "evidence": "None new. This is the removal of a double-count, not a re-fit. It moves every derived span and therefore the architect and overhead lines, which are priced against the span — see the same day's note on `duration()`.",
+      "not_evidence": "No delivered project was re-measured. 40 is a definition of a working week, not an observation of one."
     }
   ],
   "_reading_this_file": "Each coefficient is a three-point estimate (lo / likely / hi) plus a 'why' saying what it encodes. Change a value by editing it here — nothing in the skill hardcodes a number. Every estimate snapshots this whole file into its ledger entry, so a later change never rewrites the past.",
@@ -1007,10 +1015,13 @@
   },
   "calendar": {
     "_what": "Derived, secondary output. Hours are the deliverable; duration depends on a team shape nobody knows at presale.",
-    "hours_per_person_week": 30,
-    "hours_per_person_week_why": "Six hours of focused delivery a day, five days a week. CHECKS OUT against two of the three anchors: EPP ran 690 h over 7 weeks = 98.6 h/week, and memorial-healthcare 360 h over 3.5 weeks = 102.9 h/week — both about 3.3 people at this rate. easyterms ran 240 h over 5 weeks = 48 h/week, a one-to-two person project. Confidence 6/10.",
+    "hours_per_person_week": 40,
+    "hours_per_person_week_why": "A full working week. It was 30 — 'six hours of focused delivery a day' — and that was wrong for two reasons. First it DOUBLE-COUNTED: `overhead_rate` already bills ceremony, demos and client communication as their own component at 2.5-5 h per person per week, so deducting non-delivery time from capacity as well charges the same cost twice. Meetings are in the estimate; they are not also in the working week. Second the evidence for 30 was circular — its own justification read 'EPP ran 690 h over 7 weeks = 98.6 h/week, about 3.3 people at this rate'. Headcount was never recorded on any anchor, so the check derived people FROM the rate and could not have contradicted it. 40 is asserted rather than measured, and it is asserted on a definition (a working week) rather than on a project. Confidence 5/10; raise it with one project that records headcount alongside hours.",
     "max_useful_parallelism": 6,
-    "max_useful_parallelism_why": "Beyond roughly six people on one workstream, coordination cost grows faster than throughput. The critical path, not the headcount, sets the floor on duration."
+    "max_useful_parallelism_why": "Beyond roughly six people on one workstream, coordination cost grows faster than throughput. The critical path, not the headcount, sets the floor on duration.",
+    "hours_per_person_week_superseded": "Was 30 until 2026-09-16. The retired justification, kept because it is the evidence anyone re-opening this will want: Six hours of focused delivery a day, five days a week. CHECKS OUT against two of the three anchors: EPP ran 690 h over 7 weeks = 98.6 h/week, and memorial-healthcare 360 h over 3.5 weeks = 102.9 h/week — both about 3.3 people at this rate. easyterms ran 240 h over 5 weeks = 48 h/week, a one-to-two person project. Confidence 6/10.",
+    "nominal_team_size": 3,
+    "nominal_team_size_why": "The team assumed when nobody has named one. MEASURED, in the only way the anchors allow: all three recorded the team they ran with — EPP 3, memorial-healthcare 3, easyterms 2. It is used the way a delivery lead would use it: distributed across the roles in proportion to the work each carries, so the busiest role gets most of it and the span is set by that role rather than by dividing every hour in the project by three. Confidence 6/10 — three projects, but the figure was recorded rather than inferred. `--team-size` overrides it; /est-plan replaces it with a schedule and a team somebody chose."
   },
   "staffing": {
     "_what": "How many people, and what it costs to add one. UNDERIVABLE FROM THE ANCHORS: none of the three delivered projects recorded who was on it in which week, only role totals at the end, so every coefficient below is an ASSERTION and is labelled one. Confidence 3/10; raise it with a single project that records its team composition over time. What IS defensible is the SHAPE — that a person costs something before they deliver anything, and that the cost of keeping everyone aligned grows with how many people there are. A model without that shape cannot do anything but recommend the largest team allowed, which is not advice.",

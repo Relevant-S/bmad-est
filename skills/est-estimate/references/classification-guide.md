@@ -78,6 +78,27 @@ points. That sum is the band. A deposit hold that needs the hold itself (L, 4), 
 release path (M, 3) and a decline ladder (XS, 1) is 8 points — `XXL` — and you arrived there by
 listing three stories, not by feeling that it was bigger than the last thing you tagged `XL`.
 
+**And you cannot count parts the extraction never recorded.** This is the other half of that
+rule and it is the half that was missing. If a story's whole evidence is one quoted line, there
+is nothing to name and nothing to sum — so "count the parts" cannot be what took it to `3XL`.
+Something else did, and that something is almost always importance. A run once put 54 of 96
+stories above `XL` while every one of them cited a single source line; the bands then assigned
+7.8 h per source line against the anchor's 0.58, and the estimate came out at roughly twice what
+the same two documents produced on a properly partitioned run. `inventory-check.py` now refuses
+that inventory rather than warning about it.
+
+So when a row feels bigger than `XL` and you cannot list what is inside it, you have three
+honest moves and tagging it `3XL` is not among them:
+
+- **Go back to the source.** Usually the parts are there and the extraction did not reach them —
+  check `beats.json` coverage before anything else.
+- **Band it inside the measured range and widen `clarity`.** An `XL` you can defend with a
+  `low` clarity band says "this is at least this big and we do not yet know how much bigger",
+  which is true, and the band width carries it into the number honestly.
+- **Write the assumption down.** If you are going to price a native mobile app from one line,
+  say in `tag_why` what you are assuming it contains. Then a reader can disagree with the
+  assumption instead of with the number.
+
 If the count exceeds 34 points, the row is not a story at any grain. Say so in the extraction
 report and split it in the inventory; do not invent a band above `5XL`.
 

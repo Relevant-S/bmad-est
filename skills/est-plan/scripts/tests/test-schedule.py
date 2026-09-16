@@ -19,6 +19,16 @@ import fixtures as F  # noqa: E402
 
 FULL = {"dev": 1, "ba": 1, "ux": 1, "qa": 1, "devops": 1}
 
+# Standing work (repo, CI, environments) and planning are on the calendar too now, and both
+# legitimately start at week zero — they are what the team does while the specification is
+# still being written. Assertions about STORY work have to say so.
+STORY = ("spec", "build", "review", "rework")
+
+
+def story_items(sched):
+    return [(p, i) for p in sched["team"] for i in p["items"]
+            if i["component"] in STORY and not str(i["story_id"] or "").startswith("SW-")]
+
 
 class NobodyWorksOnBlockedWork(unittest.TestCase):
     def test_a_story_is_never_built_before_the_story_it_depends_on_is_built(self):
@@ -51,9 +61,8 @@ class NobodyWorksOnBlockedWork(unittest.TestCase):
         Inventing a second opinion about who blocks whom would put two orderings in the module."""
         sched = F.run(F.priced(F.wide(12)), FULL)
         seen = {}
-        for person in sched["team"]:
-            for item in person["items"]:
-                seen.setdefault((item["story_id"], item["component"]), []).append(item)
+        for _, item in story_items(sched):
+            seen.setdefault((item["story_id"], item["component"]), []).append(item)
         for (story, component), rows in seen.items():
             previous = F.schedule._previous(component)
             if previous and (story, previous) in seen:
@@ -105,10 +114,9 @@ class TheArchetypesDifferInTheWayTheyClaimTo(unittest.TestCase):
     def test_sequential_specifies_the_whole_backlog_before_building_any_of_it(self):
         sched = F.run(self.estimate, dict(FULL, dev=2), archetype="sequential")
         specs, builds = [], []
-        for person in sched["team"]:
-            for item in person["items"]:
-                (specs if item["component"] == "spec" else
-                 builds if item["component"] == "build" else []).append(item)
+        for _, item in story_items(sched):
+            (specs if item["component"] == "spec" else
+             builds if item["component"] == "build" else []).append(item)
         self.assertTrue(specs and builds)
         self.assertGreaterEqual(min(b["start_week"] for b in builds) + 1e-6,
                                 max(s["finish_week"] for s in specs))
@@ -149,6 +157,132 @@ class ANewJoinerCostsSomethingBeforeTheyDeliver(unittest.TestCase):
         devs = [p for p in sched["team"] if p["role"] == "dev"]
         self.assertTrue(all(p["on_project"] for p in devs))
         self.assertEqual([p["ramp_hours"] for p in devs], [0.0, 0.0])
+
+
+
+class QaRunsInPassesAgainstFinishedSlices(unittest.TestCase):
+    """QA used to be a tail bolted onto the end of every plan, in every archetype.
+
+    `schedule_qa` was called once, after the stage loop, with the FINAL barrier — so every
+    epic's QA, including the first epic's, was floored at the finish of all story work. A real
+    plan put the first QA hour in week 36 of 41. That is not a presentation problem: it lets a
+    defect propagate through everything built after it, and the architectural ones are the most
+    expensive to undo.
+    """
+
+    SHAPE = {"dev": 2, "ba": 1, "ux": 1, "qa": 1, "devops": 1}
+
+    def parts(self, estimate, archetype="pipelined"):
+        sched = F.run(estimate, self.SHAPE, archetype=archetype)
+        items = [i for p in sched["team"] for i in p["items"]]
+        return (sched,
+                [i for i in items if i["component"] == "qa"],
+                [i for i in items if i["component"] == "build"])
+
+    def test_the_first_pass_starts_before_the_last_build_finishes(self):
+        estimate = F.priced(F.wide(30, epics=5, size="L"))
+        for archetype in ("sequential", "foundation", "pipelined"):
+            with self.subTest(archetype=archetype):
+                _, qa, builds = self.parts(estimate, archetype)
+                self.assertTrue(qa, "no QA was scheduled at all")
+                self.assertLess(min(i["start_week"] for i in qa),
+                                max(i["finish_week"] for i in builds))
+
+    def test_a_pass_never_starts_before_its_own_epic_is_built(self):
+        """Testing work that does not exist yet is the opposite failure and just as wrong."""
+        estimate = F.priced(F.wide(24, epics=4, size="L"))
+        sched, qa, _ = self.parts(estimate)
+        built = {}
+        for person in sched["team"]:
+            for item in person["items"]:
+                if item["component"] == "build":
+                    built[item["epic_id"]] = max(built.get(item["epic_id"], 0.0),
+                                                 item["finish_week"])
+        for item in qa:
+            if item["epic_id"] in built:
+                self.assertGreaterEqual(item["start_week"] + 1e-6, built[item["epic_id"]],
+                                        item["label"])
+
+    def test_the_number_of_passes_scales_with_the_scope(self):
+        """One pass per epic plus a regression sweep, so a bigger backlog is tested more often
+        rather than tested later."""
+        small = len(self.parts(F.priced(F.wide(12, epics=2, size="L")))[1])
+        large = len(self.parts(F.priced(F.wide(48, epics=8, size="L")))[1])
+        self.assertGreater(large, small)
+
+    def test_a_regression_pass_closes_the_project(self):
+        """A per-epic sweep alone asserts every defect is found inside the epic that caused it,
+        which is the assumption integration testing exists because nobody believes."""
+        _, qa, builds = self.parts(F.priced(F.wide(24, epics=4, size="L")))
+        last = max(qa, key=lambda i: i["start_week"])
+        self.assertIn("regression", last["label"].lower())
+        self.assertGreaterEqual(last["start_week"] + 1e-6,
+                                max(i["finish_week"] for i in builds))
+
+    def test_every_priced_qa_hour_is_scheduled_to_somebody(self):
+        """QA is priced on `project_components`, not on a story, so it has to be placed
+        explicitly — and hours that are billed and assigned to nobody are exactly the defect
+        this area is being corrected for."""
+        estimate = F.priced(F.wide(24, epics=4, size="L"))
+        sched, qa, _ = self.parts(estimate)
+        priced = estimate["project_components"]["qa"]["hours"]
+        self.assertAlmostEqual(sum(i["hours"] for i in qa), priced, delta=max(0.5, priced * 0.02))
+
+
+class TheAnalystLeads(unittest.TestCase):
+    """Until the BA has defined what gets built, a developer can do project setup and not much
+    else. A real plan had dev starting in week 0.6 and the BA in week 2.9, because the planning
+    prefix lifted `ready` only for the roles performing planning, and `role_weights.spec` puts
+    dev on specification at w=0.28.
+    """
+
+    SHAPE = {"dev": 1, "ba": 1, "ux": 1, "qa": 1, "devops": 1}
+
+    def test_no_story_work_starts_before_the_planning_prefix(self):
+        sched = F.run(F.priced(F.wide(20, epics=4, size="L")), self.SHAPE)
+        prefix = sched["planning_prefix_weeks"]
+        self.assertGreater(prefix, 0.0)
+        for person, item in story_items(sched):
+            self.assertGreaterEqual(item["start_week"] + 1e-6, prefix,
+                                    f"{person['name']} started {item['label']} before "
+                                    f"planning closed")
+
+    def test_but_setup_and_planning_do_start_at_once(self):
+        """Because that is the honest answer to "what does the developer do first". Standing
+        work is the repository, the pipeline and the environments; it depends on nothing and
+        it is what fills the weeks before there is a specification to build against."""
+        sched = F.run(F.priced(F.wide(20, epics=4, size="L")), self.SHAPE)
+        early = [i for p in sched["team"] for i in p["items"]
+                 if i["start_week"] < sched["planning_prefix_weeks"]]
+        self.assertTrue(early, "nobody works during planning")
+        self.assertTrue(all(i["component"] == "planning"
+                            or str(i["story_id"] or "").startswith("SW-") for i in early),
+                        sorted({i["label"] for i in early}))
+
+    def test_the_developers_share_of_a_spec_follows_the_analysts(self):
+        """Ordering is applied to specification only — a build is genuinely concurrent across
+        the surfaces it touches, and forcing an order there would invent a dependency."""
+        sched = F.run(F.priced(F.wide(16, epics=4, size="L")), self.SHAPE)
+        ba, dev = {}, {}
+        for person, item in story_items(sched):
+            if item["component"] != "spec":
+                continue
+            (ba if person["role"] == "ba" else dev).setdefault(item["story_id"], item)
+        shared = set(ba) & set(dev)
+        self.assertTrue(shared, "no story had both a BA and a dev share of its spec")
+        for story in shared:
+            self.assertGreaterEqual(dev[story]["start_week"] + 1e-6, ba[story]["finish_week"],
+                                    f"{story}: dev specified it before the BA did")
+
+    def test_the_analyst_is_not_held_up_by_the_developer_in_return(self):
+        """The BA specifies story k+1 while the dev reads story k. A rule that serialised the
+        whole backlog through one analyst would be worse than the defect it fixed."""
+        sched = F.run(F.priced(F.wide(16, epics=4, size="L")), self.SHAPE)
+        ba = next(p for p in sched["team"] if p["role"] == "ba")
+        specs = [i for i in ba["items"] if i["component"] == "spec"]
+        self.assertGreater(len(specs), 4)
+        gaps = sum(1 for a, b in zip(specs, specs[1:]) if b["start_week"] > a["finish_week"] + 1e-6)
+        self.assertLess(gaps, len(specs) / 2, "the analyst spends most of the plan waiting")
 
 
 class ABiggerTeamIsNotFreeAndSometimesIsNotFaster(unittest.TestCase):

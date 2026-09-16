@@ -598,10 +598,29 @@ class TestDependenciesAndDuration(unittest.TestCase):
         e = hours(inv)
         self.assertEqual(len(e["dependencies"]["chain"]), 1)
 
-    def test_duration_states_its_assumed_team_size(self):
+    def test_duration_states_its_assumed_team_size_and_what_gates_it(self):
+        """The basis has to name the ROLE that sets the span, not just the headcount. A span a
+        reader cannot attribute to anything is a span nobody can argue with — and the formula
+        this replaced divided every hour by a flat headcount, which is how it came to return
+        the same answer for projects that ran 3.5, 5 and 7 weeks."""
         e = hours(inventory([feature(f"F{i}") for i in range(1, 6)]), team_size=3)
-        self.assertEqual(e["duration"]["assumed_team_size"], 3)
-        self.assertIn("not a commitment", e["duration"]["basis"])
+        d = e["duration"]
+        self.assertEqual(d["assumed_team_size"], 3)
+        self.assertIn(d["bottleneck_role"], d["basis"])
+        self.assertGreater(d["bottleneck_hours"], 0)
+        self.assertIn("NOMINAL", d["basis"])
+        self.assertIn("/est-plan", d["basis"])
+
+    def test_the_span_is_set_by_the_busiest_role_not_by_the_total(self):
+        """Hours are not fungible across roles: a QA engineer cannot absorb developer work.
+        Adding a role's worth of work to the busiest role must move the span; adding the same
+        hours to a role that is idle must not."""
+        base = inventory([feature(f"F{i}", size="M") for i in range(1, 8)])
+        wide = inventory([feature(f"F{i}", size="M") for i in range(1, 8)]
+                         + [feature(f"G{i}", size="L", surfaces=("backend",))
+                            for i in range(1, 8)])
+        self.assertGreater(hours(wide, team_size=3)["duration"]["weeks"],
+                           hours(base, team_size=3)["duration"]["weeks"])
 
     def test_more_people_cannot_beat_the_critical_path(self):
         inv = inventory([

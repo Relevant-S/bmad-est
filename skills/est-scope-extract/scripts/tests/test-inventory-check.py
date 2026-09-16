@@ -1113,6 +1113,82 @@ class Sizing(unittest.TestCase):
         self.assertEqual([f for f in check.check_integrity(inv) if "size_band:" in f], [])
 
 
+
+class Evidence(unittest.TestCase):
+    """Can the extraction's evidence support the bands put on it?
+
+    Every other sizing check asks whether the distribution has the shape a delivered project
+    had, and none of them blocks. This one asks something prior: whether enough of the client's
+    document was recorded to justify banding a story past the range the anchor measured. It is
+    the only part of `sizing` that produces findings, and it does because a run shipped without
+    it — 2.6% of a PRD read, every story citing one line, 54 of 96 stories above XL, bands
+    assigning 13.4x the anchor's hours per source line, and `ok: true` on all of it.
+    """
+
+    BANDS = Sizing.BANDS
+    stories = Sizing.stories
+
+    def evidence(self, features):
+        return check.check_sizing(features, self.BANDS)[1]["evidence"]
+
+    def test_the_anchor_shaped_inventory_raises_nothing(self):
+        """The real OLD Kitespire run sat at 1.38x with none of its eight above-XL stories on a
+        single line, and it was a good inventory. A gate that fires there is a gate nobody keeps."""
+        got = self.evidence(self.stories({"S": 25, "M": 39, "L": 20, "XL": 11, "XXL": 8}, lines=7))
+        self.assertEqual(got["findings"], [])
+        self.assertLess(got["ratio_to_anchor"], check.EVIDENCE_RATIO_LIMIT)
+
+    def test_bands_far_outside_the_anchors_rate_are_a_finding(self):
+        """Kitespire ran at 13.4x. The ratio is taken against whichever anchor rate applies to
+        the inventory's shape — per source line where the source is row-shaped, per story
+        otherwise — and the finding names the unit it used."""
+        got = self.evidence(self.stories({"3XL": 30, "4XL": 20}, lines=1))
+        self.assertTrue(got["findings"])
+        self.assertGreater(got["ratio_to_anchor"], check.EVIDENCE_RATIO_LIMIT)
+        self.assertTrue(any("delivery anchor" in f for f in got["findings"]))
+
+    def test_counting_parts_you_cannot_see_is_a_finding(self):
+        """The upper bands are reached by naming and summing the anchor-sized stories inside a
+        row. One quoted line cannot support that, however confident the justification sounds."""
+        got = self.evidence(self.stories({"M": 20, "XXL": 12, "3XL": 8}, lines=1))
+        self.assertEqual(got["stories_beyond_the_measured_range"], 20)
+        self.assertEqual(got["of_those_citing_one_source_line"], 20)
+        self.assertTrue(any("single source line" in f for f in got["findings"]))
+
+    def test_the_same_bands_on_real_evidence_are_not_a_finding(self):
+        """The bands are not the problem — the evidence behind them is. Cite the parts and the
+        same distribution passes, which is what makes this a gate on extraction rather than a
+        cap on how large a story is allowed to be."""
+        got = self.evidence(self.stories({"M": 20, "XXL": 12, "3XL": 8}, lines=12))
+        self.assertEqual(got["of_those_citing_one_source_line"], 0)
+        self.assertFalse(any("single source line" in f for f in got["findings"]))
+
+    def test_an_inventory_using_only_the_measured_range_is_never_gated_on_it(self):
+        """Below XL there is nothing to count and nothing to justify by counting."""
+        got = self.evidence(self.stories({"XS": 4, "S": 25, "M": 39, "L": 20, "XL": 11}, lines=1))
+        self.assertEqual(got["stories_beyond_the_measured_range"], 0)
+        self.assertFalse(any("single source line" in f for f in got["findings"]))
+
+    def test_a_handful_of_thin_rows_is_tolerated(self):
+        """One line can genuinely describe a subsystem. The finding is about a pattern, not a
+        row, so a small number of them stays advisory."""
+        got = self.evidence(self.stories({"M": 40, "XXL": 2}, lines=8))
+        self.assertFalse(any("single source line" in f for f in got["findings"]))
+
+    def test_the_report_carries_the_numbers_the_finding_rests_on(self):
+        got = self.evidence(self.stories({"XXL": 20}, lines=1))
+        for key in ("stories_beyond_the_measured_range", "of_those_citing_one_source_line",
+                    "hours_per_unit", "anchor_hours_per_unit", "ratio_to_anchor", "limit"):
+            self.assertIn(key, got)
+
+    def test_these_are_the_only_sizing_results_that_block(self):
+        """The rest of `sizing` is explicitly not grounds to re-band a story, and that
+        distinction is the 3.0 fix for a prior that was injected and then enforced."""
+        report = check.check_sizing(self.stories({"XXL": 20}, lines=1), self.BANDS)[1]
+        self.assertIn("evidence", report)
+        self.assertIn("except `evidence`", report["advisory_only"])
+
+
 class Ceiling(unittest.TestCase):
     """Did the classifier measure the work, or run out of scale?
 

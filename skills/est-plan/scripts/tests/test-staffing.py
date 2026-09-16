@@ -49,20 +49,42 @@ class TheIndependentWorkFloor(unittest.TestCase):
         self.assertEqual(split["cut_edges"], 0)
         self.assertEqual(sorted(len(b["epics"]) for b in split["buckets"]), [1, 1])
 
-    def test_a_backlog_whose_dependencies_cross_every_split_is_refused_on_collisions(self):
-        """Interleaved dependencies mean whoever owns which epic, they are working the same
-        seam — parallelism on paper and blocked mornings in practice."""
-        features = []
-        for i in range(1, 17):
-            epic = f"E{i % 2 + 1}"
-            features.append(F.feature(f"F{i}", epic=epic, size="L",
-                                      depends_on=() if i == 1 else (f"F{i - 1}",)))
-        estimate = F.priced(features)
-        split = F.staffing.partition(estimate, "dev", 2)
-        self.assertGreater(split["cut_share"], 0.25)
-        verdict = F.judge_shape(estimate, "dev", 2)
-        self.assertFalse(verdict["allowed"])
-        self.assertIn("same seam", " ".join(verdict["refusals"]))
+    def test_a_chain_bound_backlog_makes_people_wait_and_a_wide_one_does_not(self):
+        """The measure that replaced `cut_share`, and the reason it replaced it.
+
+        `cut_share` counted dependency edges crossing a hypothetical partition of the epics.
+        It was non-monotonic in the epic count — one epic scored 0% and the gate was vacuous,
+        two scored ~50% and it refused everything — it judged a partition the scheduler never
+        makes, and on a real plan it refused a second developer who split the work 264 h / 264 h
+        and saved 5.9 weeks. Waiting is what it was trying to proxy, and the schedule measures
+        it directly.
+
+        Marginal, not total: a story's build waits for its own spec at any headcount, so what
+        the newcomer is answerable for is the waiting that did not exist before they arrived.
+        """
+        interleaved = [F.feature(f"F{i}", epic=f"E{i % 2 + 1}", size="L",
+                                 depends_on=() if i == 1 else (f"F{i - 1}",))
+                       for i in range(1, 25)]
+        chained = F.judge_shape(F.priced(interleaved), "dev", 3)["blocked_share_added"]
+        wide = F.judge_shape(F.priced(F.wide(48, epics=6, size="L")), "dev", 3)["blocked_share_added"]
+        self.assertGreater(chained, wide,
+                           "a chain and a wide backlog produce the same waiting — the measure "
+                           "is not reading the dependency graph")
+
+    def test_a_wide_backlog_reaches_a_third_developer(self):
+        """The defect the whole gate rewrite is for. A 48-story backlog over six epics with no
+        dependencies at all was being held at one developer."""
+        swept = F.staffing.sweep(F.priced(F.wide(48, epics=6, size="L")), F.model())
+        self.assertGreaterEqual(max(s.get("dev", 0) for s in swept["shapes"]), 3)
+
+    def test_the_partition_is_advisory_and_says_so(self):
+        """It is the plan's human-readable "who takes what". The scheduler assigns by
+        soonest-free and does not honour it, and it is no longer allowed to refuse anybody."""
+        source = (F.PLAN / "staffing.py").read_text(encoding="utf-8")
+        self.assertIn("suggested division of labour", source)
+        verdict = F.judge_shape(F.priced(F.wide(30, epics=5, size="L")), "dev", 2)
+        self.assertIn("partition", verdict)
+        self.assertNotIn("cross the split", " ".join(verdict["refusals"]))
 
 
 class TheCoordinationCost(unittest.TestCase):
@@ -90,10 +112,16 @@ class TheCoordinationCost(unittest.TestCase):
                            / F.model()["calendar"]["hours_per_person_week"])
 
     def test_a_person_who_buys_almost_no_calendar_is_refused_on_the_margin(self):
-        estimate = F.priced(F.chain(14))
+        """A chain does still hold some parallelism — a story's spec and the previous story's
+        review can overlap — so the question is never "is there any work" but "is there enough
+        to beat the ramp". This backlog is short enough that there is not."""
+        estimate = F.priced(F.chain(10))
         verdict = F.judge_shape(estimate, "dev", 2)
         self.assertFalse(verdict["allowed"])
         self.assertIn("cost more calendar than they buy", " ".join(verdict["refusals"]))
+        self.assertLess(verdict["weeks_saved"],
+                        F.model()["staffing"]["ramp_hours"]["likely"]
+                        / F.model()["calendar"]["hours_per_person_week"])
 
     def test_someone_already_on_the_project_is_not_a_newcomer(self):
         estimate = F.priced(F.wide(20, epics=4))

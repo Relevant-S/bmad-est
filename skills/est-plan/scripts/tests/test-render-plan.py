@@ -171,6 +171,55 @@ class TheWorkbookRoundTrip(unittest.TestCase):
         self.assertEqual(len([i for i in ids if i]), len(self.plan["options"]))
         self.assertTrue(any(str(i).startswith("★") for i in ids))
 
+    def test_nobody_is_drawn_in_two_places_in_the_same_week(self):
+        """`take()` guarantees one person does one thing at a time. The CHART did not: each
+        epic row painted every week it touched, so a developer dipping between four epics
+        inside one week appeared on all four rows for it, and the plan read as one person
+        working four epics at once for the whole project."""
+        after = self.extend()
+        for name in [n for n in after.sheetnames if n.startswith("Gantt")]:
+            sheet = after[name]
+            level, claimed = None, {}
+            for r in range(5, sheet.max_row + 1):
+                depth = sheet.row_dimensions[r].outlineLevel
+                if depth == 1:
+                    level, claimed = sheet.cell(row=r, column=1).value, {}
+                elif depth == 2:
+                    for c in range(5, sheet.max_column + 1):
+                        if sheet.cell(row=r, column=c).fill.fgColor.rgb not in (None, "00000000"):
+                            self.assertNotIn(c, claimed,
+                                             f"{name}: {level} is drawn on two epics in column "
+                                             f"{c} — {claimed.get(c)} and row {r}")
+                            claimed[c] = r
+
+    def test_the_calendar_priced_roles_are_drawn_at_all(self):
+        """The architect is on no team — it is priced as setup plus a capped weekly rate, so a
+        second one cannot be priced — and ceremony is charged per person per week. Neither was
+        ever drawn, which is most of why the chart accounted for about half the hours."""
+        after = self.extend()
+        sheet = after[[n for n in after.sheetnames if n.startswith("Gantt")][0]]
+        labels = [sheet.cell(row=r, column=1).value for r in range(5, sheet.max_row + 1)]
+        self.assertIn("Architect", labels)
+        self.assertIn("Ceremony", labels)
+
+    def test_the_chart_reconciles_with_the_estimate_it_belongs_to(self):
+        """Three different dev figures once sat in one workbook with nothing saying which was
+        which. The chart and the estimate are two views of one number."""
+        after = self.extend()
+        sheet = after[[n for n in after.sheetnames if n.startswith("Gantt")][0]]
+        note = None
+        for r in range(5, sheet.max_row + 1):
+            if sheet.cell(row=r, column=1).value == "Drawn above":
+                note = sheet.cell(row=r, column=5).value
+                drawn = sheet.cell(row=r, column=2).value
+        self.assertIsNotNone(note, "no reconciliation row on the chart")
+        self.assertIn("against", note)
+        self.assertIn("PERT", note)
+        option = max(self.plan["options"], key=lambda o: o["score"]["fit"])
+        priced = sum(r["hours"] for r in option["estimate"]["by_role"].values())
+        self.assertGreater(drawn / priced, 0.9,
+                           "the chart still leaves a tenth of the priced hours undrawn")
+
     def test_a_missing_workbook_is_reported_rather_than_created(self):
         """est-plan extends the estimate's workbook. Creating one would hand a client a second
         file with a Gantt and no scope in it."""

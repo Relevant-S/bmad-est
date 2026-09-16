@@ -99,10 +99,15 @@ def case_a_chain_cannot_be_hired_away():
     shapes = plan["staffing"]["shapes_considered"]
     refused = [d for d in plan["staffing"]["decisions"] if not d["allowed"]]
     spans = sorted(o["schedule"]["weeks"] for o in plan["options"])
+    biggest = max(sum(s.values()) for s in shapes)
     return plan, [
-        ("no second person is proposed at all", len(shapes) == 1),
-        ("every proposed addition was refused", bool(refused) and
-         all(not d["allowed"] for d in plan["staffing"]["decisions"])),
+        # A chain is not perfectly serial at the component level — one story's review can run
+        # beside the next one's build — so the honest claim is not "nobody may be added" but
+        # "the chain, not the headcount, sets the floor". The sweep must stop quickly, every
+        # refusal must carry its arithmetic, and no amount of hiring may beat the graph.
+        ("the sweep stops well short of the parallelism cap", biggest <= 7),
+        ("at least one addition was refused, with numbers", bool(refused) and
+         all(d["refusals"] for d in refused)),
         ("a refusal names its idle hours", any(d["idle_hours"] > 0 for d in refused)),
         ("no option beats the dependency chain", all(
             o["schedule"]["weeks"] + 1e-3 >= o["feasibility"]["critical_path_weeks"]

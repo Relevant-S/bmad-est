@@ -64,12 +64,16 @@ def partition(estimate, role, count):
 
     Epics are the unit, because an epic is the grain at which people actually collide: two
     developers in one epic are in the same files, and two developers in different epics
-    usually are not. Assignment is greedy longest-first onto the lightest person, which is the
-    standard makespan heuristic and, more importantly, the one whose result a reader can
-    reproduce by hand from the epic list.
+    usually are not. Assignment is greedy longest-first onto the lightest person: the standard
+    makespan heuristic, and the one whose result a reader can reproduce by hand from the epic
+    list.
 
-    Returns the per-person epic sets and the CUT — dependency edges that cross a partition
-    boundary, which is exactly the work that will block somebody or collide with somebody.
+    This is the plan's HUMAN-READABLE answer to "who takes what", and that is all it is now.
+    It used to be load-bearing: `cut_share` gated headcount on how many dependency edges
+    crossed these buckets, which refused a second developer who split the work evenly and
+    saved six weeks. The gate is `blocked_share` and it reads the simulation. Note that the
+    scheduler does not honour this partition — `_pick` assigns by soonest-free — so treat it
+    as a suggested division of labour, not as a description of the plan.
     """
     hours = collections.Counter()
     epic_of = {}
@@ -112,6 +116,26 @@ def partition(estimate, role, count):
 def delivered_by(sched, role):
     """Hours each person in a role actually received in a simulated schedule."""
     return [p["delivered_hours"] for p in sched["team"] if p["role"] == role]
+
+
+def blocked_share(sched, role):
+    """The share of this role's elapsed time spent free and unable to start.
+
+    This replaced `cut_share`, which counted dependency edges crossing a hypothetical partition
+    of the EPICS. Three things were wrong with that. It was non-monotonic in the epic count —
+    one epic scored 0% and the gate was vacuous, two scored ~50% and it refused everything. It
+    judged a partition the scheduler never makes, because `_pick` assigns by soonest-free and
+    ignores epics entirely. And on a real plan it refused a second developer who split the work
+    264 h / 264 h and saved 5.9 weeks, on the grounds that 50% of the dependencies crossed a
+    boundary that existed only inside the check.
+
+    Waiting is the thing that metric was trying to proxy, and it is right here in the schedule.
+    """
+    people = [p for p in sched["team"] if p["role"] == role]
+    weeks = sched["weeks"] or 1.0
+    if not people:
+        return 0.0
+    return sum(p.get("blocked_weeks", 0.0) for p in people) / (len(people) * weeks)
 
 
 def judge(estimate, model, role, count, sched, on_project=0, before=None):
@@ -157,12 +181,22 @@ def judge(estimate, model, role, count, sched, on_project=0, before=None):
         refusals.append(
             f"a {ORDINAL.get(count, f'{count}th')} {label} would deliver {smallest:.0f} h "
             f"after spending {ramp:.0f} h arriving. They would cost more than they carry.")
-    if count > 1 and split["cut_share"] > ceiling:
+    # The MARGINAL waiting this person introduces, not the total. A story's build always waits
+    # for its own specification and its dependencies' builds, at any headcount — charging that
+    # to the newcomer refused every addition on every backlog shape, including one that split
+    # evenly and saved two and a half weeks. What the newcomer is answerable for is the waiting
+    # that did not exist before they arrived.
+    waiting = blocked_share(sched, role)
+    was = blocked_share(before, role) if before else 0.0
+    added = max(0.0, waiting - was)
+    if count > 1 and added > ceiling:
         refusals.append(
-            f"{split['cut_edges']} of {split['total_edges']} dependencies "
-            f"({split['cut_share']:.0%}) cross the split, above the {ceiling:.0%} threshold. "
-            f"These people would be working the same seam: "
-            + ", ".join(f"{c['story']}→{c['waits_on']}" for c in split["crossing"][:4]))
+            f"a {ORDINAL.get(count, f'{count}th')} {label} would add {added:+.0%} to the time "
+            f"this role spends waiting ({was:.0%} -> {waiting:.0%}), above the {ceiling:.0%} "
+            f"threshold — they would be working the same seam, and the dependency graph will "
+            f"not let them run side by side. "
+            + (", ".join(f"{c['story']}→{c['waits_on']}" for c in split["crossing"][:4])
+               or "the chain runs through most of the backlog"))
     # Does this person actually shorten the plan by more than they spend arriving? The
     # marginal test, and the only honest form of the ramp gate: an earlier version compared
     # the ramp against a share of the role's backlog and suppressed itself when the role was
@@ -197,6 +231,8 @@ def judge(estimate, model, role, count, sched, on_project=0, before=None):
         "newcomers": newcomers,
         "ramp_hours": round(newcomers * ramp, 1),
         "weeks_saved": round(saving, 2) if saving is not None else None,
+        "blocked_share": round(waiting, 3),
+        "blocked_share_added": round(added, 3),
         "cut_share": split["cut_share"],
         "partition": split["buckets"],
         "justification": reasons,
