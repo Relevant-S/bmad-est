@@ -14,13 +14,6 @@ touch no story. The role table is the headline now, each role carrying its own r
 saying how much of it is story work and how much is project-level. `total_hours` stays in
 estimate.json — calibration compares it against delivered actuals — and nothing renders it.
 
-**Every row carries its own risk, per role.** `{role}_hours` is that row's mean for that role,
-`{role}_risk` its share of systematic model risk, `{role}_planned` the two added. These are the
-budget columns and they ADD UP: the split is linear because systematic risk is correlated across
-roles and rows by definition, so summing a `_risk` column down the sheet reproduces the project
-figure exactly. No per-row band is written — bands combine in quadrature, and a summed band
-column would reconcile with nothing.
-
 **Nothing is a point value.** Every story and every role carries low/likely/high, because how
 well-specified the work is only becomes visible as width.
 
@@ -124,41 +117,18 @@ def engine():
 
 
 def role_table(est, indent=""):
-    """The estimate's headline. Every role, as a range, with the arithmetic on the page.
-
-    `Risk` and `Planned` are the budget pair and they ADD UP: `Risk` is this role's share of
-    systematic model risk, split linearly because that risk is correlated across roles by
-    definition, so the column sums to the project's own `sd_from_model_risk` exactly. The
-    Low–High range does not add up the same way and is not a band; `confidence.role_attribution`
-    carries the reconciliation in numbers.
-    """
-    rows = [f"{indent}| Role | Low | Likely | High | Hours | On stories | Project-level | "
-            f"Risk | Planned |",
-            f"{indent}| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    """The estimate's headline. Every role, as a range, with the arithmetic on the page."""
+    rows = [f"{indent}| Role | Low | Likely | High | On stories | Project-level |",
+            f"{indent}| --- | ---: | ---: | ---: | ---: | ---: |"]
     for role, row in sorted((est.get("by_role") or {}).items(),
                             key=lambda kv: -rng(kv[1])[1]):
         lo, likely, hi = rng(row)
         on_stories = row.get("on_stories") if isinstance(row, dict) else None
         project = row.get("project_level") if isinstance(row, dict) else None
-        risk = row.get("model_risk_hours") if isinstance(row, dict) else None
-        planned = row.get("risk_adjusted_hours") if isinstance(row, dict) else None
-        mean = row.get("hours") if isinstance(row, dict) else None
         rows.append(
             f"{indent}| {role} | {lo:,.0f} | {likely:,.0f} | {hi:,.0f} | "
-            f"{'—' if mean is None else format(mean, ',.0f')} | "
             f"{'—' if not on_stories else format(on_stories, ',.0f')} | "
-            f"{'—' if not project else format(project, ',.0f')} | "
-            f"{'—' if risk is None else format(risk, ',.0f')} | "
-            f"{'—' if planned is None else format(planned, ',.0f')} |")
-    rows.append("")
-    rows.append(f"{indent}*Every relation on a row is checkable: Hours = On stories + "
-                f"Project-level, and Planned = Hours + Risk. Hours is the expected value and is "
-                f"not the same figure as Likely, which is the mode of the interval beside it. "
-                f"Risk is this role's share of systematic model risk and the column ADDS UP — "
-                f"summing it down the sheet returns the project's own figure. Planned is Hours "
-                f"plus ONE standard deviation of that risk and nothing else: no feature "
-                f"variance, no widening for a thin brief. It is a budget line, not a worst case, "
-                f"and it is narrower than this role's own band.*")
+            f"{'—' if not project else format(project, ',.0f')} |")
     return rows
 
 
@@ -396,10 +366,6 @@ def brief(est):
             "range": f.get("range") or {"low": f["hours"], "likely": f["hours"],
                                         "high": f["hours"]},
             "by_role": f.get("by_role") or {},
-            # The budget pair, per story, because "how many QA hours" is asked of the agent far
-            # more often than "what is the QA band". Additive down the list; not a worst case.
-            "model_risk_hours": f.get("model_risk_hours"),
-            "risk_adjusted_hours": f.get("risk_adjusted_hours"),
             "scope_status": f.get("scope_status") or "in_agreed_scope",
             "origin": f.get("origin") or "extracted",
             "dominant_component": dominant(f),
@@ -412,46 +378,13 @@ def brief(est):
     }
 
 
-# The per-role column block, written once so the next suffix lands in one place rather than in
-# three inline f-strings that have to be kept in step.
-#
-# RANGE was here first and never moves: `{role}_low|likely|high` is the SUMMED three-point
-# interval — every hour of that role at its own worst at once — and other readers name it.
-# BUDGET is the schema 1.1 block, grouped after it: `{role}_hours` is the PERT mean, `_risk` is
-# that mean's share of systematic model risk, `_planned` is the two added. The budget columns
-# are ADDITIVE — sum `{role}_risk` down the sheet and you get `by_role[role].model_risk_hours`
-# exactly. Nothing here is a band; bands do not add up and none is written per row.
-ROLE_RANGE = ("low", "likely", "high")
-ROLE_BUDGET = ("hours", "risk", "planned")
-BUDGET_FIELD = {"hours": "hours", "risk": "model_risk_hours", "planned": "risk_adjusted_hours"}
-
-
-def role_columns(est, suffixes, prefix=""):
-    return [f"{prefix}{role}_{suffix}" for role in role_names(est) for suffix in suffixes]
-
-
-def role_cells(row, est, split, suffixes, prefix=""):
-    """One row's role columns, from one definition — stories, project lines and task rows alike."""
-    for role in role_names(est):
-        entry = split.get(role)
-        if "low" in suffixes:
-            r_lo, r_likely, r_hi = rng(entry if entry is not None else 0.0)
-            row[f"{prefix}{role}_low"] = round(r_lo, 2)
-            row[f"{prefix}{role}_likely"] = round(r_likely, 2)
-            row[f"{prefix}{role}_high"] = round(r_hi, 2)
-        if "hours" in suffixes:
-            values = entry if isinstance(entry, dict) else {}
-            for suffix in ROLE_BUDGET:
-                row[f"{prefix}{role}_{suffix}"] = round(values.get(BUDGET_FIELD[suffix]) or 0.0, 2)
-    return row
-
-
 def estimate_columns(est):
     """The columns the estimate adds on top of whatever the inventory already carried."""
-    return ["hours", "hours_low", "hours_likely", "hours_high", "sd",
-            *AXES, "build", "spec", "review", "rework",
-            *role_columns(est, ROLE_RANGE), *role_columns(est, ROLE_BUDGET),
-            "risk_hours", "planned_hours"]
+    cols = ["hours", "hours_low", "hours_likely", "hours_high", "sd",
+            *AXES, "build", "spec", "review", "rework"]
+    for role in role_names(est):
+        cols += [f"{role}_low", f"{role}_likely", f"{role}_high"]
+    return cols
 
 
 def estimate_cells(f, est):
@@ -459,32 +392,15 @@ def estimate_cells(f, est):
     lo, likely, hi = rng(f.get("range") or f["hours"])
     row = {"hours": f["hours"], "hours_low": lo, "hours_likely": likely, "hours_high": hi,
            "sd": f.get("sd"),
-           "risk_hours": f.get("model_risk_hours"),
-           "planned_hours": f.get("risk_adjusted_hours"),
            **{axis: f["tags"].get(axis) for axis in AXES},
            **{k: v for k, v in (f.get("component_hours") or {}).items()}}
-    return role_cells(row, est, f.get("by_role") or {}, ROLE_RANGE + ROLE_BUDGET)
-
-
-def task_price_columns(est):
-    """The priced columns a task row carries — every one of them prefixed `alloc_`.
-
-    The prefix is the label, and it is in the header on purpose. The cost model prices STORIES;
-    a task figure is this story's hours divided by its task count, under the rule named in
-    `estimate.json`'s `task_allocation`. Nothing in any delivered project recorded what a task
-    cost, so a column called `dev_hours` on this sheet would invite a negotiation over a number
-    with no evidence behind it. `alloc_dev_hours` cannot be mistaken for one.
-    """
-    return ["alloc_hours", *role_columns(est, ROLE_BUDGET, prefix="alloc_"),
-            "alloc_risk_hours", "alloc_planned_hours"]
-
-
-def task_cells(tk, est):
-    """One task row's allocated share of its parent story, per role."""
-    row = {"alloc_hours": tk.get("hours"),
-           "alloc_risk_hours": tk.get("model_risk_hours"),
-           "alloc_planned_hours": tk.get("risk_adjusted_hours")}
-    return role_cells(row, est, tk.get("by_role") or {}, ROLE_BUDGET, prefix="alloc_")
+    split = f.get("by_role") or {}
+    for role in role_names(est):
+        r_lo, r_likely, r_hi = rng(split.get(role, 0.0))
+        row[f"{role}_low"] = round(r_lo, 2)
+        row[f"{role}_likely"] = round(r_likely, 2)
+        row[f"{role}_high"] = round(r_hi, 2)
+    return row
 
 
 def tabular(est, inventory=None):
@@ -548,34 +464,22 @@ def tabular(est, inventory=None):
         f = priced.get(row.get("id"))
         if f:
             row.update(estimate_cells(f, est))
-
-    # The Tasks sheet carried the client's sentences and no hours at all, which left the one
-    # place a reviewer reads the source text with no way to see roughly what it costs. It gets
-    # the story's figures allocated down it, under the `alloc_` prefix that says so.
-    task_added = [c for c in task_price_columns(est) if c not in task_columns]
-    priced_tasks = {(f["id"], tk.get("id")): tk
-                    for f in est["features"] for tk in f.get("tasks") or []}
-    for row in task_rows:
-        tk = priced_tasks.get((row.get("feature_id"), row.get("task_id")))
-        if tk:
-            row.update(task_cells(tk, est))
     # Project-level lines are real hours someone pays for, so they belong in the sales sheet.
-    # They carry no story columns, and no grand total row follows them. Their risk columns are
-    # their OWN — planning, QA and overhead each carry a share computed from their own mean — so
-    # nothing here repeats a project total onto a story line, which is the reading that would
-    # make the sheet look broken.
+    # They carry no story columns, and no grand total row follows them.
     for name, comp in (est.get("project_components") or {}).items():
         row = {"id": "—", "name": f"[project] {name.replace('_', ' ')}",
                "scope_status": "project-wide", "origin": "project",
                "hours": comp["hours"], "sd": comp["sd"]}
         lo, likely, hi = rng(comp.get("range") or comp["hours"])
         row.update({"hours_low": lo, "hours_likely": likely, "hours_high": hi})
-        row["risk_hours"] = comp.get("model_risk_hours")
-        row["planned_hours"] = comp.get("risk_adjusted_hours")
-        role_cells(row, est, comp.get("by_role") or {}, ROLE_RANGE + ROLE_BUDGET)
+        for role, split in (comp.get("by_role") or {}).items():
+            r_lo, r_likely, r_hi = rng(split)
+            row[f"{role}_low"] = r_lo
+            row[f"{role}_likely"] = r_likely
+            row[f"{role}_high"] = r_hi
         story_rows.append(row)
 
-    return (story_columns + added, story_rows), (task_columns + task_added, task_rows)
+    return (story_columns + added, story_rows), (task_columns, task_rows)
 
 
 def write_csv(est, target, inventory=None):
@@ -605,6 +509,26 @@ def write_xlsx(est, target, inventory=None):
         target, links)
 
 
+def brand():
+    """The company palette and type, from the one file that holds them.
+
+    Imported the same way the inventory renderer is, and for the same reason: the estimate
+    report, the plan and the calibration report all used to declare the palette by hand, and
+    the three had drifted on the tokens they shared.
+    """
+    global _BRAND
+    try:
+        return _BRAND
+    except NameError:
+        pass
+    spec = importlib.util.spec_from_file_location(
+        "brand", Path(__file__).resolve().parent / "brand.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _BRAND = mod
+    return mod
+
+
 def write_html(est, target, options):
     payload = dict(est)
     payload["_render_options"] = options
@@ -612,6 +536,7 @@ def write_html(est, target, options):
     # </script> inside embedded JSON would close the tag early and break the page.
     blob = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     html = template.replace("__TITLE__", f"Estimate — {est.get('project', 'untitled')}")
+    html = html.replace("__BRAND_CSS__", brand().css().rstrip("\n"))
     html = html.replace("__ESTIMATE_JSON__", blob)
     Path(target).write_text(html, encoding="utf-8")
 

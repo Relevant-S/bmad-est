@@ -463,53 +463,5 @@ class TheSameScopeSlicedTwoWays(unittest.TestCase):
                 self.assertAlmostEqual(fused / original, 1.0, delta=0.12)
 
 
-class TheBudgetReconcilesOnADeliveredProject(unittest.TestCase):
-    """The risk attribution, checked on real scope rather than a three-story fixture.
-
-    EPP is 75 delivered stories across six roles, so the rounding residual here is the residual
-    a real sheet carries. The bound asserted is the arithmetic one — 0.05 h per published cell —
-    not a number fitted to what the code happens to produce today.
-    """
-
-    def test_every_anchor_reconciles_its_role_buffer_against_its_headline(self):
-        for name in ANCHORS:
-            with self.subTest(anchor=name):
-                priced = price(name)
-                attributed = sum(r["model_risk_hours"] for r in priced["by_role"].values())
-                self.assertAlmostEqual(attributed,
-                                       priced["confidence"]["sd_from_model_risk"],
-                                       delta=0.05 * len(priced["by_role"]))
-
-    def test_the_rows_add_up_to_the_role_totals_a_client_is_quoted(self):
-        priced = price("epp")
-        rows = list(priced["features"]) + list(priced["project_components"].values())
-        cells = sum(len(r["by_role"]) for r in rows)
-        self.assertGreater(cells, 200)  # a real sheet, not a three-row fixture
-        for role, total in priced["by_role"].items():
-            with self.subTest(role=role):
-                summed = sum((r["by_role"].get(role) or {}).get("model_risk_hours", 0.0)
-                             for r in rows)
-                self.assertAlmostEqual(summed, total["model_risk_hours"],
-                                       delta=0.05 * len(rows))
-
-    def test_planned_hours_sit_inside_the_band_and_above_the_middle_of_it(self):
-        """The label has to be true on real numbers: planned is the mean plus ONE systematic
-        sigma, so it is above the central figure and below the top of the role's own band. A
-        planned figure that escaped the band would be a worst case wearing a budget's name."""
-        for name in ANCHORS:
-            for role, row in price(name)["by_role"].items():
-                with self.subTest(anchor=name, role=role):
-                    self.assertGreater(row["risk_adjusted_hours"], row["band"]["likely"])
-                    self.assertLess(row["risk_adjusted_hours"], row["band"]["high"])
-
-    def test_the_role_half_bands_still_exceed_the_project_half_band(self):
-        """Measured on the anchor and reported on the page: roles sum to about 1.1x the
-        project's half-band. That excess is diversification across stories, not a defect, and
-        `role_attribution` carries it so nobody adds the bands up and quotes the answer."""
-        attribution = price("epp")["confidence"]["role_attribution"]
-        self.assertGreater(attribution["half_band_ratio"], 1.0)
-        self.assertLess(attribution["half_band_ratio"], 1.5)
-
-
 if __name__ == "__main__":
     unittest.main()

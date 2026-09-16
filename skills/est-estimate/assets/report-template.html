@@ -5,16 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
-  :root {
-    --bg: #fbfbf9; --panel: #fff; --ink: #1a1a1a; --muted: #6b6b6b; --line: #e3e3df;
-    --accent: #1f5f4f; --warn: #8a5a00; --danger: #93321f; --soft: #f2f2ee;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#16171a; --panel:#1e1f23; --ink:#ececed; --muted:#9a9a9e; --line:#31323a;
-            --accent:#6fc0a6; --warn:#d9a441; --danger:#e08b76; --soft:#26272c; }
-  }
+__BRAND_CSS__
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 var(--font); }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 20px 80px; }
   h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
   h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
@@ -29,30 +22,30 @@
           background:var(--soft); color:var(--muted); border:1px solid var(--line); }
   .chip.sensitive { color: var(--warn); border-color: var(--warn); }
   .chip.critical { color: var(--danger); border-color: var(--danger); }
-  .chip.outside { color: var(--accent); border-color: var(--accent); }
+  .chip.outside { color: var(--brand); border-color: var(--brand); }
   table { width:100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align:left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .scroll { overflow-x: auto; }
   .bar { height: 7px; background: var(--soft); border-radius: 4px; overflow: hidden; min-width: 90px; }
-  .bar > span { display:block; height:100%; background: var(--accent); }
+  .bar > span { display:block; height:100%; background: var(--brand); }
   .muted { color: var(--muted); }
-  .note { background: var(--soft); border-left: 3px solid var(--accent); padding: 12px 14px;
+  .note { background: var(--soft); border-left: 3px solid var(--brand); padding: 12px 14px;
           border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 14px; }
   .note.warn { border-left-color: var(--warn); }
   label.feature { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
-  input[type=checkbox] { margin-top: 3px; width:15px; height:15px; accent-color: var(--accent); flex:none; }
+  input[type=checkbox] { margin-top: 3px; width:15px; height:15px; accent-color: var(--brand); flex:none; }
   .off { opacity: .42; }
-  .epicHead th { background: #f2f4f7; text-align: left; font-size: 12px; letter-spacing: .02em;
+  .epicHead th { background: var(--soft); text-align: left; font-size: 12px; letter-spacing: .02em;
                  text-transform: none; padding-top: 14px; }
-  .epicWhy { font-weight: 400; color: #667085; }
-  .epicFoot td { border-top: 1px solid #d0d5dd; font-weight: 600; background: #fbfcfd; }
+  .epicWhy { font-weight: 400; color: var(--muted); }
+  .epicFoot td { border-top: 1px solid var(--line-strong); font-weight: 600; background: var(--panel); }
   .grid { display:grid; gap:18px; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); }
   .q { border-bottom:1px solid var(--line); padding:10px 0; display:flex; gap:14px; justify-content:space-between; }
   .q:last-child { border-bottom:0; }
   .cite { font-size:12.5px; color:var(--muted); margin-top:3px; }
-  button.link { background:none; border:0; color:var(--accent); cursor:pointer; font-size:13px; padding:0; }
+  button.link { background:none; border:0; color:var(--brand); cursor:pointer; font-size:13px; padding:0; }
   footer { margin-top: 40px; color: var(--muted); font-size: 12.5px; }
   @media print { body { background:#fff; } .panel { break-inside: avoid; } input { display:none; } }
 </style>
@@ -64,8 +57,7 @@
 
   <div class="panel headline">
     <div style="flex:1; min-width:320px">
-      <div class="muted" style="margin-bottom:8px">Hours by role — low · likely · high, then
-        expected hours and planned</div>
+      <div class="muted" style="margin-bottom:8px">Hours by role — low · likely · high</div>
       <table id="roleHeadline"></table>
     </div>
     <div style="flex:1; min-width:240px">
@@ -88,7 +80,6 @@
         <thead><tr>
           <th style="width:32%">Feature</th><th>Tier</th><th>Compress</th><th>Clarity</th>
           <th class="num">Low</th><th class="num">Likely</th><th class="num">High</th>
-          <th class="num" title="Likely hours plus one sigma of systematic model risk. Additive; not a worst case.">Planned</th>
           <th id="roleHeads"></th>
         </tr></thead>
         <tbody id="features"></tbody>
@@ -104,13 +95,9 @@
     <div>
       <h2>By role</h2>
       <div class="panel"><table id="roles"></table></div>
-      <div class="muted" style="margin-top:8px">Each role is a range, then its expected hours
-        and its <strong>planned</strong> hours — the expected figure plus ONE standard deviation
-        of systematic model risk and nothing else. Planned is the budget line, not a worst case:
-        it carries no feature variance and no widening for a thin brief, so it sits inside the
-        role's own band. It is also the only figure here that adds up, because that risk is
-        split linearly. There is no single project total: summing across roles answers no
-        question anyone asks, and the roles are what gets staffed and quoted.</div>
+      <div class="muted" style="margin-top:8px">Each role is a range. There is no single
+        project total: summing across roles answers no question anyone asks, and the roles are
+        what gets staffed and quoted.</div>
     </div>
   </div>
 
@@ -308,35 +295,15 @@ function compute(ids) {
     }
     widenInto(band);
   }
-  /* Project lines accumulate into their own bucket as well as the shared one, so the sheet's
-     `[project] …` rows can be checked against the page. Story rows need no such treatment: a
-     story's own hours do not move when a DIFFERENT feature is unticked, only the project lines
-     shrink with scope, so the page reads per-story figures straight off the file and cannot
-     drift from them. */
-  const projectRoles = {};
-  for (const [name, v] of Object.entries(project)) {
-    putPhase(v, name);
-    putRole(v, name, null, 1);
-    for (const [role, share] of Object.entries(shares(name, null)))
-      projectRoles[role] = add(projectRoles[role] || [0,0,0], scale(v, share));
-  }
-
-  /* The budget pair, mirroring risk_of() in estimate.py. Systematic model risk is correlated
-     across roles by definition, so it is split LINEARLY and the parts sum to sdModel exactly.
-     `planned` is the mean plus that one sigma and nothing else — not the top of the band. */
-  const roleRisk = {}, rolePlanned = {};
-  for (const [role, v] of Object.entries(roles)) {
-    roleRisk[role] = (M.uncertainty.model_risk || 0) * TP.mean(v);
-    rolePlanned[role] = TP.mean(v) + roleRisk[role];
-  }
+  for (const [name, v] of Object.entries(project)) { putPhase(v, name); putRole(v, name, null, 1); }
 
   const scope = {};
   for (const f of feats) {
     const k = f.scope_status || 'in_agreed_scope';
     scope[k] = (scope[k] || 0) + TP.mean(f.total);
   }
-  return { mean, half, phases, roles, roleRisk, rolePlanned, projectRoles, scope,
-           features: feats.length, low: Math.max(mean - half, 0), high: mean + half };
+  return { mean, half, phases, roles, scope, features: feats.length,
+           low: Math.max(mean - half, 0), high: mean + half };
 }
 
 /* PARITY-BLOCK-END */
@@ -353,19 +320,15 @@ function rows(target, data, total) {
 
 /* Roles are intervals, so they get their own renderer: a bar on the central figure with the
    low and high beside it. A point value here would hide exactly the signal the range carries. */
-function roleRows(target, data, total, planned) {
+function roleRows(target, data, total) {
   const el = document.getElementById(target);
   if (!el) return;
   const entries = Object.entries(data).sort((a,b) => TP.mean(b[1]) - TP.mean(a[1]));
   el.innerHTML = entries.map(([k,v]) => {
     const m = TP.mean(v);
-    /* Planned recomputes with the rest: it is a share of this role's own mean, so unticking a
-       feature moves it. It is the mean plus ONE sigma of systematic risk and nothing else —
-       narrower than the role's band, and the only column here that adds up. */
-    const pl = planned ? `<td class="num">${h(m)}</td><td class="num">${h(planned[k] || 0)}</td>` : '';
     return `<tr><td>${k.replace(/[-_]/g,' ')}</td>
         <td style="width:34%"><div class="bar"><span style="width:${total ? (100*m/total).toFixed(1) : 0}%"></span></div></td>
-        <td class="num">${h(v[0])} – ${h(v[1])} – ${h(v[2])}</td>${pl}</tr>`;
+        <td class="num">${h(v[0])} – ${h(v[1])} – ${h(v[2])}</td></tr>`;
   }).join('');
 }
 
@@ -381,8 +344,8 @@ function render() {
     r.features === E.features.length ? scopeParts : `${r.features} of ${E.features.length} features included — ${scopeParts}`;
 
   rows('phases', r.phases, r.mean);
-  roleRows('roles', r.roles, r.mean, r.rolePlanned);
-  roleRows('roleHeadline', r.roles, r.mean, r.rolePlanned);
+  roleRows('roles', r.roles, r.mean);
+  roleRows('roleHeadline', r.roles, r.mean);
   const onStories = Object.values(E.by_role || {})
     .reduce((s,v) => s + (v.on_stories || 0), 0);
   const projectLevel = Object.values(E.by_role || {})
@@ -408,8 +371,6 @@ function render() {
     foot.querySelector('[data-sub=low]').textContent = h(sum('low'));
     foot.querySelector('[data-sub=likely]').textContent = h(sum('likely'));
     foot.querySelector('[data-sub=high]').textContent = h(sum('high'));
-    foot.querySelector('[data-sub=planned]').textContent = h(kept.reduce(
-      (s, f) => s + (f.risk_adjusted_hours != null ? f.risk_adjusted_hours : f.hours), 0));
     foot.classList.toggle('off', kept.length === 0);
   }
 }
@@ -474,7 +435,6 @@ const featureRow = f => {
     <td>${f.tags.compressibility}</td>
     <td>${f.tags.clarity}</td>
     <td class="num">${h(r0)}</td><td class="num">${h(r1)}</td><td class="num">${h(r2)}</td>
-    <td class="num">${h(f.risk_adjusted_hours != null ? f.risk_adjusted_hours : f.hours)}</td>
     ${ROLES.map(role => {
         const v = (f.by_role || {})[role];
         if (!v) return '<td class="num muted">—</td>';
@@ -487,7 +447,7 @@ const featureRow = f => {
 const COLSPAN = 4;
 document.getElementById('features').innerHTML = GROUPS.map(g => {
   const head = GROUPS.length > 1
-    ? `<tr class="epicHead"><th colspan="${COLSPAN + 4 + ROLES.length}">${g.label}` +
+    ? `<tr class="epicHead"><th colspan="${COLSPAN + 3 + ROLES.length}">${g.label}` +
       (g.why ? ` <span class="epicWhy">— ${g.why}</span>` : '') + `</th></tr>`
     : '';
   const foot = GROUPS.length > 1
@@ -495,7 +455,6 @@ document.getElementById('features').innerHTML = GROUPS.map(g => {
       `<td colspan="${COLSPAN}">subtotal</td>` +
       `<td class="num" data-sub="low"></td><td class="num" data-sub="likely"></td>` +
       `<td class="num" data-sub="high"></td>` +
-      `<td class="num" data-sub="planned"></td>` +
       ROLES.map(() => '<td></td>').join('') + `</tr>`
     : '';
   return head + g.features.map(featureRow).join('') + foot;

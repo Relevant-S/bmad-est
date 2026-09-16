@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "_what": "The company's visual identity, in one file, because it was in three and they had already drifted. Extracted from https://relevant.software/ on 2026-09-16 by reading the site's own :root custom properties and computed styles rather than by eye. Every consumer renders FROM this: the HTML report, the calibration report, the estimate workbook and the plan's Gantt. Change a colour here and it changes everywhere, which is the point.",
+  "source": {
+    "url": "https://relevant.software/",
+    "read": "2026-09-16",
+    "how": "Playwright: document.styleSheets :root custom properties, plus getComputedStyle over the rendered page for the type scale and the colours actually in use.",
+    "why_not_eyedropped": "A screenshot samples what a JPEG encoder decided. The site publishes its own tokens; those are the brand, and they carry the names the company's own front end uses."
+  },
+  "font": {
+    "family": "\"PP Mori\", fontPPMori, Arial, Helvetica, sans-serif",
+    "css_family": "\"PP Mori\", \"PP Mori Fallback\", Arial, Helvetica, sans-serif",
+    "css_family_why": "The CSS stack names the metric-adjusted fallback face declared beside it, so a reader without PP Mori gets Arial sized to PP Mori's metrics rather than Arial at its own. Plain `Arial` is kept last for a browser that ignores the @font-face.",
+    "local_first": "PP Mori",
+    "fallback": "Arial",
+    "why": "PP Mori is the brand face — a licensed Pangram Pangram font, self-hosted on the site behind hashed build URLs. It cannot be embedded in a document we hand a client, and linking the site's own woff2 would break the moment the page is opened offline or the build hash rotates. So: use it where the reader has it installed, and fall back to Arial, which is what the site itself falls back to.",
+    "metric_overrides": {
+      "size_adjust": "105.82%",
+      "ascent_override": "94.5%",
+      "descent_override": "28.35%",
+      "line_gap_override": "9.45%",
+      "why": "Copied from the site's own \"fontPPMori Fallback\" face. They make Arial occupy the same space PP Mori would, so a document laid out for one does not reflow into the other."
+    },
+    "xlsx_family": "Arial",
+    "xlsx_family_why": "Excel cannot load a webfont, and a workbook naming a font the reader lacks is silently re-substituted per machine. Arial is present on every platform Excel runs on, so the sheet looks the same everywhere."
+  },
+  "palette": {
+    "_what": "Names are roles, not colours, so a document never hardcodes a hex. The `light` set is the definition; `dark` overrides only what has to move.",
+    "light": {
+      "brand": "#002c8d",
+      "brand_hover": "#0134a5",
+      "brand_tint": "#d5dee7",
+      "brand_wash": "rgba(0,44,141,0.10)",
+      "ink": "#001035",
+      "muted": "rgba(0,16,53,0.70)",
+      "faint": "rgba(0,16,53,0.32)",
+      "bg": "#f7f8f8",
+      "panel": "#ffffff",
+      "soft": "#ebebeb",
+      "line": "#e0e0e0",
+      "line_strong": "#adadad",
+      "danger": "#e64239",
+      "warn": "#8a5a00",
+      "ok": "#0f7a5a"
+    },
+    "dark": {
+      "brand": "#7f9fe8",
+      "brand_hover": "#9ab4ef",
+      "brand_tint": "#1b2740",
+      "brand_wash": "rgba(127,159,232,0.12)",
+      "ink": "#eceef2",
+      "muted": "rgba(236,238,242,0.70)",
+      "faint": "rgba(236,238,242,0.32)",
+      "bg": "#0e1220",
+      "panel": "#161b2b",
+      "soft": "#1e2436",
+      "line": "#2b3348",
+      "line_strong": "#4a5470",
+      "danger": "#f08a83",
+      "warn": "#d9a441",
+      "ok": "#5fc2a0"
+    },
+    "dark_why": "The site ships no dark theme, so this half is derived rather than extracted and is labelled as such. The brand navy is unreadable on a dark ground, so it is lifted to a tint of itself that holds the same hue at usable contrast; the neutrals are the site's ink and ground inverted through the same relationship. Nothing here claims to be the company's dark palette — it claims to be this one, legible at night."
+  },
+  "roles": {
+    "_what": "One colour per delivery role, used by the Gantt so a reader can tell who is doing what without reading a label. Derived from the brand navy by rotating hue and holding saturation, so the chart reads as one family rather than as a highlighter set.",
+    "ba": "#002c8d",
+    "ux": "#7a3fa8",
+    "architect": "#0b5d7a",
+    "dev": "#1f7a5a",
+    "qa": "#8a5a00",
+    "devops": "#5a5f70",
+    "_contrast": "Every one of these carries white text at 14px and clears WCAG AA against #ffffff. Bars are filled at full strength and idle cells at brand_tint, so occupancy is visible in greyscale and in print."
+  },
+  "type_scale": {
+    "_what": "The site's clamp() scale, flattened to the sizes a document actually uses.",
+    "h1": {
+      "size": "26px",
+      "weight": 600,
+      "tracking": "-0.01em"
+    },
+    "h2": {
+      "size": "15px",
+      "weight": 600,
+      "tracking": "0.07em",
+      "transform": "uppercase"
+    },
+    "body": {
+      "size": "15px",
+      "weight": 400,
+      "line": 1.55
+    },
+    "small": {
+      "size": "12.5px",
+      "weight": 400
+    },
+    "figure": {
+      "size": "40px",
+      "weight": 650,
+      "tracking": "-0.02em"
+    }
+  }
+}
