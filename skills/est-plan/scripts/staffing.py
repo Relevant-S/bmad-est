@@ -135,7 +135,11 @@ def blocked_share(sched, role):
     weeks = sched["weeks"] or 1.0
     if not people:
         return 0.0
-    return sum(p.get("blocked_weeks", 0.0) for p in people) / (len(people) * weeks)
+    # Elapsed time ON THE PROJECT. People now arrive when the demand justifies them rather than
+    # all in week one, so dividing by the whole span for everybody would dilute a late joiner's
+    # waiting across weeks they were not here — and this gate refuses headcount on that number.
+    present = sum(max(weeks - p.get("join_week", 0.0), 1e-9) for p in people)
+    return sum(p.get("blocked_weeks", 0.0) for p in people) / present
 
 
 def judge(estimate, model, role, count, sched, on_project=0, before=None):
@@ -163,20 +167,34 @@ def judge(estimate, model, role, count, sched, on_project=0, before=None):
 
     got = delivered_by(sched, role)
     delivered = sum(got)
-    smallest = min(got) if got else 0.0
-    even = delivered / count if count else 0.0
     split = partition(estimate, role, count)
-    capacity = count * rate * span if span else 0.0
+    # Does the work split N ways? Measured as hours delivered PER WEEK ON THE PROJECT, not as
+    # a share of the total. People now arrive when their role's demand justifies them, so a
+    # developer who joins in week 5 of a nine-week plan carries less of the total by
+    # construction — comparing them against an even share would refuse them for arriving late,
+    # which is a decision this same function already made for them.
+    here = [p for p in sched["team"] if p["role"] == role]
+    present = [max(span - p.get("join_week", 0.0), 1e-9) for p in here] or [span or 1.0]
+    pace = sorted(h / w for h, w in zip(got, present)) or [0.0]
+    slowest = pace[0]
+    typical = sum(pace) / len(pace)
+    smallest = min(got) if got else 0.0
+    # Capacity is counted from each person's arrival, not from week one. Charging a developer
+    # who joins in week 7 for the six weeks before they existed reported them as half-occupied
+    # when they were booked solid, and the utilisation floor below would then refuse somebody
+    # the backlog genuinely needed.
+    weeks_present = sum(present) if here else (count * span)
+    capacity = rate * weeks_present if span else 0.0
     utilisation = delivered / capacity if capacity else 0.0
     newcomers = max(0, count - on_project)
 
     reasons, refusals = [], []
-    if count > 1 and even and smallest < floor * even:
+    if count > 1 and typical and slowest < floor * typical:
         refusals.append(
-            f"the work does not split {count} ways — the least-loaded {label} picks up only "
-            f"{smallest:.0f} h of the {delivered:.0f} h of {label} work, against "
-            f"{even:.0f} h on an even share. The dependency graph, not the hours, is what "
-            f"limits this.")
+            f"the work does not split {count} ways — the least-loaded {label} clears only "
+            f"{slowest:.0f} h per week on the project against {typical:.0f} h across the role, "
+            f"for {smallest:.0f} h of the {delivered:.0f} h of {label} work in total. The "
+            f"dependency graph, not the hours, is what limits this.")
     if count > 1 and smallest <= ramp:
         refusals.append(
             f"a {ORDINAL.get(count, f'{count}th')} {label} would deliver {smallest:.0f} h "

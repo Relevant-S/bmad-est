@@ -55,10 +55,18 @@ class Assignee:
         self.ramp_charged = False
         self.ramp_until = 0.0    # the week they become able to deliver at all
         self.blocked = 0.0       # weeks spent free but unable to start: waiting on somebody
+        # The week this person arrives on the project. Zero for the first person in a role and
+        # for anyone already on the roster; measured for everyone else — see `join_weeks()`.
+        self.join_week = 0.0
         self.items = []
 
     def reset(self, rate):
-        """Put this person back at week zero at a new rate, for the second pass."""
+        """Put this person back at week zero at a new rate, for the second pass.
+
+        `join_week` deliberately survives: it is what the second pass is FOR. Pass one measures
+        the demand with everybody available from week zero, pass two schedules against the
+        arrival dates that measurement produced.
+        """
         self.rate = rate
         self.ready = 0.0
         self.busy = 0.0
@@ -72,8 +80,14 @@ class Assignee:
         # Time this person was free and could not start. It is the honest measure of whether
         # the backlog really splits: two developers whose work interleaves cleanly wait for
         # nobody, and two working the same seam spend the plan watching each other.
-        self.blocked += max(0.0, earliest - self.ready)
-        start = max(self.ready, earliest)
+        # Measured from when this person could next have started, which is the later of being
+        # free and having arrived. Counting the weeks before someone joined as time they spent
+        # blocked would be nonsense, and it would be consequential nonsense: staffing.judge()
+        # refuses headcount on marginal blocked time, so a late joiner would be refused for the
+        # weeks they were not yet here.
+        available = max(self.ready, self.join_week)
+        self.blocked += max(0.0, earliest - available)
+        start = max(available, earliest)
         if not self.ramp_charged and self.ramp:
             # The ramp is real occupancy: it fills the person's calendar and delays their
             # first delivery. Charging it as a lump of hours somewhere else would let a plan
@@ -86,6 +100,11 @@ class Assignee:
         self.busy += hours
         self.items.append({"label": label, "story_id": story_id, "epic_id": epic_id,
                            "component": component, "hours": round(hours, 2),
+                           # When the work itself became startable, as opposed to when this
+                           # person got to it. `join_weeks()` reads this to build the demand
+                           # profile, and it is the only honest source for it: `start_week`
+                           # already has the team's own availability baked in.
+                           "ready_week": round(earliest, 3),
                            "start_week": round(start, 3), "finish_week": round(finish, 3)})
         return start, finish
 
@@ -136,6 +155,79 @@ def plan_prefix(estimate, people, model, rate):
     return hours / (rate * seats) if rate else 0.0, list(roles)
 
 
+def join_weeks(team, first_pass, rate, ramp):
+    """When each person arrives, measured from the demand their role actually faces.
+
+    The plan used to start everybody on the same Monday. A real run put four developers who had
+    never seen the codebase at `ramp_until` 2.587, 2.590, 2.592 and 2.597 — inside a hundredth
+    of a week of each other — ramping in parallel against a repository that did not exist yet.
+    Nothing prevented it: ramp was paid out of the newcomer's own capacity and every clock was
+    lifted to the same planning barrier, so headcount was a flat line from week one in all three
+    archetypes. Two places in the module already promised otherwise and were simply wrong:
+    `archetypes.RISKS["foundation"]` offered "hold the added headcount back until the foundation
+    closes — which is what this plan does", and `mean_concurrent_headcount` justified itself on
+    a stagger that never happened.
+
+    The rule, in one sentence: a person joins when there is more work ready in their role than
+    the people already there can clear, by at least enough to repay what the newcomer costs to
+    arrive.
+
+      backlog(t) = ready_hours(t) - SUM over those already here of max(0, t - join_k) * rate
+
+    and person k joins at the first arrival week w where `backlog(w + d) >= ramp`, with
+    `d = ramp / rate`: the week they would actually become productive, not the week somebody
+    decided to hire them. Asking at w itself instead put everybody in week one again — at week
+    zero nobody present has cleared anything yet, so the backlog is the whole of the first
+    chunk of work and any newcomer looks justified. The question worth asking is whether the
+    work is still there once the newcomer can do it.
+
+    `ready_hours(t)` comes from the first simulation pass — every newcomer available from week
+    zero, which is precisely the UNCONSTRAINED demand profile — read off each item's
+    `ready_week`, when the work became startable rather than when somebody got to it.
+
+    No new coefficient. `ramp_hours` is the existing one, and its own `why` already calls it
+    "the yardstick the marginal gate uses"; this applies the same yardstick to arrival as
+    staffing.judge() applies to headcount. Person one of every role, and anybody on the supplied
+    roster, joins at zero — they are already here.
+
+    `backlog` only falls between arrivals, so it is enough to evaluate it at each arrival. Where
+    the threshold is never met the person is not demanded at any point: they join at the tightest
+    moment the role ever has, which is the most useful week they could possibly arrive, and the
+    sweep's marginal gate is left to decide whether they were worth adding at all.
+    """
+    joins = {}
+    by_role = collections.OrderedDict()
+    for person in team:
+        by_role.setdefault(person.role, []).append(person)
+    booked = {}
+    for row in first_pass["team"]:
+        booked.setdefault(row["role"], []).extend(row["items"])
+
+    for role, people in by_role.items():
+        arrivals = sorted((it.get("ready_week", 0.0), it["hours"])
+                          for it in booked.get(role, []))
+        here = []
+        for n, person in enumerate(people):
+            if n == 0 or person.on_project or not arrivals:
+                here.append(0.0)
+                continue
+            delay = ramp / rate if rate else 0.0
+            best, best_at = None, None
+            for week, _ in arrivals:
+                productive = week + delay
+                waiting = sum(h for w, h in arrivals if w <= productive)
+                served = sum(max(0.0, productive - j) for j in here) * rate
+                backlog = waiting - served
+                if backlog >= ramp:
+                    best_at = week
+                    break
+                if best is None or backlog > best:
+                    best, best_at = backlog, week
+            here.append(max(here[-1], best_at or 0.0))
+        joins[role] = here
+    return joins
+
+
 def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
     """The forward pass. Returns the schedule and everything a plan needs to be judged.
 
@@ -166,6 +258,16 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
     if concurrency is None:
         first = simulate(estimate, model, team, policy, staffing, concurrency=len(team) or 1)
         concurrency = max(1.0, mean_concurrent_headcount(first))
+        # Arrival dates are the other thing the first pass is for. Measured before the reset,
+        # because `reset()` clears the items they are read from — and kept through it, because
+        # they are the input the second pass exists to schedule against.
+        ramp = float(((model.get("staffing") or {}).get("ramp_hours") or {}).get("likely") or 0.0)
+        arrivals = join_weeks(team, first, rate, ramp)
+        seen = collections.defaultdict(int)
+        for person in team:
+            weeks = arrivals.get(person.role) or [0.0]
+            person.join_week = weeks[min(seen[person.role], len(weeks) - 1)]
+            seen[person.role] += 1
         for person in team:
             person.reset(rate)
 
@@ -339,10 +441,16 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
         "team": [{"role": p.role, "name": p.name, "on_project": p.on_project,
                   "delivered_hours": round(p.busy, 1), "ramp_hours": round(p.ramp, 1),
                   "blocked_weeks": round(p.blocked, 3),
+                  "join_week": round(p.join_week, 3),
                   "ramp_until_week": round(p.ramp_until, 3),
                   "starts_week": round(min([i["start_week"] for i in p.items], default=0.0), 3),
                   "finishes_week": round(p.ready, 2),
-                  "utilisation": round(p.busy / (span * effective), 3) if span and effective else 0.0,
+                  # Measured over the time this person was ON the project, not over the whole
+                  # plan. A developer who joins in week 7 of a ten-week plan and is booked solid
+                  # is 100% occupied, and reading them as 30% would tell the sweep to refuse a
+                  # person who was fully used.
+                  "utilisation": (round(p.busy / (max(span - p.join_week, 1e-9) * effective), 3)
+                                  if span and effective else 0.0),
                   "items": p.items}
                  for p in team],
         "drift_hours": round(drift_hours, 1),
@@ -486,9 +594,14 @@ def _previous(component):
 
 
 def _pick(team, role):
-    """The soonest-free person in this role. Nobody is idle while work in their role waits."""
+    """The soonest-AVAILABLE person in this role. Nobody is idle while work in their role waits.
+
+    Available is the later of free and arrived. Sorting on `ready` alone handed work to a
+    developer who had not joined yet while one who had sat idle — `take()` would have delayed
+    the start correctly, but the queue would already have been given to the wrong person.
+    """
     candidates = [p for p in team if p.role == role]
-    return min(candidates, key=lambda p: p.ready) if candidates else None
+    return min(candidates, key=lambda p: max(p.ready, p.join_week)) if candidates else None
 
 
 def chain_floor_weeks(estimate, model, rate):
@@ -528,6 +641,9 @@ def mean_concurrent_headcount(schedule):
     a developer who joins in week 12 across all twelve weeks before they arrived. The honest
     multiplier is delivered person-weeks over elapsed weeks — the average number of people on
     the project at any moment, which on a staggered plan is materially below the roster.
+
+    That last clause was a hope until `join_weeks()` existed: every plan started everybody in
+    week one, so the average and the roster were the same number by construction.
     """
     weeks = schedule["weeks"]
     if not weeks:

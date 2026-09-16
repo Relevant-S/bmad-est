@@ -422,6 +422,20 @@ class Workbook(unittest.TestCase):
         at = int(cell.hyperlink.location.split("!A")[1])
         self.assertEqual(ts.cell(row=at, column=1).value, "F1-T1")
 
+    def test_every_link_carries_the_display_text_google_sheets_needs(self):
+        """est-estimate writes these tabs through est-scope-extract's own `write_workbook`, so
+        this asserts the same claim on this side of the boundary: without `display`, Google
+        Sheets shows the address instead of the name. Excel never did, which is why a whole
+        column of `#gid=1123955261&range=A2` reached a reader before anyone noticed."""
+        from openpyxl import load_workbook
+        wb = load_workbook(self.target)
+        links = [(n, c) for n in wb.sheetnames for row in wb[n].iter_rows()
+                 for c in row if c.hyperlink]
+        self.assertTrue(links, "the workbook has no links to check")
+        for name, cell in links:
+            self.assertEqual(getattr(cell.hyperlink, "display", None), str(cell.value),
+                             f"{name}!{cell.coordinate} would show its address in Sheets")
+
     def test_without_openpyxl_the_render_still_succeeds_and_says_the_workbook_was_skipped(self):
         saved = sys.modules.get("openpyxl")
         sys.modules["openpyxl"] = None

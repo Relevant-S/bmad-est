@@ -324,5 +324,64 @@ class WhatOverheadIsMultipliedBy(unittest.TestCase):
         self.assertLess(span["weeks_three_point"][0], span["weeks_three_point"][2])
 
 
+
+
+class PeopleArriveWhenTheWorkDoes(unittest.TestCase):
+    """Nobody joins before their role has more ready work than the people already on it can
+    clear. The plan used to start everybody on the same Monday: a real Kitespire run put four
+    developers who had never seen the codebase at `ramp_until` 2.587, 2.590, 2.592 and 2.597 —
+    inside a hundredth of a week of each other — against a repository that did not exist yet."""
+
+    def test_the_first_person_in_a_role_starts_in_week_one_and_the_rest_do_not(self):
+        sched = F.run(F.priced(F.wide(40, epics=8)), dict(FULL, dev=4))
+        devs = [p for p in sched["team"] if p["role"] == "dev"]
+        self.assertEqual(devs[0]["join_week"], 0.0)
+        self.assertGreater(max(p["join_week"] for p in devs), 0.0,
+                           "every developer still arrives in week one")
+
+    def test_join_weeks_never_run_backwards(self):
+        """Person k+1 cannot be justified by demand that person k already answered."""
+        sched = F.run(F.priced(F.wide(40, epics=8)), dict(FULL, dev=4))
+        weeks = [p["join_week"] for p in sched["team"] if p["role"] == "dev"]
+        self.assertEqual(weeks, sorted(weeks))
+
+    def test_a_one_person_team_is_untouched(self):
+        """The change has to be inert where there is nobody to stagger — otherwise every
+        single-person span in the module moved for a reason unrelated to the fix."""
+        estimate = F.priced(F.wide(24, epics=4))
+        sched = F.run(estimate, FULL)
+        self.assertTrue(all(p["join_week"] == 0.0 for p in sched["team"]))
+
+    def test_nobody_delivers_before_they_arrive(self):
+        sched = F.run(F.priced(F.wide(40, epics=8)), dict(FULL, dev=4))
+        for person in sched["team"]:
+            for item in person["items"]:
+                self.assertGreaterEqual(item["start_week"] + 1e-9, person["join_week"],
+                                        f"{person['name']} works before joining")
+
+    def test_the_weeks_before_arrival_are_not_counted_as_blocked(self):
+        """staffing.judge() refuses headcount on marginal blocked time. A late joiner charged
+        for the weeks they were not yet here would be refused for not existing."""
+        sched = F.run(F.priced(F.wide(40, epics=8)), dict(FULL, dev=4))
+        for person in sched["team"]:
+            self.assertLessEqual(person["blocked_weeks"],
+                                 sched["weeks"] - person["join_week"] + 1e-6,
+                                 f"{person['name']} was blocked for longer than they were here")
+
+    def test_somebody_on_the_supplied_roster_never_waits_to_join(self):
+        """They are already on the project. Arrival is a question about hiring."""
+        estimate = F.priced(F.wide(40, epics=8))
+        sched = F.run(estimate, dict(FULL, dev=3), roster={"dev": 3})
+        self.assertTrue(all(p["join_week"] == 0.0
+                            for p in sched["team"] if p["role"] == "dev"))
+
+    def test_a_staggered_team_reports_fewer_concurrent_people_than_its_roster(self):
+        """Which is what `mean_concurrent_headcount` always claimed and never delivered —
+        overhead is `rate x weeks x people`, and before the stagger the average and the roster
+        were the same number by construction."""
+        sched = F.run(F.priced(F.wide(40, epics=8)), dict(FULL, dev=4))
+        self.assertLess(F.schedule.mean_concurrent_headcount(sched), len(sched["team"]))
+
+
 if __name__ == "__main__":
     unittest.main()

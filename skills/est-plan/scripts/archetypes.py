@@ -142,8 +142,10 @@ RISKS = {
     ],
     "foundation": [
         ("The foundation is on the critical path, so slipping it slips everything.",
-         "Staff the foundation epics with the people who already know the stack, and hold the "
-         "added headcount back until the foundation closes — which is what this plan does."),
+         "Staff the foundation epics with the people who already know the stack. The plan "
+         "already holds added headcount back until their role has more ready work than the "
+         "people on it can clear — see each option's arrival table — but that is a measure of "
+         "demand, not of risk, and the foundation is where a late arrival costs most."),
         ("Work that pipelines behind the foundation can still drift from it.",
          "Freeze the foundation's interfaces at its build close and treat a change to them as "
          "scope, not as a fix."),

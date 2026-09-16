@@ -216,6 +216,57 @@ def build_plan(estimate, model, roster=None, deadline=None, only=None):
     for option in options:
         option["score"] = score(option, viable or options, model, deadline)
     viable.sort(key=lambda o: -o["score"]["fit"])
+    recommended = viable[0] if viable else None
+
+    # THE BASELINE: exactly one person in every role this scope actually demands, read under
+    # whichever archetype is being recommended, so the baseline and the recommendation differ
+    # in team size and in nothing else. It is always offered, whatever the sweep concluded and
+    # whatever roster was supplied — a reader calibrates every other option against the simplest
+    # schedule there is, and until now that was the one chart the workbook did not contain.
+    base_shape = {role: 1 for role, hours in sorted(staffing.role_demand(estimate).items())
+                  if hours > 0}
+    baseline = None
+    if base_shape:
+        arch = recommended["archetype"] if recommended else archetypes.NAMES[0]
+        baseline = next((o for o in options
+                         if o["archetype"] == arch and o["team_shape"] == base_shape), None)
+        if baseline is None:
+            # Only reachable when a supplied roster already exceeds one somewhere, so the sweep
+            # never considered this shape. Anyone on that roster is still on_project and pays no
+            # ramp; the point of drawing it is to show what the extra people are buying.
+            #
+            # It is NOT added to `options`. A supplied roster is a floor — the sweep may add to
+            # it and must never propose fewer people than the user already has — so offering a
+            # one-per-role team back to somebody who told you they have three developers would
+            # be answering a question they did not ask. The baseline is a reference chart, not
+            # a delivery option, and it lives on its own key.
+            team = build_team(base_shape, model, roster or {})
+            sched = schedule.simulate(estimate, model, team,
+                                      archetypes.POLICIES[arch](estimate, model))
+            span = schedule.span_for_pricing(
+                sched, model,
+                f"{arch} schedule at one person per role — the baseline; "
+                f"weeks are relative, week 1 is whenever this starts.")
+            baseline = {
+                "id": f"{arch}-" + "-".join(f"{r}{n}" for r, n in sorted(base_shape.items())),
+                "archetype": arch, "what_it_is": archetypes.DESCRIPTIONS[arch],
+                "team_shape": base_shape, "schedule": sched, "span": span,
+                "estimate": price_for(estimate, model, span),
+                "risks": [{"risk": r, "mitigation": m} for r, m in archetypes.RISKS[arch]],
+            }
+            baseline["feasibility"] = feasibility(sched, baseline["estimate"], estimate, model)
+            # Scored against the same peer set as everything else, so its fit is comparable
+            # even though it is not competing.
+            baseline["score"] = score(baseline, viable or options, model, deadline)
+        else:
+            baseline["baseline"] = True
+        baseline["baseline_note"] = (
+            "One person in every role this scope demands, under the recommended archetype. "
+            + (f"Below the {', '.join(f'{n}x {ROLE_LABEL.get(r, r)}' for r, n in sorted(roster.items()))} "
+               f"you supplied — read it as what the extra people are buying."
+               if roster and any(n > 1 for n in roster.values())
+               else "The simplest schedule this backlog admits, and the reading every other "
+                    "option should be compared against."))
 
     return {
         "schema_version": "1.0",
@@ -237,7 +288,11 @@ def build_plan(estimate, model, roster=None, deadline=None, only=None):
                    "calendar": "Weeks are relative. This plan carries no dates."},
         "staffing": {"decisions": swept["decisions"], "oversized_roster": swept["oversized"],
                      "shapes_considered": swept["shapes"]},
-        "recommended": viable[0]["id"] if viable else None,
+        "recommended": recommended["id"] if recommended else None,
+        # The full option, always — one person in every role the scope demands. It is one of
+        # the rows in `options` when the sweep considered that shape, and a reference chart
+        # alongside them when a supplied roster put the sweep's floor above it.
+        "baseline": baseline,
         "options": sorted(options, key=lambda o: -o["score"]["fit"]),
     }
 

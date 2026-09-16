@@ -579,6 +579,24 @@ def brand_style():
         return None
 
 
+def link_label(value):
+    """The text a hyperlink shows, for the `display` attribute.
+
+    Every link here also carries the same text as the cell's own value, and Excel reads that,
+    which is why the missing `display` went unnoticed for so long. Google Sheets does not: its
+    xlsx importer rewrites a cell hyperlink into `=HYPERLINK("#gid=...&range=A77")` and uses
+    `display` as the second argument. With no `display` to use it shows the address, so a column
+    of story names arrived in Sheets reading "#gid=1123955261&range=A2". The `gid` cannot be
+    written from here — Google assigns its own, unrelated to the workbook's `sheetId` — so
+    `display` is the only lever, and it is the ECMA-376 field for exactly this.
+
+    Excel caps the display string at 255 characters and drops the whole hyperlink if it is
+    longer, so a long epic name is truncated rather than allowed to break the link.
+    """
+    text = "" if value is None else str(value)
+    return text[:252] + "..." if len(text) > 255 else text
+
+
 def write_workbook(sheets, target, links=(), style=None):
     """Write one workbook from a list of (title, columns, rows), with the cross-links.
 
@@ -646,14 +664,16 @@ def write_workbook(sheets, target, links=(), style=None):
                     # Gantt tabs in this same workbook already do it this way.
                     cell.value = (row.get("name") or row.get("feature_name")
                                   or row.get("id") or "source")
-                    cell.hyperlink = href
+                    cell.hyperlink = Hyperlink(ref=cell.coordinate, target=href,
+                                               display=link_label(cell.value))
                     cell.font = style["link_font"] if style else cell.font
                     if not style:
                         cell.style = "Hyperlink"
                 continue
             at = index.get(row.get(key_column))
             if at:
-                cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"{to_sheet}!A{at}")
+                cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"{to_sheet}!A{at}",
+                                           display=link_label(cell.value))
                 cell.font = style["link_font"] if style else cell.font
                 if not style:
                     cell.style = "Hyperlink"

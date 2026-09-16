@@ -41,6 +41,17 @@ def brand_module():
     return mod
 
 
+def link_label(value):
+    """The text a hyperlink shows, for the `display` attribute — see est-scope-extract's
+    render-inventory.link_label for why it is needed and why the 255-character cap is there.
+
+    Deliberately duplicated rather than imported: the two skills install independently, and a
+    cross-skill import for three lines would make this one unable to run without the other.
+    """
+    text = "" if value is None else str(value)
+    return text[:252] + "..." if len(text) > 255 else text
+
+
 # --- markdown ----------------------------------------------------------------
 
 def markdown(plan):
@@ -98,6 +109,16 @@ def markdown(plan):
                    f"{o['score']['fit']:.1f} |")
     out.append("")
 
+    baseline = plan.get("baseline")
+    if baseline is not None and not any(o["id"] == baseline["id"] for o in plan["options"]):
+        # Only when the sweep never considered it, which means a supplied roster put its floor
+        # above one person per role. It is printed as a reference, not offered as an option —
+        # a roster is a floor, and proposing a smaller team than the one the user says they
+        # have would be answering a question nobody asked.
+        out += ["## The baseline", "",
+                baseline["baseline_note"], ""]
+        out += option_section(baseline, False)
+
     for o in plan["options"]:
         out += option_section(o, o["id"] == plan.get("recommended"))
 
@@ -134,6 +155,17 @@ def option_section(o, recommended):
         if row:
             out.append(f"| {ROLE_LABEL.get(role, role)} | {row['low']:.0f} | "
                        f"{row['likely']:.0f} | {row['high']:.0f} |")
+    staggered = [p for p in o["schedule"]["team"] if p.get("join_week", 0.0) > 0.005]
+    if staggered:
+        out += ["", "**Who arrives when.** Nobody joins before their role has more ready work "
+                "than the people already on it can clear — so the plan does not start four "
+                "developers on the same Monday against a codebase that does not exist yet.", "",
+                "| Person | Joins | First delivery | Hours | Occupied |",
+                "| --- | ---: | ---: | ---: | ---: |"]
+        for person in o["schedule"]["team"]:
+            out.append(f"| {person['name']} | W{int(person.get('join_week', 0.0)) + 1} | "
+                       f"W{int(person['starts_week']) + 1} | {person['delivered_hours']:.0f} | "
+                       f"{person['utilisation']:.0%} |")
     out += ["", "| Sub-score | /10 | What it rests on |", "| --- | ---: | --- |"]
     for name, part in o["score"]["parts"].items():
         out.append(f"| {name.title()} | {part['score']:.1f} | {part['rests_on']} |")
@@ -216,18 +248,18 @@ def story_index(workbook):
             if sheet.cell(row=r, column=column).value}
 
 
-def draw_gantt(workbook, option, epics, index, style):
+def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None):
     from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.hyperlink import Hyperlink
 
-    title = f"Gantt — {option['archetype'].title()}"[:31]
+    title = (title or f"Gantt — {option['archetype'].title()}")[:31]
     if title in workbook.sheetnames:
         del workbook[title]
     sheet = workbook.create_sheet(title)
     sheet.sheet_view.showGridLines = False
 
     weeks = max(1, int(option["schedule"]["weeks"] + 0.999))
-    labels = ["Who / what", "Hours", "Starts", "Ends"]
+    labels = ["Who / what", "Hours", "Joins", "Starts", "Ends"]
     first_week = len(labels) + 1
 
     sheet.cell(row=1, column=1, value=f"{option['archetype'].title()} — "
@@ -237,6 +269,8 @@ def draw_gantt(workbook, option, epics, index, style):
                       f"{option['estimate']['total_hours']['likely']:.0f} h likely · "
                       f"fit {option['score']['fit']:.1f}/10 · weeks are relative, "
                       f"week 1 is whenever this starts")).font = style["muted_font"]
+    if subtitle:
+        sheet.cell(row=3, column=1, value=subtitle).font = style["muted_font"]
 
     head = 4
     for i, label in enumerate(labels, start=1):
@@ -264,16 +298,22 @@ def draw_gantt(workbook, option, epics, index, style):
         for person in people:
             sheet.row_dimensions[row].outlineLevel = 1
             note = "" if person["on_project"] else " (new)"
+            join = person.get("join_week", 0.0)
             sheet.cell(row=row, column=1, value=f"  {person['name']}{note}").font = style["body_font"]
             sheet.cell(row=row, column=2, value=person["delivered_hours"]).font = style["body_font"]
-            sheet.cell(row=row, column=3, value=f"W{int(person['starts_week']) + 1}").font = style["body_font"]
-            sheet.cell(row=row, column=4,
+            sheet.cell(row=row, column=3, value=f"W{int(join) + 1}").font = style["body_font"]
+            sheet.cell(row=row, column=4, value=f"W{int(person['starts_week']) + 1}").font = style["body_font"]
+            sheet.cell(row=row, column=5,
                        value=f"W{max(1, -(-person['finishes_week'] // 1)):.0f}").font = style["body_font"]
-            # Ramp first, so a delivery bar paints over it rather than the other way round —
-            # a new joiner's first weeks should read as arriving, not as idle.
+            # Three states, painted in the order they happen so each covers the one before:
+            # not here yet, here but still arriving, delivering. People now join when the demand
+            # in their role justifies them rather than all in week one, and a chart that showed
+            # the weeks before someone arrived as blank would read as a plan paying them to wait.
+            if join > 0:
+                _paint(sheet, row, first_week, span_weeks(0.0, join, weeks), style["absent_fill"])
             ramp = person.get("ramp_until_week", 0.0)
             if ramp:
-                _paint(sheet, row, first_week, span_weeks(0.0, ramp, weeks), style["idle_fill"])
+                _paint(sheet, row, first_week, span_weeks(join, ramp, weeks), style["idle_fill"])
             rows = packets(person, weeks)
             for pkt in rows:
                 _paint(sheet, row, first_week, pkt["occupied"], style["role_fill"].get(role))
@@ -292,13 +332,18 @@ def draw_gantt(workbook, option, epics, index, style):
                 cell = sheet.cell(row=row, column=1, value=f"      {label}")
                 at = index.get(pkt["stories"][0]) if pkt["stories"] else None
                 if at:
-                    cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"Stories!A{at}")
+                    # `display` is what Google Sheets shows. Without it the import turns this
+                    # into a bare `=HYPERLINK("#gid=...&range=A77")` and the reader gets the
+                    # address where the epic name should be. render-inventory.link_label carries
+                    # the reasoning and the 255-character cap.
+                    cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"Stories!A{at}",
+                                               display=link_label(cell.value))
                     cell.font = style["link_font"]
                 else:
                     cell.font = style["muted_font"]
                 sheet.cell(row=row, column=2, value=round(pkt["hours"], 1)).font = style["muted_font"]
-                sheet.cell(row=row, column=3, value=f"W{int(pkt['start_week']) + 1}").font = style["muted_font"]
-                sheet.cell(row=row, column=4, value=f"W{max(1, -(-pkt['finish_week'] // 1)):.0f}").font = style["muted_font"]
+                sheet.cell(row=row, column=4, value=f"W{int(pkt['start_week']) + 1}").font = style["muted_font"]
+                sheet.cell(row=row, column=5, value=f"W{max(1, -(-pkt['finish_week'] // 1)):.0f}").font = style["muted_font"]
                 _paint(sheet, row, first_week, pkt["occupied"], style["role_fill"].get(role))
                 row += 1
 
@@ -315,8 +360,8 @@ def draw_gantt(workbook, option, epics, index, style):
         cell = sheet.cell(row=row, column=1, value=name)
         cell.fill, cell.font = style["band_fill"], style["band_font"]
         sheet.cell(row=row, column=2, value=round(hours, 1)).font = style["band_font"]
-        sheet.cell(row=row, column=3, value="W1").font = style["band_font"]
-        sheet.cell(row=row, column=4, value=f"W{weeks}").font = style["band_font"]
+        sheet.cell(row=row, column=4, value="W1").font = style["band_font"]
+        sheet.cell(row=row, column=5, value=f"W{weeks}").font = style["band_font"]
         _paint(sheet, row, first_week, range(weeks), style["role_fill"].get(key)
                or style["band_fill"])
         row += 1
@@ -336,7 +381,7 @@ def draw_gantt(workbook, option, epics, index, style):
     row += 1
     sheet.cell(row=row, column=1, value="Drawn above").font = style["band_font"]
     sheet.cell(row=row, column=2, value=round(scheduled + calendar_priced, 1)).font = style["band_font"]
-    sheet.cell(row=row, column=5, value=(
+    sheet.cell(row=row, column=6, value=(
         f"Scheduled {scheduled:.0f} h + architect and ceremony {calendar_priced:.0f} h "
         f"= {scheduled + calendar_priced:.0f} h, against {priced:.0f} h on the estimate "
         f"({(scheduled + calendar_priced) / priced:.0%}). Hours here are expected values (PERT "
@@ -427,15 +472,35 @@ def extend_workbook(plan, path, per="archetype"):
     # One Gantt per SCHEDULE OFFERED, which is the best team shape for each archetype — not one
     # per row of the sweep. Nine near-identical charts is not a more readable document than
     # three, and readability is the requirement; the Options tab carries every row.
+    #
+    # The BASELINE comes first, always. Picking the best-fit shape of each archetype always
+    # picks the largest team the sweep allowed — all three charts in one real workbook were
+    # `2x BA, 4x Dev, 1x DevOps, 1x QA, 1x UX` — so the one-person-per-role reading, which is
+    # what a reader calibrates every other option against, was the single schedule the workbook
+    # did not contain.
     drawn = []
     if per == "option":
-        chosen = plan["options"]
+        chosen = list(plan["options"])
     else:
         chosen = []
         for name in ("sequential", "foundation", "pipelined"):
             same = [o for o in plan["options"] if o["archetype"] == name]
             if same:
                 chosen.append(max(same, key=lambda o: o["score"]["fit"]))
+
+    baseline = plan.get("baseline")
+    if baseline is not None:
+        best = next((o for o in plan["options"] if o["id"] == plan.get("recommended")), None)
+        against = (f" Compare against {best['archetype'].title()}, {team_label(best['team_shape'])}: "
+                   f"{best['schedule']['weeks']:.1f} weeks, "
+                   f"{best['estimate']['total_hours']['likely']:.0f} h."
+                   if best is not None and best["id"] != baseline["id"] else "")
+        draw_gantt(workbook, baseline, plan.get("epics") or [], index, style,
+                   title="Gantt — Baseline (1 each)",
+                   subtitle=baseline.get("baseline_note", "") + against)
+        drawn.append(baseline["id"] + " (baseline)")
+        chosen = [o for o in chosen if o["id"] != baseline["id"]]
+
     for option in chosen:
         draw_gantt(workbook, option, plan.get("epics") or [], index, style)
         drawn.append(option["id"])

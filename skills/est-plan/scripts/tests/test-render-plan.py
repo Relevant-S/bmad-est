@@ -114,9 +114,18 @@ class TheWorkbookRoundTrip(unittest.TestCase):
 
     def test_one_gantt_per_archetype_by_default_and_one_per_option_on_request(self):
         """Nine near-identical charts is not a more readable document than three, and
-        readability is a requirement rather than a preference."""
-        self.assertEqual(len([n for n in self.extend().sheetnames if n.startswith("Gantt")]),
-                         len({o["archetype"] for o in self.plan["options"]}))
+        readability is a requirement rather than a preference.
+
+        Plus the baseline, which is always drawn and is never one of the per-archetype charts
+        unless it happens to be the best-fit shape for its own archetype.
+        """
+        names = [n for n in self.extend().sheetnames if n.startswith("Gantt")]
+        archetypes = {o["archetype"] for o in self.plan["options"]}
+        baseline = self.plan.get("baseline")
+        extra = 1 if baseline is not None and baseline["id"] not in {
+            max((o for o in self.plan["options"] if o["archetype"] == a),
+                key=lambda o: o["score"]["fit"])["id"] for a in archetypes} else 0
+        self.assertEqual(len(names), len(archetypes) + extra)
         every = self.extend("option")
         self.assertGreaterEqual(len([n for n in every.sheetnames if n.startswith("Gantt")]), 1)
 
@@ -139,16 +148,23 @@ class TheWorkbookRoundTrip(unittest.TestCase):
 
     def test_the_grid_has_one_column_per_week_and_freezes_the_labels(self):
         after = self.extend()
-        name = [n for n in after.sheetnames if n.startswith("Gantt")][0]
+        name = next(n for n in after.sheetnames
+                    if any(f"Gantt — {o['archetype'].title()}"[:31] == n
+                           for o in self.plan["options"]))
         sheet, option = after[name], None
         for o in self.plan["options"]:
             if f"Gantt — {o['archetype'].title()}"[:31] == name:
                 option = o
                 break
         weeks = max(1, int(option["schedule"]["weeks"] + 0.999))
-        self.assertEqual(sheet.cell(row=4, column=5).value, "W1")
-        self.assertEqual(sheet.cell(row=4, column=4 + weeks).value, f"W{weeks}")
-        self.assertEqual(sheet.freeze_panes, "E5")
+        # Five label columns now: Who / what, Hours, Joins, Starts, Ends. `Joins` is the one
+        # that was added — people arrive when their role's demand justifies them, and a chart
+        # that draws a stagger without naming the arrival week makes a reader measure it.
+        self.assertEqual([sheet.cell(row=4, column=c).value for c in range(1, 6)],
+                         ["Who / what", "Hours", "Joins", "Starts", "Ends"])
+        self.assertEqual(sheet.cell(row=4, column=6).value, "W1")
+        self.assertEqual(sheet.cell(row=4, column=5 + weeks).value, f"W{weeks}")
+        self.assertEqual(sheet.freeze_panes, "F5")
 
     def test_the_rows_are_grouped_so_a_reader_sees_roles_before_stories(self):
         sheet = self.extend()[[n for n in self.extend().sheetnames if n.startswith("Gantt")][0]]
@@ -161,7 +177,7 @@ class TheWorkbookRoundTrip(unittest.TestCase):
         brand = F.load("brand", F.EST / "scripts" / "brand.py")
         wanted = {brand._hex(c) for r, c in brand.load()["roles"].items() if not r.startswith("_")}
         painted = {sheet.cell(row=r, column=c).fill.fgColor.rgb
-                   for r in range(5, sheet.max_row + 1) for c in range(5, sheet.max_column + 1)}
+                   for r in range(5, sheet.max_row + 1) for c in range(6, sheet.max_column + 1)}
         painted = {p[2:] if isinstance(p, str) and len(p) == 8 else p for p in painted}
         self.assertTrue(wanted & painted, "no bar used a role colour from brand.json")
 
@@ -185,7 +201,7 @@ class TheWorkbookRoundTrip(unittest.TestCase):
                 if depth == 1:
                     level, claimed = sheet.cell(row=r, column=1).value, {}
                 elif depth == 2:
-                    for c in range(5, sheet.max_column + 1):
+                    for c in range(6, sheet.max_column + 1):
                         if sheet.cell(row=r, column=c).fill.fgColor.rgb not in (None, "00000000"):
                             self.assertNotIn(c, claimed,
                                              f"{name}: {level} is drawn on two epics in column "
@@ -210,15 +226,74 @@ class TheWorkbookRoundTrip(unittest.TestCase):
         note = None
         for r in range(5, sheet.max_row + 1):
             if sheet.cell(row=r, column=1).value == "Drawn above":
-                note = sheet.cell(row=r, column=5).value
+                note = sheet.cell(row=r, column=6).value
                 drawn = sheet.cell(row=r, column=2).value
         self.assertIsNotNone(note, "no reconciliation row on the chart")
         self.assertIn("against", note)
         self.assertIn("PERT", note)
-        option = max(self.plan["options"], key=lambda o: o["score"]["fit"])
+        # The FIRST Gantt is the baseline when there is one, so reconcile against that option
+        # rather than against the best-scoring one.
+        title = [n for n in after.sheetnames if n.startswith("Gantt")][0]
+        option = (self.plan.get("baseline")
+                  if title.startswith("Gantt — Baseline")
+                  else max(self.plan["options"], key=lambda o: o["score"]["fit"]))
         priced = sum(r["hours"] for r in option["estimate"]["by_role"].values())
         self.assertGreater(drawn / priced, 0.9,
                            "the chart still leaves a tenth of the priced hours undrawn")
+
+    def test_the_baseline_chart_is_drawn_first_and_holds_one_person_per_role(self):
+        """Picking the best-fit shape of each archetype always picks the LARGEST team the sweep
+        allowed — all three Gantt tabs in one real workbook were `2x BA, 4x Dev, 1x DevOps,
+        1x QA, 1x UX`. The one-per-role reading, which is what a reader calibrates the others
+        against, was the single schedule the workbook did not contain."""
+        after = self.extend()
+        gantts = [n for n in after.sheetnames if n.startswith("Gantt")]
+        self.assertEqual(gantts[0], "Gantt — Baseline (1 each)")
+        baseline = self.plan["baseline"]
+        self.assertTrue(all(n == 1 for n in baseline["team_shape"].values()),
+                        baseline["team_shape"])
+        self.assertEqual(len(baseline["schedule"]["team"]), len(baseline["team_shape"]))
+        # It is an OPTION, so it carries its own estimate like every other one.
+        self.assertGreater(baseline["estimate"]["total_hours"]["likely"], 0)
+        self.assertIn(baseline["baseline_note"][:40],
+                      after[gantts[0]].cell(row=3, column=1).value)
+
+    def test_the_baseline_ignores_a_roster_that_is_already_larger(self):
+        """It is the reading every other option is compared against, so it cannot move with
+        whatever team happens to exist — that is the thing it is there to price against."""
+        plan = F.plan_mod.build_plan(self.estimate, F.model(), roster={"dev": 2})
+        baseline = plan["baseline"]
+        self.assertEqual(baseline["team_shape"]["dev"], 1)
+        self.assertIn("supplied", baseline["baseline_note"])
+        # A roster is a floor: the sweep may add to it and must never propose fewer people than
+        # the user already has. The baseline is a reference chart, so it stays off the options
+        # list rather than offering them a team smaller than the one they told us they have.
+        self.assertTrue(all(o["team_shape"].get("dev", 0) >= 2 for o in plan["options"]))
+
+    def test_every_hyperlink_carries_the_display_text_google_sheets_needs(self):
+        """Excel shows the cell's own value, which is why this went unnoticed. Google Sheets
+        rewrites the link into `=HYPERLINK("#gid=...&range=A77")` and uses `display` as the
+        label — with none set it shows the address, and a column of epic names arrived reading
+        `#gid=1123955261&range=A2`. The `gid` cannot be written from here, so `display` is the
+        only lever."""
+        after = self.extend()
+        links = [(n, c) for n in after.sheetnames for row in after[n].iter_rows()
+                 for c in row if c.hyperlink]
+        self.assertTrue(links, "no links in the workbook at all")
+        for name, cell in links:
+            self.assertEqual(getattr(cell.hyperlink, "display", None), str(cell.value),
+                             f"{name}!{cell.coordinate} would show its address in Sheets")
+
+    def test_the_chart_says_when_each_person_joins(self):
+        """People arrive when their role's demand justifies them. A chart that draws the
+        stagger without naming the arrival week makes the reader measure it off the bars."""
+        after = self.extend()
+        sheet = after[[n for n in after.sheetnames if n.startswith("Gantt")][-1]]
+        self.assertEqual(sheet.cell(row=4, column=3).value, "Joins")
+        joins = [sheet.cell(row=r, column=3).value for r in range(5, sheet.max_row + 1)
+                 if sheet.row_dimensions[r].outlineLevel == 1]
+        self.assertTrue(joins, "no person rows on the chart")
+        self.assertTrue(all(j is None or str(j).startswith("W") for j in joins))
 
     def test_a_missing_workbook_is_reported_rather_than_created(self):
         """est-plan extends the estimate's workbook. Creating one would hand a client a second

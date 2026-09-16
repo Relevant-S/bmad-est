@@ -608,6 +608,21 @@ class Workbook(unittest.TestCase):
         self.assertTrue(str(href).endswith("#L7"), href)
         self.assertEqual(cell.value, inv["features"][0]["tasks"][0]["name"])
         self.assertNotIn("#L", str(cell.value))
+        self.assertEqual(cell.hyperlink.display, cell.value)
+
+    def test_every_link_carries_the_display_text_google_sheets_needs(self):
+        """Excel reads the cell's own value, so a missing `display` is invisible in Excel.
+        Google Sheets rewrites a cell hyperlink into `=HYPERLINK("#gid=...&range=A77")` and
+        uses `display` as the label; with none set it shows the address, and a whole column of
+        story names arrived reading `#gid=1123955261&range=A2`. The gid is assigned by Google
+        on import and cannot be written from here, so `display` is the only lever there is."""
+        wb = self.book()
+        links = [(n, c) for n in wb.sheetnames for row in wb[n].iter_rows()
+                 for c in row if c.hyperlink]
+        self.assertTrue(links, "the workbook has no links to check")
+        for name, cell in links:
+            self.assertEqual(getattr(cell.hyperlink, "display", None), str(cell.value),
+                             f"{name}!{cell.coordinate} would show its address in Sheets")
 
 
 class WithoutOpenpyxl(unittest.TestCase):

@@ -112,6 +112,10 @@ def xlsx(brand=None):
         "muted_font": Font(name=family, color=_hex(pal["muted"]), size=10),
         "link_font": Font(name=family, color=_hex(pal["brand"]), underline="single", size=11),
         "idle_fill": fill(pal["brand_wash"]),
+        # Not yet on the project, which is a different thing from idle and has to look it: a
+        # Gantt that paints an unarrived developer the same as a waiting one tells the reader
+        # the plan is wasting somebody it has not hired.
+        "absent_fill": fill(pal["soft"]),
         "role_fill": {r: fill(c) for r, c in brand["roles"].items() if not r.startswith("_")},
         "role_font": {r: Font(name=family, color="FFFFFF", bold=True, size=10)
                       for r in brand["roles"] if not r.startswith("_")},
