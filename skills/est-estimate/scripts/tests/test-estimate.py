@@ -388,6 +388,60 @@ class TestSplits(unittest.TestCase):
         self.assertIn("outside_agreed_scope", split)
         self.assertEqual(split["outside_agreed_scope"]["features"], 1)
 
+    def test_a_phase_is_derived_from_commitment_when_the_source_states_none(self):
+        """Almost no inventory carries a `phase` — the field is new — so the derivation is what
+        every existing estimate runs on. `commitment: speculative` is described by the schema
+        itself as "raised as a possibility, A FUTURE PHASE, or a client aspiration"."""
+        inv = inventory(
+            [feature("F1", "Committed", epic_id="E1"),
+             feature("F2", "Also committed", epic_id="E1"),
+             feature("F3", "Maybe later", epic_id="E2", commitment="speculative")],
+            epics=[{"id": "E1", "name": "Now", "origin": "source"},
+                   {"id": "E2", "name": "Later", "origin": "source"}])
+        by = {f["id"]: f["phase"] for f in hours(inv)["features"] if f.get("epic_id")}
+        self.assertEqual(by, {"F1": 1, "F2": 1, "F3": 2})
+
+    def test_one_speculative_story_does_not_push_its_whole_epic_to_a_later_phase(self):
+        """A phase is a block of delivery. One speculative story inside an otherwise committed
+        epic is a scope question for that epic, not a reason to push work past the launch."""
+        inv = inventory(
+            [feature("F1", "Committed", epic_id="E1"),
+             feature("F2", "Maybe", epic_id="E1", commitment="speculative")],
+            epics=[{"id": "E1", "name": "Mixed", "origin": "source"}])
+        self.assertEqual({f["phase"] for f in hours(inv)["features"] if f.get("epic_id")}, {1})
+
+    def test_a_stated_phase_wins_and_says_so(self):
+        inv = inventory(
+            [feature("F1", "Committed", epic_id="E1"),
+             feature("F2", "Committed too", epic_id="E2")],
+            epics=[{"id": "E1", "name": "One", "origin": "source", "phase": 1,
+                    "phase_why": "SOW §2"},
+                   {"id": "E2", "name": "Two", "origin": "source", "phase": 2,
+                    "phase_why": "SOW §3 calls it a separate contract"}])
+        rows = {f["id"]: f for f in hours(inv)["features"] if f.get("epic_id")}
+        self.assertEqual((rows["F1"]["phase"], rows["F2"]["phase"]), (1, 2))
+        self.assertTrue(rows["F2"]["phase_basis"].startswith("stated"))
+        self.assertIn("separate contract", rows["F2"]["phase_basis"])
+
+    def test_each_phase_carries_its_own_cost_on_the_same_arithmetic_as_the_scope_split(self):
+        """A later phase is often a separate agreement, so quoting one total across all of them
+        puts work under another contract inside the number a client signs."""
+        inv = inventory(
+            [feature("F1", "Committed", epic_id="E1"),
+             feature("F2", "Maybe later", epic_id="E2", commitment="speculative")],
+            epics=[{"id": "E1", "name": "Now", "origin": "source"},
+                   {"id": "E2", "name": "Later", "origin": "source"}])
+        est_out = hours(inv)
+        split = est_out["phase_split"]
+        self.assertIn("phase_1", split)
+        self.assertIn("phase_2", split)
+        rows = [v for k, v in split.items() if not k.startswith("_")]
+        self.assertAlmostEqual(sum(r["apportioned_hours"] for r in rows),
+                               est_out["total_hours"]["likely"], delta=0.5)
+        for row in rows:
+            self.assertGreater(row["standalone_hours"], row["apportioned_hours"])
+        self.assertIn("separate agreement", split["_reading_these"])
+
     def test_standalone_cost_exceeds_the_apportioned_share(self):
         """Dropping scope does not save its apportioned share: fixed costs stay behind."""
         inv = inventory([

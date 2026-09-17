@@ -170,5 +170,52 @@ class TheCommandLine(unittest.TestCase):
         self.assertIn("estimate", json.loads(out.getvalue())["error"])
 
 
+
+
+class ThePhaseOrderIsAudited(unittest.TestCase):
+    """A calendar can honour every dependency and still interleave two delivery phases, because
+    a phase is not a dependency. The shipped Kitespire plan did exactly that."""
+
+    def setUp(self):
+        features, epics = F.two_phases()
+        self.estimate = F.priced(features, epics=epics)
+        self.plan = F.plan_mod.build_plan(self.estimate, F.model())
+
+    def test_a_clean_plan_holds_and_the_phases_are_counted(self):
+        report = check.audit(self.plan, self.estimate)
+        self.assertTrue(report["ok"], report["findings"][:3])
+        self.assertEqual(report["phases"], [1, 2])
+        self.assertIn("2 delivery phases", report["checked"])
+
+    def test_moving_a_phase_two_build_earlier_is_caught(self):
+        plan = copy.deepcopy(self.plan)
+        phase = {f["id"]: f.get("phase") for f in self.estimate["features"]}
+        moved = 0
+        for option in plan["options"]:
+            for person in option["schedule"]["team"]:
+                for item in person["items"]:
+                    if phase.get(item.get("story_id")) == 2 and item.get("component") == "build":
+                        item["start_week"] = item["finish_week"] = 0.0
+                        moved += 1
+        self.assertTrue(moved, "the perturbation matched nothing — the test proves nothing")
+        report = check.audit(plan, self.estimate)
+        self.assertFalse(report["ok"])
+        finding = next(f for f in report["findings"] if f["kind"] == "phase_order")
+        self.assertIn("phase 2", finding["detail"])
+        self.assertIn("phase 1", finding["detail"])
+
+    def test_a_dependency_running_into_a_later_phase_is_caught(self):
+        """Phase 1 cannot stand on phase 2. If the inventory says it does, one of the two
+        claims is wrong and the reader has to be told which two they are."""
+        estimate = json.loads(json.dumps(self.estimate))
+        first = next(f for f in estimate["features"] if f["phase"] == 1)
+        later = next(f for f in estimate["features"] if f["phase"] == 2)
+        first["depends_on"] = [later["id"]]
+        report = check.audit(self.plan, estimate)
+        finding = next(f for f in report["findings"] if f["kind"] == "phase_dependency")
+        self.assertIn(later["id"], finding["detail"])
+        self.assertIn(first["id"], finding["detail"])
+
+
 if __name__ == "__main__":
     unittest.main()

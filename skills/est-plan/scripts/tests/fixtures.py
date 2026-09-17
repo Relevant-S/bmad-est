@@ -139,6 +139,53 @@ def declared_only(per=3, size="M"):
     return features, epics
 
 
+def two_phases(per=4, epics_each=2, size="L"):
+    """Two delivery phases, with NO dependency crossing the boundary.
+
+    The shape the fix is for. Nothing in phase 2 depends on anything in phase 1, so the
+    dependency graph permits them to run side by side — and on the real Kitespire backlog they
+    did, with Phase 2's build opening in week 8.85 against committed work running to 10.18.
+    A phase is a commitment, not a dependency.
+
+    Phase is expressed through `commitment` rather than stated, which is the derivation path
+    every estimate made before the field existed takes.
+    """
+    features, epics = [], []
+    n = 0
+    for phase in (1, 2):
+        for k in range(epics_each):
+            n += 1
+            epic = f"E{n}"
+            epics.append({"id": epic, "name": f"Epic {epic}", "origin": "source",
+                          "sequence": n, "sequence_why": "stated order", "citations": []})
+            for i in range(1, per + 1):
+                row = feature(f"F{n}{i:02d}", epic=epic, size=size)
+                row["commitment"] = "committed" if phase == 1 else "speculative"
+                features.append(row)
+    return features, epics
+
+
+def stated_phases(per=3, size="M"):
+    """Phases the inventory states outright, deliberately DISAGREEING with `commitment`.
+
+    A stated phase is a decision somebody made and recorded; the commitment derivation is an
+    inference for inventories that never got one. When both are present the stated value wins,
+    and this fixture is the only way to prove it rather than assume it.
+    """
+    features, epics = [], []
+    for n, phase in ((1, 1), (2, 2)):
+        epic = f"E{n}"
+        epics.append({"id": epic, "name": f"Epic {epic}", "origin": "source",
+                      "sequence": n, "sequence_why": "stated order", "citations": [],
+                      "phase": phase, "phase_why": "the SOW names the phase"})
+        for i in range(1, per + 1):
+            row = feature(f"F{n}{i:02d}", epic=epic, size=size)
+            # Every story committed, so the derivation alone would put BOTH epics in phase 1.
+            row["commitment"] = "committed"
+            features.append(row)
+    return features, epics
+
+
 def two_streams(per=10, size="L"):
     """Two independent chains in two epics — the shape a second developer is FOR."""
     out = []

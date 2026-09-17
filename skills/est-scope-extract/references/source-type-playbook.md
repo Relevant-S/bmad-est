@@ -42,7 +42,7 @@ Nearly a finished inventory, which makes it the most dangerous to skim. Read eve
 
 Cite by sheet name and row number — `sheet 'Backlog' row 14` — which the normalized conversion preserves exactly: the number shown is the row's real position in the sheet, blank rows included in the count. That also means **no row is marked as the header** and columns are labelled A, B, C. Which row carries the column names is for you to read, not for the converter to assume — a title banner above the real header is common, and a converter that guessed would silently shift every citation below it. Where the workbook already carries estimates from the client or a previous vendor, those are **not** your estimates: record them in the feature's `description` or in `assumptions` as a stated figure, and tag the feature on its own merits. A prior estimate is evidence about expectations, not about effort.
 
-Watch for a phase, priority or MoSCoW column; it maps onto `commitment`. Watch for rows that are epics with child rows beneath them, and do not double-count the parent.
+Watch for a phase, priority or MoSCoW column. **Priority and MoSCoW map onto `commitment`; a phase maps onto the epic's `phase`** — they are different claims and the second one is what est-plan schedules against. Routing a phase column into `commitment` loses it: a three-valued tag cannot carry "Phase 1 / Phase 2 / Phase 3", and a plan built from it will interleave phases that the source said run one after the other. Watch for rows that are epics with child rows beneath them, and do not double-count the parent.
 
 **Three tab shapes are not scope, and reading them as scope is what inflates a workbook into a project.** `references/story-synthesis.md` has the grouping rules; these are the tells:
 

@@ -1111,6 +1111,11 @@ STANDING_TRIGGERS = {
 def check_sequence(inv):
     """Build order, and whether the order stated can actually be built.
 
+    Also the delivery `phase`, where the epics state one: phases must partition 1..N with no
+    gaps, must not disagree with the build order, and no epic may depend on one in a later
+    phase. An inventory that states no phase is fine — est-estimate derives one from
+    `commitment` — and nothing here fires on it.
+
     The extraction states `sequence`; this checks it rather than trusting it. Story-level
     `depends_on` is rolled up to epic level — a story in A depending on one in B means A cannot
     be built before B — and `depends_on_epics` adds the ordering no story records. A stated
@@ -1197,7 +1202,54 @@ def check_sequence(inv):
             report["violations"].append({"epic": after, "needs": before, "sequence": seq[after],
                                          "needs_sequence": seq[before], "why": why})
 
+    # Delivery phases. A phase is not a dependency — it is a commitment, and a later phase is
+    # frequently a separate contract. Checked here because the claims are about the inventory:
+    # whether the phases form a clean partition, and whether any dependency contradicts them.
+    phase = {}
+    for i, epic in enumerate(epics):
+        eid, value = epic.get("id"), epic.get("phase")
+        if value is None:
+            continue
+        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+            findings.append(f"epics[{i}] ({eid}): phase {value!r} is not a positive integer")
+            continue
+        phase[eid] = value
+        if not (epic.get("phase_why") or "").strip():
+            findings.append(f"epics[{i}] ({eid}): carries a phase but no 'phase_why' — a phase "
+                            f"gates a whole block of work out of the current delivery, which is "
+                            f"exactly the kind of claim a client argues with")
+    if phase:
+        stated = sorted(set(phase.values()))
+        if stated != list(range(1, len(stated) + 1)):
+            findings.append(
+                f"epic phases read {stated} — they must run 1..{len(stated)} with no gaps, "
+                f"because a gap reads as a phase somebody forgot rather than a space left "
+                f"deliberately")
+        ordered = [e.get("id") for e in sorted(epics, key=lambda e: (seq.get(e.get("id")) is None,
+                                                                    seq.get(e.get("id")) or 0))]
+        seen = 0
+        for eid in ordered:
+            if eid not in phase:
+                continue
+            if phase[eid] < seen:
+                findings.append(
+                    f"{eid} is phase {phase[eid]} but is sequenced after an epic in phase "
+                    f"{seen} — build order and delivery phase cannot disagree, since "
+                    f"everything in a phase is built before anything in the next")
+            seen = max(seen, phase[eid])
+        for (after, before), why in sorted(edges.items()):
+            if after in phase and before in phase and phase[after] < phase[before]:
+                findings.append(
+                    f"{after} is phase {phase[after]} but depends on {before} in phase "
+                    f"{phase[before]} ({why}) — a phase cannot stand on a later one, so either "
+                    f"the phase or the dependency is wrong")
+                report["violations"].append({"epic": after, "needs": before,
+                                             "phase": phase[after],
+                                             "needs_phase": phase[before], "why": why})
+    report["phases"] = phase or None
+
     report["order"] = [{"id": e.get("id"), "name": e.get("name"),
+                        "phase": phase.get(e.get("id")),
                         "sequence": seq.get(e.get("id"))}
                        for e in sorted(epics, key=lambda e: (seq.get(e.get("id")) is None,
                                                              seq.get(e.get("id")) or 0,

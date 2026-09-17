@@ -448,7 +448,17 @@
             "minimum": 1,
             "description": "Build order, 1 first. Dependencies before what is built on them, foundations before what stands on them. Unique and contiguous 1..N across the epic list, so a gap reads as an epic somebody forgot rather than a deliberate space. Required from schema 1.1. The ARRAY order of `epics` means nothing: every render sorts on this field, so the two can disagree without consequence."
           },
-          "sequence_why": {
+          "phase": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Delivery phase, 1 first. A DELIVERY GROUPING, not a dependency: everything in phase N is built before anything in phase N+1, whether or not the dependency graph requires it. Set it when the source states one — a PRD with 'Phase 1 / Phase 2', a backlog with a Phase column, a scope table marking a block as a separate contract or post-launch. Phases run 1..N with no gaps, and `phase` never decreases as `sequence` increases. Optional: where no phase is stated, est-estimate derives one from `commitment` (an epic whose stories are all speculative is the next phase) and records that the value was derived. Do NOT use this for priority or MoSCoW — that is `commitment` on the story.",
+          "examples": [1, 2]
+        },
+        "phase_why": {
+          "type": "string",
+          "description": "One line naming where the source states this phase, quoted. A phase gates a whole block of work out of the current delivery, so it is the kind of claim a client argues with: 'PRD scope table: Phase 2 AI — separate contract' is checkable, 'looked like phase 2' is not. Required whenever `phase` is set."
+        },
+        "sequence_why": {
             "type": "string",
             "description": "One line naming what this epic must follow, or what waits on it. Separate from `why`, which says what the GROUPING was made on — the two are different judgements and a reader checking the build order should not have to read past the grouping rationale to find it. Required from schema 1.1."
           },

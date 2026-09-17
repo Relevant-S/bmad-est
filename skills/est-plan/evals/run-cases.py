@@ -290,7 +290,59 @@ def case_a_late_epic_does_not_build_before_an_early_one():
     ]
 
 
+def case_a_later_phase_waits_for_the_one_before_it():
+    """Two delivery phases with NO dependency crossing between them.
+
+    The graph permits them to run side by side and a real plan did exactly that — Kitespire's
+    Phase 2, which its own PRD calls a separate contract, opened its build in week 8.85 against
+    committed work running to 10.18. A phase is a commitment, not a dependency: you do not start
+    work under another agreement because the dependency graph allows it.
+
+    Phase comes from `commitment` here, which is the path every estimate made before the field
+    existed takes.
+    """
+    features = []
+    for phase, epics in ((1, ("E1", "E2")), (2, ("E3", "E4"))):
+        for epic in epics:
+            for i in range(1, 5):
+                row = feature(f"F{epic}{i}", epic=epic, size="L")
+                row["commitment"] = "committed" if phase == 1 else "speculative"
+                features.append(row)
+    estimate = priced(features)
+    plan = plan_mod.build_plan(estimate, MODEL)
+    of = {f["id"]: f.get("phase") for f in estimate["features"]}
+
+    held, overlapped = [], []
+    for option in plan["options"]:
+        window = {}
+        for person in option["schedule"]["team"]:
+            for item in person["items"]:
+                key = (of.get(item.get("story_id")), item.get("component"))
+                if key[0] is None or key[1] not in ("spec", "build"):
+                    continue
+                lo, hi = window.get(key, (1e9, 0.0))
+                window[key] = (min(lo, item["start_week"]), max(hi, item["finish_week"]))
+        held.append(window[(2, "build")][0] + 1e-6 >= window[(1, "build")][1])
+        overlapped.append(window[(2, "spec")][0] < window[(1, "build")][1])
+
+    return plan, [
+        ("no option builds phase 2 before phase 1 closes", all(held)),
+        ("phase 2's analysis may still overlap phase 1's build", any(overlapped)),
+        ("the plan audits phase order and passes", plan["ordering_check"]["ok"]),
+        ("the audit actually compared two phases",
+         plan["ordering_check"].get("phases") == [1, 2]),
+        ("every option reports each phase's own span and standalone cost",
+         all(len(o.get("phases") or []) == 2
+             and all(p.get("standalone_hours") for p in o["phases"])
+             for o in plan["options"])),
+        ("each phase records whether its phase was stated or derived",
+         all("derived from commitment" in p["basis"]
+             for o in plan["options"] for p in o["phases"])),
+    ]
+
+
 CASES = {
+    "a-later-phase-waits-for-the-one-before-it": case_a_later_phase_waits_for_the_one_before_it,
     "a-late-epic-does-not-build-before-an-early-one": case_a_late_epic_does_not_build_before_an_early_one,
     "a-chain-cannot-be-hired-away": case_a_chain_cannot_be_hired_away,
     "a-bigger-team-can-be-the-wrong-team": case_a_bigger_team_can_be_the_wrong_team,

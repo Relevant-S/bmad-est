@@ -16,7 +16,10 @@ So this checks the four claims a reader of the Gantt is entitled to make:
   1. no story is built before a story it depends on has been built;
   2. no epic is built before the epics it stands on have been built;
   3. no epic is specified before the epics it stands on have been specified;
-  4. nothing is built before it has been specified.
+  4. nothing is built before it has been specified;
+  5. no story is built before every story of an EARLIER DELIVERY PHASE is built;
+  6. no dependency runs from a lower phase to a higher one — phase 1 cannot stand on phase 2,
+     and if the inventory says it does, one of the two claims is wrong.
 
 Ordering is read from the same `archetypes.epic_predecessors` the scheduler uses, so this
 cannot pass by measuring a different graph from the one that was scheduled. It reads the
@@ -48,23 +51,29 @@ def _load(name, path):
 archetypes = _load("archetypes", HERE / "archetypes.py")
 
 
-def windows(option, epic_of):
-    """(start, finish) per story and per epic, per component, from the schedule as emitted."""
+def windows(option, epic_of, phase_of=None):
+    """(start, finish) per story, per epic and per phase, from the schedule as emitted."""
     story = collections.defaultdict(lambda: [1e9, 0.0])
     epic = collections.defaultdict(lambda: [1e9, 0.0])
+    phase = collections.defaultdict(lambda: [1e9, 0.0])
+    phase_of = phase_of or {}
     for person in option["schedule"]["team"]:
         for item in person["items"]:
             sid, component = item.get("story_id"), item.get("component")
             if not sid or sid not in epic_of or component not in ("spec", "build"):
                 continue            # standing work and the calendar-priced components
-            for table, key in ((story, (sid, component)), (epic, (epic_of[sid], component))):
+            keys = [(story, (sid, component)), (epic, (epic_of[sid], component))]
+            if sid in phase_of:
+                keys.append((phase, (phase_of[sid], component)))
+            for table, key in keys:
                 table[key][0] = min(table[key][0], item["start_week"])
                 table[key][1] = max(table[key][1], item["finish_week"])
-    return story, epic
+    return story, epic, phase
 
 
-def check_option(option, estimate, predecessors, epic_of):
-    story, epic = windows(option, epic_of)
+def check_option(option, estimate, predecessors, epic_of, phase_of=None):
+    phase_of = phase_of or {}
+    story, epic, phase = windows(option, epic_of, phase_of)
     findings = []
 
     def late(what, gate):
@@ -86,6 +95,34 @@ def check_option(option, estimate, predecessors, epic_of):
                 "kind": "build_before_spec", "story": fid, "waits_on": fid,
                 "detail": f"{fid} builds at week {story[(fid, 'build')][0]:.2f} against a "
                           f"specification that closes at week {story[(fid, 'spec')][1]:.2f}"})
+
+    # A phase is a delivery commitment, not a dependency: nothing in a later phase is built
+    # until everything in the earlier one is, whether or not the graph requires it. A real plan
+    # opened Phase 2's build in week 8.85 against committed work running to 10.18 — legal on
+    # every dependency edge, and not something anybody would run, because Phase 2 was a
+    # separate contract.
+    ordered = sorted({p for p, c in phase if c == "build"})
+    for n, later in enumerate(ordered):
+        for earlier in ordered[:n]:
+            here, there = (later, "build"), (earlier, "build")
+            if here in phase and there in phase and late(phase[here], phase[there]):
+                findings.append({
+                    "kind": "phase_order", "phase": later, "waits_on": earlier,
+                    "why": "a later delivery phase is built only after the earlier one closes",
+                    "detail": f"phase {later} is built from week {phase[here][0]:.2f}, but "
+                              f"phase {earlier} is not finished until week {phase[there][1]:.2f}"})
+
+    for feature in estimate.get("features", []):
+        mine = phase_of.get(feature["id"])
+        for dep in feature.get("depends_on") or []:
+            theirs = phase_of.get(dep)
+            if mine and theirs and theirs > mine:
+                findings.append({
+                    "kind": "phase_dependency", "story": feature["id"], "waits_on": dep,
+                    "why": "a dependency runs backwards across a phase boundary",
+                    "detail": f"{feature['id']} is phase {mine} but depends on {dep}, which is "
+                              f"phase {theirs}. A phase cannot stand on a later one; either the "
+                              f"phase or the dependency is wrong in the inventory"})
 
     name = {e.get("id"): e.get("name") for e in estimate.get("epics") or []}
     for dependant, befores in sorted(predecessors.items()):
@@ -112,6 +149,8 @@ def audit(plan, estimate):
     predecessors, broken = archetypes.epic_predecessors(estimate)
     epic_of = {f["id"]: f.get("epic_id") for f in estimate.get("features", [])
                if f.get("origin") != "standing" and f.get("epic_id")}
+    phase_of = {f["id"]: f.get("phase") or 1 for f in estimate.get("features", [])
+                if f.get("origin") != "standing" and f.get("epic_id")}
 
     options = list(plan.get("options") or [])
     baseline = plan.get("baseline")
@@ -121,19 +160,20 @@ def audit(plan, estimate):
     findings = []
     by_option = []
     for option in options:
-        mine = check_option(option, estimate, predecessors, epic_of)
+        mine = check_option(option, estimate, predecessors, epic_of, phase_of)
         by_option.append({"id": option["id"], "findings": len(mine)})
         findings += [dict(f, option=option["id"]) for f in mine]
     edges = sum(len(v) for v in predecessors.values())
     return {
         "ok": not findings,
         "epics_ordered": len(predecessors), "edges": edges,
+        "phases": sorted(set(phase_of.values())),
         "cycles_broken": broken,
         "by_option": by_option, "findings": findings,
         # Stated, because a checker that compares nothing also reports no findings, and this
         # module has shipped one of those before.
-        "checked": (f"{edges} epic edges and every story dependency across "
-                    f"{len(options)} options"),
+        "checked": (f"{edges} epic edges, {len(set(phase_of.values()))} delivery phases and "
+                    f"every story dependency across {len(options)} options"),
     }
 
 

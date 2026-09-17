@@ -123,17 +123,36 @@ def markdown(plan):
             out.append(f"> - {finding['detail']}")
         out.append("")
 
-    out += ["## The options", "",
-            "| # | Option | Weeks | Likely h | Range | Fit |",
-            "| --- | --- | ---: | ---: | --- | ---: |"]
+    multi = any(len(o.get("phases") or []) > 1 for o in plan["options"])
+    out += ["## The options", ""]
+    if multi:
+        out += ["Phase 1 first, because a later phase is often a separate agreement and the "
+                "number a client signs should not silently contain it. The whole-programme "
+                "columns are what the option actually delivers, and the fit score is computed "
+                "on them — every option holds the same scope, so scoring phase 1 alone would "
+                "let an option win by pushing work across the boundary.", "",
+                "| # | Option | P1 weeks | P1 h | Whole weeks | Whole h | Range | Fit |",
+                "| --- | --- | ---: | ---: | ---: | ---: | --- | ---: |"]
+    else:
+        out += ["| # | Option | Weeks | Likely h | Range | Fit |",
+                "| --- | --- | ---: | ---: | --- | ---: |"]
     for i, o in enumerate(plan["options"], start=1):
         t = o["estimate"]["total_hours"]
         mark = " ★" if o["id"] == plan.get("recommended") else ""
         flag = "" if o["feasibility"]["feasible"] else " ⚠ not deliverable"
-        out.append(f"| {i}{mark} | {o['archetype'].title()}, "
-                   f"{team_label(o['team_shape'])}{flag} | {o['schedule']['weeks']:.1f} | "
-                   f"{t['likely']:.0f} | {t['low']:.0f}–{t['high']:.0f} | "
-                   f"{o['score']['fit']:.1f} |")
+        head = (f"| {i}{mark} | {o['archetype'].title()}, "
+                f"{team_label(o['team_shape'])}{flag} | ")
+        phases = o.get("phases") or []
+        if multi:
+            first = phases[0] if phases else None
+            out.append(head
+                       + (f"{first['finishes_week']:.1f} | {first['standalone_hours']:.0f} | "
+                          if first else "— | — | ")
+                       + f"{o['schedule']['weeks']:.1f} | {t['likely']:.0f} | "
+                         f"{t['low']:.0f}–{t['high']:.0f} | {o['score']['fit']:.1f} |")
+        else:
+            out.append(head + f"{o['schedule']['weeks']:.1f} | {t['likely']:.0f} | "
+                              f"{t['low']:.0f}–{t['high']:.0f} | {o['score']['fit']:.1f} |")
     out.append("")
 
     baseline = plan.get("baseline")
@@ -169,19 +188,61 @@ def team_label(shape):
     return ", ".join(f"{n}x {ROLE_LABEL.get(r, r)}" for r, n in sorted(shape.items()))
 
 
+def phase_lead(o):
+    """The headline, led by the FIRST phase rather than by the whole programme.
+
+    A later phase is frequently a separate agreement, so a client being quoted an MVP should
+    not be handed a span and a total that silently include work under a different contract.
+    The whole-programme figure stays on the line beside it, labelled, because it is what the
+    option actually contains.
+    """
+    phases = o.get("phases") or []
+    t = o["estimate"]["total_hours"]
+    whole = (f"{o['schedule']['weeks']:.1f} weeks, {t['likely']:.0f} h likely "
+             f"({t['low']:.0f}–{t['high']:.0f})")
+    fit = f"Fit {o['score']['fit']:.1f}/10."
+    if len(phases) < 2:
+        return f"**{whole}.** {fit}"
+    first = phases[0]
+    later = len(phases) - 1
+    return (f"**Phase {first['phase']}: {first['finishes_week']:.1f} weeks, "
+            f"{first['standalone_hours']:.0f} h on its own.** "
+            f"Whole programme, including {later} later phase{'s' if later > 1 else ''}: "
+            f"{whole}. {fit}")
+
+
 def option_section(o, recommended):
     t = o["estimate"]["total_hours"]
     out = [f"### {o['archetype'].title()} — {team_label(o['team_shape'])}"
            + ("  ★ recommended" if recommended else ""), "",
            o["what_it_is"], "",
-           f"**{o['schedule']['weeks']:.1f} weeks. {t['likely']:.0f} h likely "
-           f"({t['low']:.0f}–{t['high']:.0f}).** Fit {o['score']['fit']:.1f}/10.", "",
+           phase_lead(o), "",
            "| Role | Low | Likely | High |", "| --- | ---: | ---: | ---: |"]
     for role in ROLE_ORDER:
         row = o["estimate"]["by_role"].get(role)
         if row:
             out.append(f"| {ROLE_LABEL.get(role, role)} | {row['low']:.0f} | "
                        f"{row['likely']:.0f} | {row['high']:.0f} |")
+    phases = o.get("phases") or []
+    if len(phases) > 1:
+        out += ["", "**The phases.** A phase is a delivery commitment, not a dependency: "
+                "nothing in a later phase is built until the earlier one closes, whether or not "
+                "the graph requires it. Analysis may overlap — the next phase can be specified "
+                "while this one builds — which is why a phase's window starts before the one "
+                "before it ends.", "",
+                "| Phase | Runs | On its own | Share of this programme | Why it is a phase |",
+                "| ---: | --- | ---: | ---: | --- |"]
+        for row in phases:
+            out.append(f"| {row['phase']} | W{int(row['starts_week']) + 1}–"
+                       f"W{max(1, -(-row['finishes_week'] // 1)):.0f} | "
+                       f"{row['standalone_hours']:.0f} h | "
+                       f"{row['apportioned_hours']:.0f} h | {row['basis']} |")
+        out += ["", "*On its own* is what that phase costs if it is the only thing commissioned; "
+                "*share of this programme* is its portion of the total above. The second is "
+                "smaller because environments and most planning are paid once however many "
+                "phases run — quote the first to anyone deciding whether to commission a phase.",
+                ""]
+
     staggered = [p for p in o["schedule"]["team"] if p.get("join_week", 0.0) > 0.005]
     if staggered:
         out += ["", "**Who arrives when.** Nobody joins before their role has more ready work "
@@ -327,8 +388,14 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None,
 
     sheet.cell(row=1, column=1, value=f"{option['archetype'].title()} — "
                                      f"{team_label(option['team_shape'])}").font = style["band_font"]
+    phases = option.get("phases") or []
+    lead = ""
+    if len(phases) > 1:
+        lead = (f"Phase {phases[0]['phase']} closes W"
+                f"{max(1, -(-phases[0]['finishes_week'] // 1)):.0f} at "
+                f"{phases[0]['standalone_hours']:.0f} h on its own · whole programme ")
     sheet.cell(row=2, column=1,
-               value=(f"{option['schedule']['weeks']:.1f} weeks · "
+               value=(lead + f"{option['schedule']['weeks']:.1f} weeks · "
                       f"{option['estimate']['total_hours']['likely']:.0f} h likely · "
                       f"fit {option['score']['fit']:.1f}/10 · weeks are relative, "
                       f"week 1 is whenever this starts")).font = style["muted_font"]
@@ -343,6 +410,23 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None,
         cell = sheet.cell(row=head, column=first_week + w, value=f"W{w + 1}")
         cell.fill, cell.font, cell.alignment = (style["header_fill"], style["header_font"],
                                                 style["centre"])
+
+    # The phase boundary, named on the row above the grid. A phase is a delivery commitment —
+    # often a separate contract — so a reader has to be able to see where one ends without
+    # counting bars, and the plan drew Phase 2 inside Phase 1 for exactly as long as nothing
+    # marked it.
+    if len(phases) > 1:
+        # Column 1 of this row belongs to the subtitle when there is one — the baseline chart
+        # uses it — so the label only takes the cell if it is free. The markers themselves sit
+        # in week columns and never collide with it.
+        if not subtitle:
+            sheet.cell(row=head - 1, column=1,
+                       value="Phase boundaries").font = style["muted_font"]
+        for row_ in phases[:-1]:
+            at = first_week + min(weeks - 1, max(0, int(row_["finishes_week"])))
+            cell = sheet.cell(row=head - 1, column=at,
+                              value=f"end P{row_['phase']}")
+            cell.font, cell.alignment = style["muted_font"], style["centre"]
 
     epic_name = {e.get("id"): e.get("name") for e in epics}
     row = head + 1

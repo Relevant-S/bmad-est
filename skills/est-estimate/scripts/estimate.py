@@ -32,6 +32,7 @@ Writes: estimate.json — the source of truth; render-estimate.py makes the huma
 """
 
 import argparse
+import collections
 import json
 import math
 import sys
@@ -882,8 +883,8 @@ def by_phase(priced, project, model):
             for phase, v in phases.items()}
 
 
-def agreed_split(priced, project, model, options):
-    """Agreed and additional scope, never silently merged.
+def agreed_split(priced, project, model, options, key=None, groups=None, note=None):
+    """A scope split, never silently merged.
 
     Reports two different numbers per group, because two different questions get asked
     and answering one with the other misleads:
@@ -896,9 +897,14 @@ def agreed_split(priced, project, model, options):
       much of the planning are paid once regardless of how much scope survives. This is
       the number a client negotiation needs: it is what they would actually pay.
     """
-    groups = {"in_agreed_scope": [], "outside_agreed_scope": [], "no_agreed_scope_defined": []}
+    # `key` and `groups` are what make this reusable: the same arithmetic answers "what does the
+    # agreed scope cost" and "what does each delivery phase cost", and both questions need the
+    # apportioned/standalone pair below rather than one number. Defaults to the agreed split.
+    key = key or (lambda f: f["scope_status"])
+    groups = {k: [] for k in (groups or
+                              ("in_agreed_scope", "outside_agreed_scope", "no_agreed_scope_defined"))}
     for feature in priced:
-        groups.setdefault(feature["scope_status"], []).append(feature)
+        groups.setdefault(key(feature), []).append(feature)
 
     manual_by_group = {k: sum(pert(f["manual_baseline"])[0] for f in v) for k, v in groups.items()}
     manual_all = sum(manual_by_group.values()) or 1.0
@@ -927,12 +933,30 @@ def agreed_split(priced, project, model, options):
     for name, row in out.items():
         row["share_of_total_pct"] = round(100 * row["apportioned_hours"] / total_apportioned, 1) \
             if total_apportioned else 0.0
-    out["_reading_these"] = ("apportioned_hours sums to the project total and answers 'what share of "
+    out["_reading_these"] = (note + " " if note else "") + (
+                            "apportioned_hours sums to the project total and answers 'what share of "
                             "this project is that scope'. standalone_hours answers 'what would that "
                             "scope cost on its own' and is higher, because environments and most "
                             "planning are paid once regardless. Quote standalone_hours to a client "
                             "deciding whether to drop scope; they will not save the apportioned figure.")
     return out
+
+
+def phase_split(priced, project, model, options):
+    """What each delivery phase costs, on the same arithmetic as the agreed split.
+
+    A phase is often a separate contract — Kitespire's PRD says exactly that of its Phase 2 —
+    so quoting one total across all of them puts work under another agreement inside the number
+    a client is being asked to sign. `standalone_hours` is the figure that phase would cost on
+    its own; `apportioned_hours` is its share of this programme. They differ because
+    environments and most planning are paid once however many phases run.
+    """
+    seen = sorted({f.get("phase") or 1 for f in priced})
+    return agreed_split(priced, project, model, options,
+                        key=lambda f: f"phase_{f.get('phase') or 1}",
+                        groups=[f"phase_{n}" for n in seen],
+                        note="Each phase is a delivery commitment, not a dependency, and may be "
+                             "a separate agreement.")
 
 
 # --- dependencies and duration ----------------------------------------------
@@ -1322,6 +1346,56 @@ def inventory_from(estimate):
 
 # --- main ---------------------------------------------------------------------
 
+def epic_phases(inventory):
+    """Delivery phase per epic: `{epic_id: (phase, basis)}`.
+
+    A phase is a DELIVERY grouping, not a dependency. Nothing in a later phase is built until
+    everything in the earlier one is, whether or not the graph requires it — you do not start
+    work under a separate contract because the dependency graph happens to permit it.
+
+    The epic states it where the source did. Where it does not, it is derived from the tag that
+    already carries the same fact: the schema's own description of `commitment: speculative` is
+    "raised as a possibility, A FUTURE PHASE, or a client aspiration". So an epic whose stories
+    are ALL speculative is the next phase, and an epic holding anything committed or implied is
+    phase 1. That derivation is what lets every estimate made before this field existed be
+    planned correctly without re-extraction.
+
+    It is derived per EPIC rather than per story deliberately. A phase is a block of delivery,
+    and one speculative story inside an otherwise committed epic is a scope question for that
+    epic, not a reason to push a single story past the launch.
+
+    The basis travels with the value because a derived phase is an inference and has to read as
+    one wherever it is quoted.
+    """
+    stories = collections.defaultdict(list)
+    for feature in inventory.get("features") or []:
+        if feature.get("epic_id"):
+            stories[feature["epic_id"]].append(feature.get("commitment") or "committed")
+
+    out, derived = {}, {}
+    for epic in inventory.get("epics") or []:
+        eid = epic.get("id")
+        if epic.get("phase"):
+            # Prefixed, so a reader can tell a decision somebody recorded from an inference the
+            # module made without having to notice the absence of the word "derived".
+            out[eid] = (int(epic["phase"]),
+                        "stated by the inventory: "
+                        + (epic.get("phase_why") or "no reason recorded"))
+            continue
+        mine = stories.get(eid) or []
+        derived[eid] = bool(mine) and all(c == "speculative" for c in mine)
+    if derived:
+        # Derived phases sit after every stated one, so a partly-annotated inventory cannot put
+        # inferred work ahead of work somebody actually placed.
+        base = max((v[0] for v in out.values()), default=0)
+        for eid, later in derived.items():
+            out[eid] = (base + (2 if later else 1),
+                        "derived from commitment: "
+                        + ("every story is speculative, so this is a later phase"
+                           if later else "the epic holds committed or implied work"))
+    return out
+
+
 def build_estimate(inventory, model, options):
     features = inventory.get("features", [])
     implicit = [dict(f, origin="implicit") for f in inventory.get("implicit_scope", [])]
@@ -1329,10 +1403,14 @@ def build_estimate(inventory, model, options):
     # Build order, resolved once and stamped onto every priced row, so a render never has to
     # join back to the epic list to sort. An epic the sequence does not name sorts last.
     sequence_of = {e.get("id"): e.get("sequence") for e in inventory.get("epics") or []}
+    # Delivery phase, stamped the same way and for the same reason.
+    phase_of = epic_phases(inventory)
     priced = []
     for raw in features + implicit + standing:
         entry = price_feature(raw, model, options["team"])
         entry["epic_sequence"] = sequence_of.get(entry.get("epic_id"))
+        phase, why = phase_of.get(entry.get("epic_id")) or (1, "no epic; delivered with phase 1")
+        entry["phase"], entry["phase_basis"] = phase, why
         entry["_raw"] = raw
         priced.append(entry)
 
@@ -1452,6 +1530,7 @@ def build_estimate(inventory, model, options):
         "by_phase": by_phase(priced, project, model),
         "by_role": by_role(priced, project, model, multiplier),
         "scope_split": agreed_split(priced, project, model, options),
+        "phase_split": phase_split(priced, project, model, options),
         "manual_equivalent": {
             "story_hours": round(pert(add(*[f["total"] for f in priced]))[0], 1) if priced else 0.0,
             "manual_hours": round(pert(manual_total)[0], 1),

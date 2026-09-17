@@ -19,6 +19,7 @@ Exit 0 when at least one option is feasible, 1 when none is.
 """
 
 import argparse
+import collections
 import copy
 import importlib.util
 import json
@@ -77,6 +78,53 @@ def price_for(estimate, model, span):
     options = est.options_from(estimate, model)
     options["span"] = span
     return est.build_estimate(inventory, copy.deepcopy(model), options)
+
+
+def phases_of(sched, priced, estimate):
+    """Per delivery phase: when it runs, and what it costs.
+
+    A later phase is often a separate agreement — Kitespire's PRD says exactly that of its
+    Phase 2 — so one span and one total across all of them puts work under another contract
+    inside the number a client is asked to sign. The hours come from est-estimate's own
+    `phase_split`, which reports both figures a reader needs: `apportioned_hours`, this phase's
+    share of the programme, and `standalone_hours`, what it would cost on its own. They differ
+    because environments and most planning are paid once however many phases run, and quoting
+    the wrong one to a client deciding whether to commission a phase misleads them.
+    """
+    of = {f["id"]: f.get("phase") or 1 for f in estimate.get("features", [])}
+    # The reason a phase IS a phase comes from an epic. Standing work belongs to no epic and
+    # carries a placeholder basis; letting it into this map had it overwrite the real reason,
+    # so a phase derived from commitment reported itself as "no epic".
+    basis = {}
+    for feature in estimate.get("features", []):
+        if feature.get("epic_id"):
+            basis.setdefault(feature.get("phase") or 1, feature.get("phase_basis"))
+    for feature in estimate.get("features", []):
+        basis.setdefault(feature.get("phase") or 1, feature.get("phase_basis"))
+    window = collections.defaultdict(lambda: [1e9, 0.0])
+    for person in sched["team"]:
+        for item in person["items"]:
+            phase = of.get(item.get("story_id"))
+            if phase is None:
+                continue
+            window[phase][0] = min(window[phase][0], item["start_week"])
+            window[phase][1] = max(window[phase][1], item["finish_week"])
+
+    split = priced.get("phase_split") or {}
+    out = []
+    for phase in sorted(window):
+        row = split.get(f"phase_{phase}") or {}
+        starts, finishes = window[phase]
+        out.append({
+            "phase": phase,
+            "starts_week": round(starts, 2), "finishes_week": round(finishes, 2),
+            "weeks": round(finishes - starts, 2),
+            "stories": row.get("features"),
+            "apportioned_hours": row.get("apportioned_hours"),
+            "standalone_hours": row.get("standalone_hours"),
+            "basis": basis.get(phase),
+        })
+    return out
 
 
 def feasibility(sched, priced, estimate, model):
@@ -208,6 +256,7 @@ def build_plan(estimate, model, roster=None, deadline=None, only=None):
                 "schedule": sched,
                 "span": span,
                 "estimate": priced,
+                "phases": phases_of(sched, priced, estimate),
                 "risks": [{"risk": r, "mitigation": m} for r, m in archetypes.RISKS[name]],
             }
             option["feasibility"] = feasibility(sched, priced, estimate, model)
@@ -255,6 +304,7 @@ def build_plan(estimate, model, roster=None, deadline=None, only=None):
                 "estimate": price_for(estimate, model, span),
                 "risks": [{"risk": r, "mitigation": m} for r, m in archetypes.RISKS[arch]],
             }
+            baseline["phases"] = phases_of(sched, baseline["estimate"], estimate)
             baseline["feasibility"] = feasibility(sched, baseline["estimate"], estimate, model)
             # Scored against the same peer set as everything else, so its fit is comparable
             # even though it is not competing.

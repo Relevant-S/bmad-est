@@ -485,5 +485,90 @@ class TheEpicOrderingIsHonoured(unittest.TestCase):
         self.assertIn(dropped[0]["waits_on"], ("EA", "EB"))
 
 
+
+
+class APhaseIsACommitmentNotADependency(unittest.TestCase):
+    """Everything in phase N is built before anything in phase N+1, whether or not the graph
+    requires it.
+
+    The regenerated Kitespire plan honoured every dependency and still opened Phase 2's build in
+    week 8.85 against committed work running to 10.18. Nothing in Phase 2 depended on anything
+    late in Phase 1, so nothing stopped them. Phase 2 was a separate contract.
+    """
+
+    def windows(self, sched, estimate, component):
+        phase = {f["id"]: f.get("phase") or 1 for f in estimate["features"]}
+        out = {}
+        for person in sched["team"]:
+            for item in person["items"]:
+                key = phase.get(item.get("story_id"))
+                if key is None or item.get("component") != component:
+                    continue
+                lo, hi = out.get(key, (1e9, 0.0))
+                out[key] = (min(lo, item["start_week"]), max(hi, item["finish_week"]))
+        return out
+
+    def test_a_later_phase_is_not_built_until_the_earlier_one_closes(self):
+        features, epics = F.two_phases()
+        estimate = F.priced(features, epics=epics)
+        for archetype in ("sequential", "foundation", "pipelined"):
+            sched = F.run(estimate, dict(FULL, dev=3), archetype=archetype)
+            built = self.windows(sched, estimate, "build")
+            self.assertGreaterEqual(
+                built[2][0] + 1e-6, built[1][1],
+                f"{archetype}: phase 2 builds at {built[2][0]:.2f} before phase 1 finishes at "
+                f"{built[1][1]:.2f}")
+
+    def test_analysis_may_still_overlap_the_previous_phase(self):
+        """Deliberate, and worth pinning: a hard wall on specification too would idle the BA
+        through the last stretch of every project, and discovery for a next phase genuinely does
+        run alongside the current one."""
+        features, epics = F.two_phases()
+        estimate = F.priced(features, epics=epics)
+        sched = F.run(estimate, dict(FULL, dev=3))
+        spec, built = self.windows(sched, estimate, "spec"), self.windows(sched, estimate, "build")
+        self.assertLess(spec[2][0], built[1][1],
+                        "phase 2's specification waited for phase 1 to be BUILT")
+
+    def test_a_stated_phase_beats_the_derivation(self):
+        features, epics = F.stated_phases()
+        estimate = F.priced(features, epics=epics)
+        phases = {f["epic_id"]: f["phase"] for f in estimate["features"] if f.get("epic_id")}
+        self.assertEqual(phases, {"E1": 1, "E2": 2})
+        # The basis says which it was. A stated phase is a decision somebody recorded; a
+        # derived one is the module's inference, and quoting them identically would let an
+        # inference read as a client's own words.
+        self.assertTrue(estimate["features"][0]["phase_basis"].startswith("stated"))
+        self.assertIn("the SOW names the phase", estimate["features"][0]["phase_basis"])
+        built = self.windows(F.run(estimate, dict(FULL, dev=2)), estimate, "build")
+        self.assertGreaterEqual(built[2][0] + 1e-6, built[1][1])
+
+    def test_a_backlog_with_one_phase_is_untouched(self):
+        """The gate must be inert where there is only one phase, or every span in the module
+        moved for a reason unrelated to the fix."""
+        estimate = F.priced(F.wide(24, epics=4))
+        self.assertEqual({f.get("phase") for f in estimate["features"]}, {1})
+
+    def test_the_foundation_archetype_does_not_deadlock_across_a_phase(self):
+        """`foundation_epics()` is "every epic something waits on", and on a real backlog that
+        reached across the boundary — Kitespire's E21 and E22 are both Phase 2 and both depended
+        upon. Unrestricted, that put phase-2 epics in stage 0 while phase 1 sat in stage 1, and
+        the phase gate cannot be satisfied inside that staging."""
+        features, epics = F.two_phases()
+        # Give phase 2 an internal dependency so its first epic IS depended upon, which is what
+        # dragged Kitespire's E21 into the foundation set.
+        features[-1]["depends_on"] = [{"feature_id": "F301", "inferred": False,
+                                       "evidence": "stated"}]
+        estimate = F.priced(features, epics=epics)
+        phase = {f["epic_id"]: f.get("phase") for f in estimate["features"] if f.get("epic_id")}
+        self.assertEqual(set(F.archetypes.foundation_epics(estimate)),
+                         {e for e in phase if phase[e] == 1} & set(F.archetypes.foundation_epics(estimate)),
+                         "the foundation set reaches into a later phase")
+        self.assertTrue(all(phase[e] == 1 for e in F.archetypes.foundation_epics(estimate)))
+        for archetype in ("sequential", "foundation", "pipelined"):
+            sched = F.run(estimate, dict(FULL, dev=3), archetype=archetype)
+            self.assertEqual(sched["unresolved_dependencies"], [], archetype)
+
+
 if __name__ == "__main__":
     unittest.main()

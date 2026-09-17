@@ -348,6 +348,44 @@ class TheWorkbookRoundTrip(unittest.TestCase):
                                         int(gate.split("clears W")[1].rstrip(")")),
                                         f"{starts} starts before its stated gate {gate}")
 
+    def test_the_chart_marks_the_phase_boundary_and_leads_with_phase_one(self):
+        """A phase is a delivery commitment and often a separate contract, so a reader must be
+        able to see where one ends without counting bars — and the headline must not hand a
+        client a span that silently includes work under another agreement."""
+        features, epics = F.two_phases()
+        estimate = F.priced(features, epics=epics)
+        plan = F.plan_mod.build_plan(estimate, F.model())
+        book = Path(self.dir.name) / "phased.xlsx"
+        self.assertTrue(render_estimate.write_xlsx(estimate, book))
+        ok, _ = render.extend_workbook(plan, book, "archetype")
+        self.assertTrue(ok)
+        from openpyxl import load_workbook
+        sheet = load_workbook(book)[[n for n in load_workbook(book).sheetnames
+                                     if n.startswith("Gantt")][-1]]
+        self.assertIn("Phase 1 closes W", sheet.cell(row=2, column=1).value)
+        self.assertIn("whole programme", sheet.cell(row=2, column=1).value)
+        markers = [sheet.cell(row=3, column=c).value for c in range(1, sheet.max_column + 1)]
+        self.assertIn("end P1", markers)
+
+    def test_the_markdown_leads_with_phase_one_and_prints_both_figures(self):
+        features, epics = F.two_phases()
+        plan = F.plan_mod.build_plan(F.priced(features, epics=epics), F.model())
+        text = render.markdown(plan)
+        self.assertIn("**Phase 1:", text)
+        self.assertIn("on its own", text)
+        self.assertIn("Whole programme", text)
+        # Both figures, and the sentence saying which to quote to a client — the apportioned
+        # number is not what anyone saves by dropping a phase.
+        self.assertIn("| Phase | Runs | On its own | Share of this programme |", text)
+        self.assertIn("paid once however many", text)
+        self.assertIn("| P1 weeks | P1 h | Whole weeks | Whole h |", text)
+
+    def test_a_single_phase_backlog_reads_exactly_as_before(self):
+        """The reporting change must be inert where there is only one phase."""
+        text = render.markdown(self.plan)
+        self.assertNotIn("**Phase 1:", text)
+        self.assertIn("| # | Option | Weeks | Likely h | Range | Fit |", text)
+
     def test_a_missing_workbook_is_reported_rather_than_created(self):
         """est-plan extends the estimate's workbook. Creating one would hand a client a second
         file with a Gantt and no scope in it."""

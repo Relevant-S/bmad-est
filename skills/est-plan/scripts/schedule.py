@@ -351,11 +351,27 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
         if item["feature"].get("epic_id"):
             epic_needs[(item["feature"]["epic_id"], item["component"])].add(item["feature"]["id"])
 
+    # Delivery phases. A phase is not a dependency — it is a commitment, and a later phase is
+    # frequently a separate contract. Kitespire's PRD says exactly that of its Phase 2, and the
+    # plan still opened Phase 2's build in week 8.85 against committed work running to 10.18,
+    # because nothing in Phase 2 happened to depend on anything late in Phase 1. Dependency is
+    # the wrong instrument for this: you do not start work under another agreement because the
+    # graph permits it.
+    phase_of = {f["id"]: f.get("phase") or 1 for f in features}
+    phase_stories = collections.defaultdict(set)
+    for feature in features:
+        phase_stories[feature.get("phase") or 1].add(feature["id"])
+    phase_needs = collections.defaultdict(set)
+    for item in items:
+        if item["component"] == "build":
+            phase_needs[item["feature"].get("phase") or 1].add(item["feature"]["id"])
+
     finished = {}          # (story_id, component) -> finish week
     spec_done = {}         # story_id -> when its specification stopped moving
     story_done = {}        # story_id -> build finish, what dependants actually wait for
     epic_spec_done = {}    # epic_id -> when the LAST of its stories was specified
     epic_built = {}        # epic_id -> when the last of its stories finished building
+    phase_built = {}       # phase -> when the last of ITS stories finished building
     unresolved = [dict(row, story=None, waits_on=row["waits_on"]) for row in epic_cycles]
     scheduled = set()
 
@@ -373,6 +389,24 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                 continue                       # an epic with no stories gates nothing
             if before in table:
                 earliest = max(earliest, table[before])
+            else:
+                waiting = True
+        return earliest, waiting
+
+    def phase_gate(phase, earliest):
+        """A build waits for every EARLIER phase to be fully built.
+
+        Only the build. Specification is deliberately left free: an analyst can open the next
+        phase's discovery while the current one is being built, which is what actually happens
+        and what stops the BA idling through the last stretch of a project. The chart draws the
+        two bands separately, so the overlap is visible and deliberate rather than hidden.
+        """
+        waiting = False
+        for before in sorted(phase_needs):
+            if before >= phase or not phase_needs[before]:
+                continue
+            if before in phase_built:
+                earliest = max(earliest, phase_built[before])
             else:
                 waiting = True
         return earliest, waiting
@@ -415,6 +449,10 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                     if mine:
                         earliest, blocked = epic_gate(mine, epic_built, earliest)
                         waiting = waiting or blocked
+                    if item["component"] == "build":
+                        earliest, blocked = phase_gate(
+                            item["feature"].get("phase") or 1, earliest)
+                        waiting = waiting or blocked
                 elif mine:
                     # Specification is ordered by the epic graph too, but against the
                     # predecessors' SPECIFICATION rather than their build — so Phase 2 analysis
@@ -451,6 +489,16 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                                 "why": "the epic this story stands on does not complete in "
                                        "this stage — the archetype's staging contradicts the "
                                        "epic ordering"})
+                    phase = item["feature"].get("phase") or 1
+                    if item["component"] == "build":
+                        for before in sorted(phase_needs):
+                            if before < phase and phase_needs[before] and before not in phase_built:
+                                unresolved.append({
+                                    "story": item["feature"]["id"],
+                                    "waits_on": f"phase {before}",
+                                    "why": "an earlier delivery phase does not complete in this "
+                                           "stage — the archetype's staging puts later-phase "
+                                           "work ahead of it"})
                 ready = [(barrier, i["order"], COMPONENT_ORDER[i["component"]], barrier, i)
                          for i in pending]
 
@@ -501,6 +549,12 @@ def simulate(estimate, model, team, policy, staffing=None, concurrency=None):
                     table = epic_spec_done if component == "spec" else epic_built
                     table[epic] = max(finished[(s, component)] for s in want
                                       if (s, component) in finished)
+            if component == "build":
+                phase = feature.get("phase") or 1
+                want = phase_needs.get(phase) or set()
+                if want and all((s, "build") in scheduled for s in want):
+                    phase_built[phase] = max(finished[(s, "build")] for s in want
+                                             if (s, "build") in finished)
         barrier = stage_end
         for person in team:
             person.ready = max(person.ready, barrier)

@@ -150,19 +150,46 @@ def epic_dependency_counts(estimate):
     return {epic: len(who) for epic, who in waiters.items()}
 
 
+def epic_phase(estimate):
+    """`{epic_id: phase}`, read off the priced stories est-estimate already stamped.
+
+    est-estimate resolves the phase once — stated by the inventory where the source gave one,
+    derived from `commitment` where it did not — and stamps it on every priced row. Read rather
+    than re-derived, so the scheduler, the renderer and the checker cannot disagree about which
+    phase a piece of work is in.
+    """
+    out = {}
+    for feature in estimate.get("features", []):
+        if feature.get("epic_id"):
+            out[feature["epic_id"]] = feature.get("phase") or 1
+    return out
+
+
 def foundation_epics(estimate):
-    """The epics the rest of the work stands on.
+    """The epics the rest of the work stands on, WITHIN THE FIRST DELIVERY PHASE.
 
     An epic is foundational when at least one other epic waits on it. Where nothing depends
     on anything — a flat inventory with no recorded dependencies — the first epic in the
     stated build order is taken, because `sequence` is itself a claim about what comes first
     and ignoring it would make this archetype identical to the pipelined one.
+
+    Restricted to the earliest phase, and not for tidiness. The foundation set is "everything
+    something else waits on", and on a real backlog that reaches across the phase boundary:
+    Kitespire's E21 and E22 are both Phase 2 and both depended upon, so an unrestricted set put
+    Phase 2 epics in stage 0 while Phase 1 sat in stage 1. The phase gate cannot be satisfied
+    inside that staging — a Phase 2 build waits for Phase 1 to finish, and Phase 1 has not
+    started — so the run either deadlocks or fills `unresolved_dependencies` with contradictions
+    the inventory never contained. A foundation is the ground the CURRENT phase stands on.
     """
     counts = epic_dependency_counts(estimate)
-    depended_on = {epic for epic, n in counts.items() if n > 0}
+    phase = epic_phase(estimate)
+    first = min(phase.values(), default=1)
+    depended_on = {epic for epic, n in counts.items()
+                   if n > 0 and phase.get(epic, first) == first}
     if depended_on:
         return depended_on
-    ordered = sorted((e for e in estimate.get("epics") or []),
+    ordered = sorted((e for e in estimate.get("epics") or []
+                      if phase.get(e.get("id"), first) == first),
                      key=lambda e: (e.get("sequence") is None, e.get("sequence") or 0))
     return {ordered[0]["id"]} if ordered else set()
 

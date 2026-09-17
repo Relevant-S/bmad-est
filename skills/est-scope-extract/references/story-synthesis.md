@@ -179,8 +179,11 @@ stand — then say in the extraction report that surfaces were not classified.
 - Rows the source marked removed are `not_scope`, not stories.
 - A change-log tab (`REPLACE row 300`, `INSERT`) is applied to the sheet it edits, never
   extracted alongside it.
-- `Priority` and `Client Phase` columns travel with the story; they are what a cut-line
-  conversation runs on later.
+- A `Priority` column travels with the story as `commitment`; it is what a cut-line
+  conversation runs on later. A `Client Phase` column is a different claim and travels to the
+  **epic's `phase`**, with `phase_why` quoting the column. Everything in a phase is delivered
+  before anything in the next, whether or not the dependency graph requires it, so it has to
+  reach est-plan as a number rather than as a word in an epic title.
 - If the story count is within a factor of two of the row count, you have almost certainly
   transliterated rather than synthesised. Say so in the extraction report if it is genuinely
   correct — some backlogs really are story-grained — but check first.
