@@ -579,13 +579,58 @@ class TheBudgetColumnsAddUp(unittest.TestCase):
         self.assertTrue(attribution, "role_attribution is how the reconciliation is published")
         self.assertAlmostEqual(total, attribution.get("model_risk_hours", total), delta=0.3)
 
-    def test_the_csv_carries_the_budget_block_per_role(self):
+    def test_the_csv_carries_the_budget_block_for_roles_that_work_on_stories(self):
+        """Only those roles. QA is priced as a share of the story total and the architect on the
+        calendar, so neither sits on a story — their columns were zero on every story row with
+        the real figure one row below on `[project] qa`. Twelve columns of zeros read as hours
+        gone missing, and were read that way."""
         columns = render.estimate_columns(self.est)
+        working = render.story_roles(self.est)
+        self.assertTrue(working, "no role carries story hours in the fixture")
         for role in self.est["by_role"]:
             for suffix in ("_low", "_likely", "_high", "_hours", "_risk", "_planned"):
-                self.assertIn(f"{role}{suffix}", columns)
+                if role in working:
+                    self.assertIn(f"{role}{suffix}", columns)
+                else:
+                    self.assertNotIn(f"{role}{suffix}", columns)
         self.assertIn("risk_hours", columns)
         self.assertIn("planned_hours", columns)
+
+    def test_a_project_level_role_gets_no_story_columns_but_keeps_its_hours(self):
+        """Removing a column must not remove a number. The `[project]` row carries the same
+        figures its role columns used to duplicate, and says so in its own description."""
+        absent = [r for r in self.est["by_role"] if r not in render.story_roles(self.est)]
+        self.assertTrue(absent, "the fixture prices no role at project level")
+        (columns, rows), _ = render.tabular(self.est)
+        for role in absent:
+            self.assertNotIn(f"{role}_hours", columns)
+            line = next(r for r in rows if r.get("name") == f"[project] {role}")
+            self.assertAlmostEqual(line["hours"],
+                                   self.est["by_role"][role]["hours"], delta=0.15)
+            self.assertEqual(line["risk_hours"],
+                             self.est["project_components"][role]["model_risk_hours"])
+            self.assertIn("Priced per project, not per story", line["description"])
+            self.assertIn(f"{role}_hours", line["description"])
+
+    def test_the_rule_is_the_data_not_a_list_of_role_names(self):
+        """Keyed on `on_stories`, so a cost model that puts QA on stories gets the columns back
+        with no code change — and a project with no infra stories loses `devops_*`, which is the
+        same noise for the same reason."""
+        moved = json.loads(json.dumps(self.est))
+        moved["by_role"]["qa"]["on_stories"] = 12.0
+        self.assertIn("qa", render.story_roles(moved))
+        self.assertIn("qa_hours", render.estimate_columns(moved))
+        moved["by_role"]["devops"]["on_stories"] = 0.0
+        self.assertNotIn("devops", render.story_roles(moved))
+        self.assertNotIn("devops_hours", render.estimate_columns(moved))
+
+    def test_the_task_sheet_drops_the_same_roles(self):
+        """`alloc_qa_*` was zero on every task for the same reason: allocation splits a STORY's
+        hours, and QA sits on no story."""
+        columns = render.task_price_columns(self.est)
+        for role in self.est["by_role"]:
+            present = f"alloc_{role}_hours" in columns
+            self.assertEqual(present, role in render.story_roles(self.est), role)
 
     def test_the_estimate_declares_how_task_figures_were_allocated(self):
         """Tasks are source rows, not estimable units, and no anchor carries per-task effort.

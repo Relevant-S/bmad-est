@@ -74,13 +74,17 @@ est-estimate:
     - path: estimate.csv
       when: csv is in est_output_formats. The inventory's Stories columns with the priced
             columns appended — every column est-scope-extract wrote is still in it — plus a
-            budget block per role ({role}_hours, {role}_risk, {role}_planned) that a reader
-            can sum down the sheet.
+            budget block per STORY-CARRYING role ({role}_hours, {role}_risk, {role}_planned)
+            that a reader can sum down the sheet. A role priced only at project level — QA is
+            a share of the story total, the architect is on the calendar — gets no columns,
+            because they would be zero on every story row; its hours are on its own
+            "[project] <role>" line, which says so in its description.
     - path: estimate.tasks.csv
       when: csv is in est_output_formats. The inventory's Tasks columns, so a task id a
             story names still resolves to a row, plus the parent story's figures allocated
             down it — every one prefixed alloc_, because they are an allocation and not an
-            estimate.
+            estimate. Same role rule as the Stories sheet — allocation splits a story's hours,
+            so a role that sits on no story allocates to nothing and gets no column.
     - path: estimate.xlsx
       when: xlsx is in est_output_formats and openpyxl is importable. Stories and Tasks on
             two tabs, hyperlinked, the same shape as feature-inventory.xlsx.

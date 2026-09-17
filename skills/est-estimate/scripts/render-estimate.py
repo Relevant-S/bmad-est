@@ -83,6 +83,25 @@ def role_names(est):
     return sorted(est.get("by_role") or {})
 
 
+def story_roles(est):
+    """The roles that carry hours ON STORIES, which are the only ones a story sheet can report.
+
+    QA is priced as a share of the story total and lives on `project_components`; the architect
+    is `setup + a capped weekly rate` on the calendar. Neither sits on a story, so
+    `role_weights` gives neither of them a share of `spec`, `build`, `review` or `rework` — and
+    their story columns were twelve columns of zeros with the real figure one row below on
+    `[project] qa` and `[project] architect`. That reads as hours gone missing, and was read
+    that way.
+
+    Keyed on `on_stories` rather than a list of role names on purpose. If a cost model ever
+    puts QA on stories — the `role_weights` note already records the six-role split as a known
+    over-statement — the columns come back with no code change. It cuts the other way too: a
+    project with no infra stories drops `devops_*`, which is the same noise for the same reason.
+    """
+    by_role = est.get("by_role") or {}
+    return sorted(r for r in by_role if (by_role[r] or {}).get("on_stories") or 0.0)
+
+
 def load_inventory(est, override=None):
     """The inventory this estimate was priced from, if it can still be found."""
     path = Path(override) if override else None
@@ -433,12 +452,19 @@ BUDGET_FIELD = {"hours": "hours", "risk": "model_risk_hours", "planned": "risk_a
 
 
 def role_columns(est, suffixes, prefix=""):
-    return [f"{prefix}{role}_{suffix}" for role in role_names(est) for suffix in suffixes]
+    """Story-sheet columns, for the roles that actually work on stories — see `story_roles`."""
+    return [f"{prefix}{role}_{suffix}" for role in story_roles(est) for suffix in suffixes]
 
 
 def role_cells(row, est, split, suffixes, prefix=""):
-    """One row's role columns, from one definition — stories, project lines and task rows alike."""
-    for role in role_names(est):
+    """One row's role columns, from one definition — stories, project lines and task rows alike.
+
+    The same role list as `role_columns`, so a cell is never written for a column that does not
+    exist. A `[project]` line for a project-level role therefore reports through its own
+    `hours`, `hours_low/likely/high`, `risk_hours` and `planned_hours`, which carry exactly the
+    figures its role columns used to duplicate.
+    """
+    for role in story_roles(est):
         entry = split.get(role)
         if "low" in suffixes:
             r_lo, r_likely, r_hi = rng(entry if entry is not None else 0.0)
@@ -570,10 +596,26 @@ def tabular(est, inventory=None):
     # their OWN — planning, QA and overhead each carry a share computed from their own mean — so
     # nothing here repeats a project total onto a story line, which is the reading that would
     # make the sheet look broken.
+    #
+    # A role priced only here has no `{role}_*` columns on the sheet at all (see `story_roles`),
+    # so its hours read from this row's own `hours` / `hours_low|likely|high` / `risk_hours` /
+    # `planned_hours` — the same figures the role columns used to duplicate. The name says which
+    # role it is, and the `why` below says it out loud, because a reader who notices a missing
+    # column concludes the hours are missing. One did.
+    absent = [r for r in role_names(est) if r not in story_roles(est)]
     for name, comp in (est.get("project_components") or {}).items():
         row = {"id": "—", "name": f"[project] {name.replace('_', ' ')}",
                "scope_status": "project-wide", "origin": "project",
                "hours": comp["hours"], "sd": comp["sd"]}
+        mine = sorted(set(comp.get("by_role") or {}) & set(absent))
+        if mine:
+            row["description"] = (
+                "Priced per project, not per story: "
+                + ", ".join(mine)
+                + f" carries no hours on any story, so this sheet has no "
+                + ", ".join(f"{r}_hours" for r in mine)
+                + " column. The hours on this row are the whole of it, and the role table in "
+                  "estimate.md reports the same figure.")
         lo, likely, hi = rng(comp.get("range") or comp["hours"])
         row.update({"hours_low": lo, "hours_likely": likely, "hours_high": hi})
         row["risk_hours"] = comp.get("model_risk_hours")
