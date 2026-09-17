@@ -269,58 +269,87 @@ def option_section(o, recommended):
 
 # --- the Gantt ---------------------------------------------------------------
 
-def packets(person, weeks):
-    """One row per person per EPIC, with the weeks that person is actually in that epic.
+# Work that belongs to no epic but is real time on somebody's calendar. Naming these
+# "unassigned" tells a reader nothing and reads as a mistake — each one has an actual name.
+PSEUDO_EPIC = {"planning": "Planning artefacts", "setup": "Project setup",
+               "regression": "Final regression pass", "—": "Other"}
+COMPONENT_LABEL = {"spec": "Specification", "build": "Build", "review": "Review",
+                   "rework": "Rework", "qa": "QA pass", "planning": "Planning"}
 
-    The first version cut a row every time a run of work broke, which is what the schedule
-    genuinely does — a developer dips in and out of four epics in a morning — and it produced
-    a 381-row chart in which Epic 1 appeared four times under one name. Nobody reads that. One
-    row per epic, with gaps shown as gaps, says the same thing in a tenth of the space and
-    answers the question a reader actually has: when is this person on this epic.
+
+def story_rows(option, epics):
+    """The chart's tree: epic → story → component slice, from the option's own bookings.
+
+    Rows are STORIES. The first version drew one row per person per epic and rolled the stories
+    inside it into a count — "Foundation & DevOps · 5 stories" — which meant the finest thing a
+    reader could see was an epic. A schedule is a statement about work items, and somebody
+    asking when the Stripe Connect onboarding is built, and what it is waiting for, could not
+    answer it from that chart at all.
+
+    (The epic-packet version existed because an even earlier one cut a row every time a person's
+    run of work broke, producing 381 rows with one epic appearing four times under one name. The
+    right answer to that was to group by epic and draw the stories; collapsing to epic rows threw
+    away the thing being scheduled.)
+
+    A story appears ONCE, whatever number of people touch it, with the window it actually
+    occupies on the calendar and the people who carry it. Planning and standing work belong to
+    no epic and get pseudo-epics of their own — calling them "unassigned" tells a reader nothing
+    and reads as a mistake.
     """
-    rows = {}
-    for item in person["items"]:
-        # Planning and project setup belong to no epic. They are real work on the calendar and
-        # naming them "unassigned" tells a reader nothing — worse, it reads as a mistake.
-        key = item["epic_id"] or ("planning" if item["component"] == "planning"
-                                  else "setup" if str(item["story_id"] or "").startswith("SW-")
-                                  else "—")
-        row = rows.setdefault(key, {"epic_id": key, "hours": 0.0,
-                                    "stories": [], "occupied": set(),
-                                    "by_component": {},
-                                    "component": item["component"],
-                                    "start_week": item["start_week"],
-                                    "finish_week": item["finish_week"]})
-        row["hours"] += item["hours"]
-        row["by_component"][item["component"]] = (row["by_component"].get(item["component"], 0.0)
-                                                  + item["hours"])
-        # The component that OPENS the packet, which is the one the Starts column is showing.
-        # Taking the biggest instead quoted a build gate beside an analyst's spec start — two
-        # true statements about different moments, which reads as a contradiction.
-        if item["start_week"] <= row["start_week"]:
-            row["component"] = item["component"]
-        if item["story_id"] and item["story_id"] not in row["stories"]:
-            row["stories"].append(item["story_id"])
-        row["start_week"] = min(row["start_week"], item["start_week"])
-        row["finish_week"] = max(row["finish_week"], item["finish_week"])
-        for w in span_weeks(item["start_week"], item["finish_week"], weeks):
-            row.setdefault("load", {})
-            row["load"][w] = row["load"].get(w, 0.0) + item["hours"]
+    name_of = {e.get("id"): e.get("name") for e in epics}
+    sequence = {e.get("id"): e.get("sequence") or 0 for e in epics}
+    tree = {}
+    for person in option["schedule"]["team"]:
+        for item in person["items"]:
+            story = item.get("story_id")
+            key = item["epic_id"] or ("planning" if item["component"] == "planning"
+                                      else "setup" if str(story or "").startswith("SW-")
+                                      # The regression pass sweeps the whole scope after the
+                                      # last build, so it belongs to every epic and therefore
+                                      # to none. It is the only QA booking without one.
+                                      else "regression" if item["component"] == "qa"
+                                      else "—")
+            epic = tree.setdefault(key, {"epic_id": key, "name": name_of.get(key)
+                                         or PSEUDO_EPIC.get(key, key),
+                                         "sequence": sequence.get(key, 10 ** 6),
+                                         "hours": 0.0, "start_week": item["start_week"],
+                                         "finish_week": item["finish_week"], "stories": {}})
+            epic["hours"] += item["hours"]
+            epic["start_week"] = min(epic["start_week"], item["start_week"])
+            epic["finish_week"] = max(epic["finish_week"], item["finish_week"])
 
-    # ONE OWNING EPIC PER WEEK. A person can only do one thing at a time — `take()` guarantees
-    # it — but the chart did not: each epic row painted every week it touched, so a developer
-    # dipping between four epics inside week 3 appeared on all four rows for that week, and the
-    # plan read as one person working four epics at once for the whole project. The week goes
-    # to whichever epic holds most of that person's hours in it; the others leave it blank and
-    # the reader can still see the run from the Starts/Ends columns.
-    owner = {}
-    for key, row in rows.items():
-        for week, load in (row.get("load") or {}).items():
-            if load > owner.get(week, (0.0, None))[0]:
-                owner[week] = (load, key)
-    for key, row in rows.items():
-        row["occupied"] = {w for w, (_, holder) in owner.items() if holder == key}
-    return sorted(rows.values(), key=lambda r: r["start_week"])
+            # Epic-level work — the QA passes — carries no story id. It is real booked time and
+            # it gets a row of its own under the epic rather than vanishing into the band.
+            sid = story or f"{key}:{item['component']}"
+            row = epic["stories"].setdefault(sid, {
+                "story_id": story, "key": sid, "label": item["label"],
+                "hours": 0.0, "start_week": item["start_week"],
+                "finish_week": item["finish_week"], "by_role": {}, "slices": {}})
+            row["hours"] += item["hours"]
+            row["start_week"] = min(row["start_week"], item["start_week"])
+            row["finish_week"] = max(row["finish_week"], item["finish_week"])
+            row["by_role"][person["role"]] = (row["by_role"].get(person["role"], 0.0)
+                                              + item["hours"])
+            slice_ = row["slices"].setdefault(item["component"], {
+                "component": item["component"], "hours": 0.0, "owners": set(),
+                "start_week": item["start_week"], "finish_week": item["finish_week"]})
+            slice_["hours"] += item["hours"]
+            slice_["owners"].add(person["name"])
+            slice_["start_week"] = min(slice_["start_week"], item["start_week"])
+            slice_["finish_week"] = max(slice_["finish_week"], item["finish_week"])
+
+    for epic in tree.values():
+        for row in epic["stories"].values():
+            # The bar takes the colour of the role carrying most of the story, so a chart read
+            # at a distance still says what KIND of work each row mostly is.
+            row["role"] = max(row["by_role"].items(), key=lambda kv: kv[1])[0] \
+                if row["by_role"] else None
+            row["owners"] = sorted({o for s in row["slices"].values() for o in s["owners"]})
+            row["slices"] = sorted(row["slices"].values(),
+                                   key=lambda s: (s["start_week"], s["component"]))
+        epic["stories"] = sorted(epic["stories"].values(),
+                                 key=lambda r: (r["start_week"], str(r["key"])))
+    return sorted(tree.values(), key=lambda e: (e["sequence"], e["start_week"]))
 
 
 def span_weeks(start, finish, weeks):
@@ -345,30 +374,50 @@ def story_index(workbook):
             if sheet.cell(row=r, column=column).value}
 
 
-def gates(plan, option):
-    """Per epic: the epics it stands on and the week the last of them clears.
+def gates(plan, option, estimate_features=()):
+    """What each epic and each STORY stands on, and the week the last of it clears.
 
-    So a reader can answer "why is this here" off the chart itself. The graph comes from
+    So a reader can answer "why is this here" off the chart itself. The epic graph comes from
     `plan["build_order"]`, which plan.py wrote from the same `epic_predecessors` the scheduler
     was given — quoting a different graph on the chart from the one the calendar was built
-    against is the failure this whole change exists to remove.
+    against is the failure that work exists to remove.
+
+    Rows are stories now, so a story answers with its OWN `depends_on` where it has one, which
+    is both more specific and more useful than its epic's predecessors: it names the actual
+    work in the way. It falls back to the epic's gate when the story records none of its own.
+
+    Returns `{key: text}` where key is an epic id or a story id.
     """
-    done = {"spec": {}, "build": {}}
+    epic_done = {"spec": {}, "build": {}}
+    story_done = {}
     for person in option["schedule"]["team"]:
         for item in person["items"]:
-            key, component = item.get("epic_id"), item.get("component")
-            if key and component in done:
-                done[component][key] = max(done[component].get(key, 0.0), item["finish_week"])
+            key, component, story = item.get("epic_id"), item.get("component"), item.get("story_id")
+            if key and component in epic_done:
+                epic_done[component][key] = max(epic_done[component].get(key, 0.0),
+                                                item["finish_week"])
+            if story and component == "build":
+                story_done[story] = max(story_done.get(story, 0.0), item["finish_week"])
+
     out = {}
     for row in (plan.get("build_order") or {}).get("epics") or []:
         waits = [w["epic_id"] for w in row.get("waits_for") or []]
         if not waits:
             continue
-        for component, table in done.items():
-            clears = max((table[w] for w in waits if w in table), default=None)
-            out[(row["epic_id"], component)] = (
-                ", ".join(waits)
-                + (f" (clears W{max(1, -(-clears // 1)):.0f})" if clears else ""))
+        clears = max((epic_done["build"][w] for w in waits if w in epic_done["build"]),
+                     default=None)
+        out[row["epic_id"]] = (", ".join(waits)
+                               + (f" (clears W{max(1, -(-clears // 1)):.0f})" if clears else ""))
+
+    for feature in estimate_features or ():
+        deps = [d for d in (feature.get("depends_on") or []) if d in story_done]
+        if not deps:
+            continue
+        clears = max(story_done[d] for d in deps)
+        shown = deps[:3]
+        out[feature["id"]] = (", ".join(shown)
+                              + (f" +{len(deps) - len(shown)}" if len(deps) > len(shown) else "")
+                              + f" (clears W{max(1, -(-clears // 1)):.0f})")
     return out
 
 
@@ -383,7 +432,7 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None,
     sheet.sheet_view.showGridLines = False
 
     weeks = max(1, int(option["schedule"]["weeks"] + 0.999))
-    labels = ["Who / what", "Hours", "Joins", "Starts", "Ends", "Waits for"]
+    labels = ["Epic / story", "Hours", "Owners", "Starts", "Ends", "Waits for"]
     first_week = len(labels) + 1
 
     sheet.cell(row=1, column=1, value=f"{option['archetype'].title()} — "
@@ -398,7 +447,10 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None,
                value=(lead + f"{option['schedule']['weeks']:.1f} weeks · "
                       f"{option['estimate']['total_hours']['likely']:.0f} h likely · "
                       f"fit {option['score']['fit']:.1f}/10 · weeks are relative, "
-                      f"week 1 is whenever this starts")).font = style["muted_font"]
+                      f"week 1 is whenever this starts. A story's bar is the window it is "
+                      f"OPEN, not the time it is worked — a story waiting between its build "
+                      f"and its review is still inside its own bar. Expand a row for the "
+                      f"component windows and who is on each.")).font = style["muted_font"]
     if subtitle:
         sheet.cell(row=3, column=1, value=subtitle).font = style["muted_font"]
 
@@ -428,73 +480,79 @@ def draw_gantt(workbook, option, epics, index, style, title=None, subtitle=None,
                               value=f"end P{row_['phase']}")
             cell.font, cell.alignment = style["muted_font"], style["centre"]
 
-    epic_name = {e.get("id"): e.get("name") for e in epics}
+    def week_of(value):
+        return f"W{max(1, -(-value // 1)):.0f}"
+
     row = head + 1
-    for role in ROLE_ORDER:
-        people = [p for p in option["schedule"]["team"] if p["role"] == role]
-        if not people:
-            continue
-        cell = sheet.cell(row=row, column=1, value=ROLE_LABEL.get(role, role))
+    for epic in story_rows(option, epics):
+        # The epic is the GROUPING. Its band bounds its stories — earliest start to latest
+        # finish — and its bar is a backdrop for them rather than work in its own right.
+        cell = sheet.cell(row=row, column=1,
+                          value=f"{epic['epic_id']}  {epic['name']}"
+                          if epic["epic_id"] not in PSEUDO_EPIC else epic["name"])
         cell.fill, cell.font = style["band_fill"], style["band_font"]
-        hours = sum(p["delivered_hours"] for p in people)
-        sheet.cell(row=row, column=2, value=round(hours, 1)).font = style["band_font"]
+        sheet.cell(row=row, column=2, value=round(epic["hours"], 1)).font = style["band_font"]
+        sheet.cell(row=row, column=4,
+                   value=f"W{int(epic['start_week']) + 1}").font = style["band_font"]
+        sheet.cell(row=row, column=5,
+                   value=week_of(epic["finish_week"])).font = style["band_font"]
+        epic_gate = (waits or {}).get(epic["epic_id"])
+        if epic_gate:
+            sheet.cell(row=row, column=6, value=epic_gate).font = style["band_font"]
         for w in range(weeks):
             sheet.cell(row=row, column=first_week + w).fill = style["band_fill"]
         row += 1
 
-        for person in people:
+        for story in epic["stories"]:
             sheet.row_dimensions[row].outlineLevel = 1
-            note = "" if person["on_project"] else " (new)"
-            join = person.get("join_week", 0.0)
-            sheet.cell(row=row, column=1, value=f"  {person['name']}{note}").font = style["body_font"]
-            sheet.cell(row=row, column=2, value=person["delivered_hours"]).font = style["body_font"]
-            sheet.cell(row=row, column=3, value=f"W{int(join) + 1}").font = style["body_font"]
-            sheet.cell(row=row, column=4, value=f"W{int(person['starts_week']) + 1}").font = style["body_font"]
+            label = (f"  {story['story_id']}  {story['label']}" if story["story_id"]
+                     else f"  {COMPONENT_LABEL.get(story['slices'][0]['component'], story['label'])}")
+            cell = sheet.cell(row=row, column=1, value=label)
+            at = index.get(story["story_id"])
+            if at:
+                # Its OWN row on the Stories tab — the epic-packet version linked to whichever
+                # story happened to be first in the packet. `display` is what Google Sheets
+                # shows; without it the import turns this into a bare
+                # `=HYPERLINK("#gid=...&range=A77")` and the reader gets the address.
+                cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"Stories!A{at}",
+                                           display=link_label(cell.value))
+                cell.font = style["link_font"]
+            else:
+                cell.font = style["body_font"]
+            sheet.cell(row=row, column=2, value=round(story["hours"], 1)).font = style["body_font"]
+            sheet.cell(row=row, column=3,
+                       value=", ".join(story["owners"])).font = style["muted_font"]
+            sheet.cell(row=row, column=4,
+                       value=f"W{int(story['start_week']) + 1}").font = style["body_font"]
             sheet.cell(row=row, column=5,
-                       value=f"W{max(1, -(-person['finishes_week'] // 1)):.0f}").font = style["body_font"]
-            # Three states, painted in the order they happen so each covers the one before:
-            # not here yet, here but still arriving, delivering. People now join when the demand
-            # in their role justifies them rather than all in week one, and a chart that showed
-            # the weeks before someone arrived as blank would read as a plan paying them to wait.
-            if join > 0:
-                _paint(sheet, row, first_week, span_weeks(0.0, join, weeks), style["absent_fill"])
-            ramp = person.get("ramp_until_week", 0.0)
-            if ramp:
-                _paint(sheet, row, first_week, span_weeks(join, ramp, weeks), style["idle_fill"])
-            rows = packets(person, weeks)
-            for pkt in rows:
-                _paint(sheet, row, first_week, pkt["occupied"], style["role_fill"].get(role))
+                       value=week_of(story["finish_week"])).font = style["body_font"]
+            # A story answers with its OWN dependencies where it has any — more specific and
+            # more useful than its epic's, because it names the actual work in the way. It falls
+            # back to the epic's gate when it records none of its own.
+            gate = (waits or {}).get(story["story_id"]) or epic_gate
+            if gate:
+                sheet.cell(row=row, column=6, value=gate).font = style["muted_font"]
+            _paint(sheet, row, first_week,
+                   span_weeks(story["start_week"], story["finish_week"], weeks),
+                   style["role_fill"].get(story["role"]))
             row += 1
 
-            for pkt in rows:
+            for slice_ in story["slices"]:
                 sheet.row_dimensions[row].outlineLevel = 2
                 sheet.row_dimensions[row].hidden = True
-                key = pkt["epic_id"]
-                name = epic_name.get(key) or {"planning": "Planning artefacts",
-                                              "setup": "Project setup",
-                                              "—": "Unassigned"}.get(key, key)
-                n = len([s for s in pkt["stories"] if s])
-                label = (f"{name} · {n} stor{'y' if n == 1 else 'ies'}" if n
-                         else name)
-                cell = sheet.cell(row=row, column=1, value=f"      {label}")
-                at = index.get(pkt["stories"][0]) if pkt["stories"] else None
-                if at:
-                    # `display` is what Google Sheets shows. Without it the import turns this
-                    # into a bare `=HYPERLINK("#gid=...&range=A77")` and the reader gets the
-                    # address where the epic name should be. render-inventory.link_label carries
-                    # the reasoning and the 255-character cap.
-                    cell.hyperlink = Hyperlink(ref=cell.coordinate, location=f"Stories!A{at}",
-                                               display=link_label(cell.value))
-                    cell.font = style["link_font"]
-                else:
-                    cell.font = style["muted_font"]
-                sheet.cell(row=row, column=2, value=round(pkt["hours"], 1)).font = style["muted_font"]
-                sheet.cell(row=row, column=4, value=f"W{int(pkt['start_week']) + 1}").font = style["muted_font"]
-                sheet.cell(row=row, column=5, value=f"W{max(1, -(-pkt['finish_week'] // 1)):.0f}").font = style["muted_font"]
-                gate = (waits or {}).get((key, pkt.get("component")))
-                if gate:
-                    sheet.cell(row=row, column=6, value=gate).font = style["muted_font"]
-                _paint(sheet, row, first_week, pkt["occupied"], style["role_fill"].get(role))
+                sheet.cell(row=row, column=1, value="      " + COMPONENT_LABEL.get(
+                    slice_["component"], slice_["component"])).font = style["muted_font"]
+                sheet.cell(row=row, column=2,
+                           value=round(slice_["hours"], 1)).font = style["muted_font"]
+                sheet.cell(row=row, column=3,
+                           value=", ".join(sorted(slice_["owners"]))).font = style["muted_font"]
+                sheet.cell(row=row, column=4,
+                           value=f"W{int(slice_['start_week']) + 1}").font = style["muted_font"]
+                sheet.cell(row=row, column=5,
+                           value=week_of(slice_["finish_week"])).font = style["muted_font"]
+                _paint(sheet, row, first_week,
+                       span_weeks(slice_["start_week"], slice_["finish_week"], weeks),
+                       style["role_fill"].get(story["role"]))
                 row += 1
 
     # The two calendar-priced roles. Neither is on the team: the architect is `setup + a capped
@@ -638,6 +696,12 @@ def extend_workbook(plan, path, per="archetype"):
             if same:
                 chosen.append(max(same, key=lambda o: o["score"]["fit"]))
 
+    # Story-level dependencies live on the priced features, which every option carries a copy
+    # of. Taken from whichever option is to hand: the scope is one fact and re-pricing a
+    # calendar never moves a story's `depends_on`.
+    sample = plan.get("baseline") or (plan.get("options") or [{}])[0]
+    features = (sample.get("estimate") or {}).get("features") or []
+
     baseline = plan.get("baseline")
     if baseline is not None:
         best = next((o for o in plan["options"] if o["id"] == plan.get("recommended")), None)
@@ -648,13 +712,13 @@ def extend_workbook(plan, path, per="archetype"):
         draw_gantt(workbook, baseline, plan.get("epics") or [], index, style,
                    title="Gantt — Baseline (1 each)",
                    subtitle=baseline.get("baseline_note", "") + against,
-                   waits=gates(plan, baseline))
+                   waits=gates(plan, baseline, features))
         drawn.append(baseline["id"] + " (baseline)")
         chosen = [o for o in chosen if o["id"] != baseline["id"]]
 
     for option in chosen:
         draw_gantt(workbook, option, plan.get("epics") or [], index, style,
-                   waits=gates(plan, option))
+                   waits=gates(plan, option, features))
         drawn.append(option["id"])
     workbook.save(path)
     return True, drawn

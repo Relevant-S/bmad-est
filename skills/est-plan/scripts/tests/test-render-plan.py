@@ -12,6 +12,7 @@ Stories and Tasks tabs, and the hyperlinks between them, are still there afterwa
 that quietly strips the estimate out of the estimate workbook would be discovered by a client.
 """
 
+import collections
 import json
 import sys
 import tempfile
@@ -179,19 +180,121 @@ class TheWorkbookRoundTrip(unittest.TestCase):
                 option = o
                 break
         weeks = max(1, int(option["schedule"]["weeks"] + 0.999))
-        # Six label columns. `Joins` says when each person arrives; `Waits for` says what an
-        # epic stands on and when that clears, which is how the chart answers "why is this
-        # here" without a reader reverse-engineering it from the bars.
+        # Six label columns. Rows are STORIES grouped under epics, so the first column names
+        # the work rather than the worker and `Owners` carries the people. `Joins` is gone with
+        # the person rows; the arrival table in plan.md is where that lives now.
         self.assertEqual([sheet.cell(row=4, column=c).value for c in range(1, 7)],
-                         ["Who / what", "Hours", "Joins", "Starts", "Ends", "Waits for"])
+                         ["Epic / story", "Hours", "Owners", "Starts", "Ends", "Waits for"])
         self.assertEqual(sheet.cell(row=4, column=7).value, "W1")
         self.assertEqual(sheet.cell(row=4, column=6 + weeks).value, f"W{weeks}")
         self.assertEqual(sheet.freeze_panes, "G5")
 
-    def test_the_rows_are_grouped_so_a_reader_sees_roles_before_stories(self):
+    def test_the_rows_are_epics_then_stories_then_component_slices(self):
+        """Epics are the GROUPING; the rows are the stories. The first version drew one row per
+        person per epic and rolled the stories into a count, so the finest thing a reader could
+        see was an epic — and a schedule is a statement about work items."""
         sheet = self.extend()[[n for n in self.extend().sheetnames if n.startswith("Gantt")][0]]
         levels = {sheet.row_dimensions[r].outlineLevel for r in range(5, sheet.max_row + 1)}
         self.assertEqual(levels, {0, 1, 2})
+        # Level 2 is detail on demand, so it starts collapsed.
+        hidden = [sheet.row_dimensions[r].hidden for r in range(5, sheet.max_row + 1)
+                  if sheet.row_dimensions[r].outlineLevel == 2]
+        self.assertTrue(hidden and all(hidden))
+
+    def test_every_scheduled_story_is_drawn_exactly_once(self):
+        """A story appears once however many people touch it. Counted against the schedule's
+        own bookings, so a story silently dropped from the chart is caught."""
+        after = self.extend()
+        option = max(self.plan["options"], key=lambda o: o["score"]["fit"])
+        sheet = after[f"Gantt — {option['archetype'].title()}"[:31]]
+        want = {i["story_id"] for p in option["schedule"]["team"] for i in p["items"]
+                if i.get("story_id")}
+        drawn = collections.Counter()
+        for r in range(5, sheet.max_row + 1):
+            if sheet.row_dimensions[r].outlineLevel != 1:
+                continue
+            label = str(sheet.cell(row=r, column=1).value or "").strip()
+            drawn[label.split("  ")[0]] += 1
+        self.assertTrue(want)
+        for story in want:
+            self.assertEqual(drawn.get(story), 1,
+                             f"{story} is drawn {drawn.get(story)} times, not once")
+
+    def test_a_story_links_to_its_own_row_not_a_neighbours(self):
+        """The epic-packet version linked to whichever story happened to be first in the
+        packet, so four of five rows pointed at somebody else's work."""
+        after = self.extend()
+        index = render.story_index(after)
+        option = max(self.plan["options"], key=lambda o: o["score"]["fit"])
+        sheet = after[f"Gantt — {option['archetype'].title()}"[:31]]
+        checked = 0
+        for r in range(5, sheet.max_row + 1):
+            cell = sheet.cell(row=r, column=1)
+            if sheet.row_dimensions[r].outlineLevel != 1 or not cell.hyperlink:
+                continue
+            story = str(cell.value or "").strip().split("  ")[0]
+            self.assertEqual(cell.hyperlink.location, f"Stories!A{index[story]}",
+                             f"{story} links somewhere other than its own row")
+            checked += 1
+        self.assertGreater(checked, 0, "no story row carried a link")
+
+    def test_a_story_expands_to_its_component_windows_and_their_owners(self):
+        after = self.extend()
+        option = max(self.plan["options"], key=lambda o: o["score"]["fit"])
+        sheet = after[f"Gantt — {option['archetype'].title()}"[:31]]
+        booked = collections.defaultdict(lambda: collections.defaultdict(set))
+        for person in option["schedule"]["team"]:
+            for item in person["items"]:
+                if item.get("story_id"):
+                    booked[item["story_id"]][item["component"]].add(person["name"])
+        story, slices = None, collections.defaultdict(set)
+        found = 0
+        for r in range(5, sheet.max_row + 1):
+            depth = sheet.row_dimensions[r].outlineLevel
+            label = str(sheet.cell(row=r, column=1).value or "").strip()
+            if depth == 1:
+                if story in booked and slices:
+                    found += 1
+                    for name, owners in slices.items():
+                        self.assertEqual(owners, booked[story][name], f"{story} {name}")
+                story, slices = label.split("  ")[0], collections.defaultdict(set)
+            elif depth == 2 and story:
+                key = {v: k for k, v in render.COMPONENT_LABEL.items()}.get(label)
+                if key:
+                    slices[key] = set(str(sheet.cell(row=r, column=3).value or "").split(", "))
+        self.assertGreater(found, 3, "no story expanded to its components")
+
+    def test_the_header_says_the_bar_is_elapsed_time_not_occupancy(self):
+        """A story sitting between its build and its review is inside its own bar. Saying so is
+        the whole reason it is safe to draw one solid bar per story."""
+        after = self.extend()
+        sheet = after[[n for n in after.sheetnames if n.startswith("Gantt")][0]]
+        self.assertIn("not the time it is worked", sheet.cell(row=2, column=1).value)
+
+    def test_an_epic_band_bounds_the_stories_under_it(self):
+        after = self.extend()
+        option = max(self.plan["options"], key=lambda o: o["score"]["fit"])
+        sheet = after[f"Gantt — {option['archetype'].title()}"[:31]]
+        band, starts, ends, checked = None, [], [], 0
+        def close():
+            nonlocal checked
+            # Architect and Ceremony are calendar-priced bands with no stories under them —
+            # their sub-row is a note, not work — so there is nothing to bound.
+            if band and starts and all(starts) and all(ends):
+                self.assertEqual(band[0], min(starts), f"{band[2]} starts after its first story")
+                self.assertEqual(band[1], max(ends), f"{band[2]} ends before its last story")
+                checked += 1
+        for r in range(5, sheet.max_row + 1):
+            depth = sheet.row_dimensions[r].outlineLevel
+            cells = [sheet.cell(row=r, column=c).value for c in (1, 4, 5)]
+            if depth == 0 and cells[1]:
+                close()
+                band, starts, ends = (cells[1], cells[2], cells[0]), [], []
+            elif depth == 1 and band:
+                starts.append(cells[1])
+                ends.append(cells[2])
+        close()
+        self.assertGreater(checked, 2, "no epic band was checked against its stories")
 
     def test_bars_are_painted_in_the_brand_colour_for_the_role(self):
         after = self.extend()
@@ -209,26 +312,37 @@ class TheWorkbookRoundTrip(unittest.TestCase):
         self.assertEqual(len([i for i in ids if i]), len(self.plan["options"]))
         self.assertTrue(any(str(i).startswith("★") for i in ids))
 
-    def test_nobody_is_drawn_in_two_places_in_the_same_week(self):
-        """`take()` guarantees one person does one thing at a time. The CHART did not: each
-        epic row painted every week it touched, so a developer dipping between four epics
-        inside one week appeared on all four rows for it, and the plan read as one person
-        working four epics at once for the whole project."""
+    def test_hours_reconcile_from_slice_to_story_to_epic(self):
+        """Three levels of the same number. A chart whose own rows do not add up is not
+        evidence of anything."""
         after = self.extend()
-        for name in [n for n in after.sheetnames if n.startswith("Gantt")]:
-            sheet = after[name]
-            level, claimed = None, {}
-            for r in range(5, sheet.max_row + 1):
-                depth = sheet.row_dimensions[r].outlineLevel
-                if depth == 1:
-                    level, claimed = sheet.cell(row=r, column=1).value, {}
-                elif depth == 2:
-                    for c in range(7, sheet.max_column + 1):
-                        if sheet.cell(row=r, column=c).fill.fgColor.rgb not in (None, "00000000"):
-                            self.assertNotIn(c, claimed,
-                                             f"{name}: {level} is drawn on two epics in column "
-                                             f"{c} — {claimed.get(c)} and row {r}")
-                            claimed[c] = r
+        option = max(self.plan["options"], key=lambda o: o["score"]["fit"])
+        sheet = after[f"Gantt — {option['archetype'].title()}"[:31]]
+        epic = story = None
+        epic_total = story_total = slice_total = 0.0
+        checked = 0
+        rows = list(range(5, sheet.max_row + 1)) + [None]
+        for r in rows:
+            depth = sheet.row_dimensions[r].outlineLevel if r else 0
+            hours = (sheet.cell(row=r, column=2).value or 0.0) if r else 0.0
+            label = str(sheet.cell(row=r, column=1).value or "") if r else ""
+            if depth == 2:
+                slice_total += hours
+                continue
+            if story is not None:
+                self.assertAlmostEqual(slice_total, story, delta=0.15, msg="slices vs story")
+                checked += 1
+            if depth == 1:
+                story, slice_total = hours, 0.0
+                story_total += hours
+                continue
+            story = None
+            if epic is not None and label != "Drawn above":
+                self.assertAlmostEqual(story_total, epic, delta=0.2, msg="stories vs epic")
+            epic, story_total, slice_total = hours, 0.0, 0.0
+            if label.startswith(("Architect", "Ceremony", "Drawn above")):
+                epic = None
+        self.assertGreater(checked, 5)
 
     def test_the_calendar_priced_roles_are_drawn_at_all(self):
         """The architect is on no team — it is priced as setup plus a capped weekly rate, so a
@@ -306,17 +420,6 @@ class TheWorkbookRoundTrip(unittest.TestCase):
             self.assertEqual(getattr(cell.hyperlink, "display", None), str(cell.value),
                              f"{name}!{cell.coordinate} would show its address in Sheets")
 
-    def test_the_chart_says_when_each_person_joins(self):
-        """People arrive when their role's demand justifies them. A chart that draws the
-        stagger without naming the arrival week makes the reader measure it off the bars."""
-        after = self.extend()
-        sheet = after[[n for n in after.sheetnames if n.startswith("Gantt")][-1]]
-        self.assertEqual(sheet.cell(row=4, column=3).value, "Joins")
-        joins = [sheet.cell(row=r, column=3).value for r in range(5, sheet.max_row + 1)
-                 if sheet.row_dimensions[r].outlineLevel == 1]
-        self.assertTrue(joins, "no person rows on the chart")
-        self.assertTrue(all(j is None or str(j).startswith("W") for j in joins))
-
     def test_the_chart_says_what_each_epic_waits_for(self):
         """The plan has to answer where a piece of work belongs and on what grounds, off the
         chart rather than by reverse-engineering the bars.
@@ -334,19 +437,20 @@ class TheWorkbookRoundTrip(unittest.TestCase):
         after = load_workbook(book)
         sheet = after[[n for n in after.sheetnames if n.startswith("Gantt")][-1]]
         self.assertEqual(sheet.cell(row=4, column=6).value, "Waits for")
-        gates = [(sheet.cell(row=r, column=4).value, sheet.cell(row=r, column=6).value)
+        bands = [sheet.cell(row=r, column=6).value
                  for r in range(5, sheet.max_row + 1)
-                 if sheet.row_dimensions[r].outlineLevel == 2 and sheet.cell(row=r, column=6).value]
-        self.assertTrue(gates, "no epic row names what it stands on")
-        for starts, gate in gates:
+                 if sheet.row_dimensions[r].outlineLevel == 0 and sheet.cell(row=r, column=6).value]
+        self.assertTrue(bands, "no epic band names what it stands on")
+        for gate in bands:
             self.assertRegex(gate, r"^E\S+")
-            if "clears W" in gate:
-                # The gate quoted is the one the row's own start waited on, so a row can never
-                # begin before it. Quoting the build gate beside an analyst's spec start put
-                # "E01 (clears W4)" next to a correct W3 and read as a contradiction.
-                self.assertGreaterEqual(int(str(starts).lstrip("W")),
-                                        int(gate.split("clears W")[1].rstrip(")")),
-                                        f"{starts} starts before its stated gate {gate}")
+        # And a story answers with its OWN dependencies where it has them, which is both more
+        # specific and more useful than its epic's — it names the work actually in the way.
+        stories = [sheet.cell(row=r, column=6).value
+                   for r in range(5, sheet.max_row + 1)
+                   if sheet.row_dimensions[r].outlineLevel == 1
+                   and sheet.cell(row=r, column=6).value]
+        self.assertTrue(any(g.startswith("F") for g in stories),
+                        "no story row named its own dependency")
 
     def test_the_chart_marks_the_phase_boundary_and_leads_with_phase_one(self):
         """A phase is a delivery commitment and often a separate contract, so a reader must be
