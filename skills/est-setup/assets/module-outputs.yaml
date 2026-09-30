@@ -125,6 +125,76 @@ est-plan:
             est-plan appends to the workbook est-estimate wrote rather than producing a
             second one, so a bar and the story it covers live in the same file.
 
+est-architect:
+  workspace: "{est_output_folder}/{project-slug}"
+  required:
+    - path: architecture.json
+      role: source of truth — the three scored layers with the number each sub-score rests on,
+            the capability-to-story map, the chosen stack, the sourcing decision per capability
+            and the platform set, plus every component with the `serves` that puts it on the
+            canvas. Scope is NOT here; the inventory owns that and this file may not contradict
+            it.
+    - path: architecture.md
+      role: the document a human reads
+    - path: architecture.png
+      role: the infrastructure diagram. REQUIRED, not optional — est-setup provisions the
+            renderer and proves it with a fixture render, and a failed render fails the run,
+            because a required output that silently goes missing moves the failure to the first
+            artefact a client sees.
+    - path: diagram.json
+      role: the renderer document the PNG was drawn from, kept so a render is reproducible
+            without re-deriving it
+    - path: diagram.measured.json
+      role: the same document after the browser laid it out — final boxes and every connector's
+            routed points. This is what makes "no arrow runs over a component" a check rather
+            than an impression; routing-check.py reads it, and the first real diagram had
+            nineteen crossings nobody could have counted from the PNG.
+  optional:
+    - path: costs.json
+      when: the run priced the architecture. Every row carries its rate, its assumption, a
+            verbatim quote from the vendor's pricing page, the URL and the date fetched, so
+            cost-check.py can re-fetch and verify each one.
+    - path: cost-breakdown.csv
+      when: csv is in est_output_formats and costs.json exists
+    - path: architecture.html
+      when: html is in est_output_formats
+    - path: sourcing-batch.md
+      when: an interactive run produced a confirmation batch for a human to accept
+    - path: architecture-check.json
+      when: the audit was written to disk as well as embedded in architecture.json
+    - path: cost-check.json
+      when: the cost verification was written to disk
+    - path: "gate-{layer}.md"
+      when: a gate is waiting on the operator — one of gate-stack.md, gate-sourcing.md or
+            gate-platform.md. architect.py exits 3 and writes the document the operator reads;
+            that is the normal outcome of the first three invocations, not an error.
+    - path: "research/{concern}.json"
+      when: a research subagent wrote its findings to disk instead of returning them
+    - path: stacks.json
+      when: the research pass wrote its stack options to the workspace rather than passing them
+            inline. An INPUT the operator can edit and re-run against, which is why it is
+            declared rather than reported as a stray file.
+    - path: candidates.json
+      when: as above, for the researched adopt and buy candidates per capability
+    - path: rows.json
+      when: as above, for the researched cost rows — one per service, each with its rate, its
+            verbatim quote, its URL and the date it was fetched
+    - path: inputs.json
+      when: the operator's answers — platform requirements, procurement position, NFRs and hard
+            constraints — written down so a re-run is reproducible rather than re-elicited
+  also_writes:
+    - path: "{memory}/platforms/{id}.yaml"
+      when: a solution was researched and added to the catalogue with profile-scaffold.py. The
+            twenty profiles that ship are a starting point, not a boundary; memory merges over
+            the shipped assets, so a company extends and overrides without forking the module.
+    - path: "{skill-root}/assets/icon-cache/"
+      role: official icons resolved on demand from the vendors' own catalogues and cached.
+            Not source and not committed — there are 2,693 official cloud SVGs alone and the
+            vendors revise them quarterly.
+    - path: "{skill-root}/assets/icons.resolved.json"
+      role: the audit trail for every icon this installation has fetched — source, id, URL,
+            licence and date, so a diagram's iconography can be checked the way its numbers are
+
 est-calibrate:
   workspace: "{output_folder}/calibration/{date}"
   required:
@@ -183,6 +253,15 @@ est-setup:
     - path: "{memory}/company-profile.md"
       role: seeded from est-agent-estimator's asset with every section UNANSWERED, never
             overwritten after — a seeded profile is not a written one
+    - path: "{memory}/architecture-model.json"
+      role: seeded from est-architect's asset, never overwritten after. Sub-score weights, the
+            capability catalogue and the viability gates. Kept out of cost-model.json because
+            that file is hour coefficients fitted to delivered actuals and these are neither.
+    - path: "{memory}/architecture-preferences.md"
+      role: seeded from est-architect's asset with every section UNANSWERED. Until it is
+            answered, est-architect's team-fit sub-score reports null rather than a number.
+    - path: "{skill-root}/../est-architect/assets/renderer/"
+      when: check-renderer.py --install put the pinned diagram CLI here
     - path: "{memory}/comparables.md"
       role: created empty for est-calibrate and Nadia to append to
     - path: "{memory}/calibration-log.md"

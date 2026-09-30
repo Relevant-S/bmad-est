@@ -1,0 +1,33 @@
+id: auth0
+name: Auth0
+kind: saas
+what: Hosted identity. The long-standing alternative to Clerk and Cognito; single-capability, so it
+  only appears beside a host.
+serves:
+  identity:
+    service: Auth0
+    managed: true
+    interface: standard
+    icon: auth0
+    interface_why: OIDC and SAML, so a migration re-issues tokens rather than rewriting every sign-in
+      surface.
+runtime: {}
+pricing:
+  model: per_monthly_active_user
+  default_url: https://auth0.com/pricing
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.

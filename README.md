@@ -59,6 +59,9 @@ flowchart TB
     EXTRACT["est-scope-extract<br/>─────────────<br/>scope only, read in parallel beats<br/>every feature cites the<br/>sentence it came from"]
     INV[("feature-inventory.json")]
 
+    ARCHITECT["est-architect<br/>─────────────<br/>scores the stack, build-vs-buy<br/>per capability, the platform set<br/>every box cites the stories it serves"]
+    ARCH[("architecture.json · architecture.png<br/>costs.json — every figure cites<br/>a vendor's pricing page")]
+
     ESTIMATE["est-estimate<br/>─────────────<br/>classifies, then prices<br/>band width computed from<br/>input completeness<br/>roles per story, from its surfaces"]
     CLASS[("classification.json<br/>what each story costs")]
     STANDING["standing work<br/>─────────────<br/>scaffold · pipeline · environments<br/>release — every project pays it"]
@@ -77,6 +80,8 @@ flowchart TB
     DOCS --> EXTRACT
     TALK -.->|"Nadia captures a<br/>citable transcript"| EXTRACT
     EXTRACT --> INV --> ESTIMATE
+    INV --> ARCHITECT --> ARCH
+    ARCH -.->|"stack profile · sourcing notes<br/>EVIDENCE, not a verdict"| ESTIMATE
     ESTIMATE --> CLASS --> ESTIMATE
     STANDING -.->|"added openly, on its<br/>own lines"| ESTIMATE
     ESTIMATE --> OUTPUT
@@ -96,6 +101,7 @@ flowchart TB
     style STANDING fill:#fff8e6,stroke:#d9a441
     style OUTPUT fill:#eefaf0,stroke:#3fa45b
     style OPTIONS fill:#eef2fb,stroke:#002c8d
+    style ARCH fill:#eef2fb,stroke:#002c8d
 ```
 
 The loop at the bottom is the point: every delivered project makes the next estimate better, and the arrow into `cost-model.json` only ever moves when a human approves it.
@@ -209,11 +215,12 @@ Then ask her things a spreadsheet can't answer:
 
 ---
 
-## The six skills
+## The seven skills
 
 | Skill | What you say | What you get |
 |---|---|---|
 | **est-scope-extract** | *"extract scope from this RFP"* | Epics → stories → the source rows each was built from, every one citing its own line, plus an explicit list of what wasn't treated as scope |
+| **est-architect** | *"what should we build it on"* / *"buy or build"* / *"which cloud"* | A scored technology stack, a build/adopt/buy decision per capability, a platform set across the whole viable space, an infrastructure diagram, and a run-cost breakdown where every figure cites a vendor's own pricing page |
 | **est-estimate** | *"estimate this"* / *"quick gut-check"* | Ranged hours split by phase and by role, per story; markdown, CSV, and an interactive HTML report |
 | **est-plan** | *"what team do we need"* / *"how long with three devs"* | Staffed delivery options, each with its own estimate, a justified headcount and a Gantt in the same workbook |
 | **est-agent-estimator** (Nadia) | *"talk to Nadia"* | Explanation, defence, what-ifs, cut lines, portfolio triage, cost-model curation |
@@ -277,7 +284,7 @@ pointer to where the sentence lives.
 
 ## Configuration
 
-Ten settings, written by `est-setup` to `_bmad/custom/config.toml`:
+Thirteen settings, written by `est-setup` to `_bmad/custom/config.toml`:
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -291,6 +298,9 @@ Ten settings, written by `est-setup` to `_bmad/custom/config.toml`:
 | `est_min_calibration_samples` | `3` | Delivered projects before a pattern beats a weak signal |
 | `est_sprint_length_days` | `10` | For delivery-mode capacity fitting |
 | `est_knowledge_pack_source` | *(blank)* | Shared cost model location; blank = local only |
+| `est_house_platform` | `aws` | Platforms you already run, as a **tiebreak weight** for `est-architect` — never a gate. It cannot make a non-viable platform set viable, and when it decides a close call the report says that is why |
+| `est_diagram_renderer` | `eraser` | Eraser's own MIT-licensed renderer, pinned. The infrastructure diagram is a *required* output, so `est-setup` installs it and proves it by rendering a fixture |
+| `est_chromium_path` | *(blank)* | Chromium for diagram rendering; blank auto-detects |
 
 **No rates, no currency, no margin.** The module outputs hours split by role and nothing more. Pricing stays with your sales team.
 
@@ -298,7 +308,7 @@ Ten settings, written by `est-setup` to `_bmad/custom/config.toml`:
 
 ## The company profile
 
-Ten settings above, and then one file that matters more than all of them: `_bmad/memory/est/company-profile.md`.
+Thirteen settings above, and then one file that matters more than all of them: `_bmad/memory/est/company-profile.md`.
 
 **Why it exists.** Most of the cost model is the same for everyone — what a story costs by hand, how much BMad compresses it, how hard a payments feature is to review. But four of its coefficients are not one number, they are a **choice between variants**, and the model cannot know which applies to you. Every estimate makes those four choices whether or not anybody decided them.
 
@@ -346,6 +356,7 @@ A single project total with those three fields is enough to start calibrating ba
 
 - **A BMad project.** The module reads BMad's config resolver and writes into its help catalog.
 - **Python 3.11+** and [`uv`](https://docs.astral.sh/uv/). Most scripts are stdlib-only; `uv run` handles the rest.
+- **Node 22.12+ and a Chromium-family browser**, for `est-architect` only — and **not optional there**: the infrastructure diagram is a required output, so `est-setup` installs the pinned renderer and proves it by rendering a fixture, and `est-architect` refuses to run without it. Neither is bundled. The other six skills do not touch them.
 - **`pdftotext`** (poppler), optional. Everything else the converter needs — `openpyxl`, `python-docx`, `pypdf`, `python-pptx` — is declared inline in the script, so `uv run` fetches it; there is nothing to install by hand. Without `pdftotext` a PDF falls to `pypdf` and loses the layout that makes a page citation locatable; without either, extraction reads the original natively, which is slower and loses spreadsheet row anchors. `est-setup` checks what's present.
 
 ---
@@ -353,7 +364,7 @@ A single project total with those three fields is enough to start calibrating ba
 ## Development
 
 ```bash
-# All suites (855 tests). Run through uv: est-setup's config tests need Python
+# All suites (1,108 tests). Run through uv: est-setup's config tests need Python
 # 3.11 for tomllib, the same requirement BMad's own config resolver carries, and
 # openpyxl for the workbook suites — without it they skip rather than fail, which
 # is how the xlsx tests once went a release without running.

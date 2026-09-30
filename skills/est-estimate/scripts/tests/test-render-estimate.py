@@ -688,5 +688,53 @@ class TheEstimateDoesNotAnswerHowLongItTakes(unittest.TestCase):
         self.assertIn("--brand: #002c8d", html)
 
 
+@unittest.skipUnless(_HAS_XLSX, "openpyxl not importable")
+class TheCostsTabCarriesTheBoundary(unittest.TestCase):
+    """est-architect prices the architecture; est-estimate prices the work. The workbook holds
+    both, and must never let a reader add them together."""
+
+    def _costs(self):
+        import datetime as dt
+        price = render._architect_price()
+        self.assertIsNotNone(price, "est-architect/scripts/price.py is not where it was")
+        today = dt.date.today().isoformat()
+        return price.price({"components": [{"capability": "relational_store"}]}, [
+            {"item": "Managed Postgres", "capability": "relational_store", "type": "monthly",
+             "rate": 45.0, "quantity": 1, "assumption": "1 instance",
+             "assumption_basis": "operator", "quote": "db.t4g.micro",
+             "url": "https://x.invalid", "fetched_at": today}],
+            notes=["Cloud credits are not secured and are netted into no total."])
+
+    def test_the_first_row_states_that_run_cost_is_not_delivery_cost(self):
+        name, _, rows = render.cost_tab(self._costs())
+        self.assertEqual("Costs", name)
+        self.assertIn("NOT DELIVERY COST", rows[0]["item"])
+        self.assertIn("never summed", rows[0]["item"])
+
+    def test_it_carries_the_rows_and_the_year_one_total(self):
+        _, _, rows = render.cost_tab(self._costs())
+        items = [r.get("item", "") for r in rows]
+        self.assertIn("Managed Postgres", items)
+        self.assertIn("TOTAL - Year 1", items)
+
+    def test_a_note_is_marked_as_not_a_cost(self):
+        _, _, rows = render.cost_tab(self._costs())
+        note = next(r for r in rows if str(r.get("item", "")).startswith("NOTE"))
+        self.assertIn("netted into no total", note["item"])
+
+    def test_the_workbook_gains_a_third_tab_only_when_costs_exist(self):
+        estimate = est.build_estimate(inventory([feature("F1"), feature("F2")]),
+                                      model(), options(granularity="project"))
+        with tempfile.TemporaryDirectory() as tmp:
+            plain, priced = Path(tmp) / "a.xlsx", Path(tmp) / "b.xlsx"
+            render.write_xlsx(estimate, plain)
+            render.write_xlsx(estimate, priced, costs=self._costs())
+            import openpyxl
+            self.assertEqual(["Stories", "Tasks"], openpyxl.load_workbook(plain).sheetnames)
+            self.assertEqual(["Stories", "Tasks", "Costs"],
+                             openpyxl.load_workbook(priced).sheetnames)
+
+
 if __name__ == "__main__":
     unittest.main()
+

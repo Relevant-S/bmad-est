@@ -1,0 +1,123 @@
+id: gcp
+name: Google Cloud
+kind: iaas
+what: Google's full service catalogue. Comparable in breadth to AWS, with a materially better managed
+  container runtime (Cloud Run) and the strongest managed analytics store on this list (BigQuery).
+serves:
+  identity:
+    service: Identity Platform
+    managed: true
+    interface: standard
+    icon: lock
+    interface_why: OIDC and SAML.
+  relational_store:
+    service: Cloud SQL for PostgreSQL
+    managed: true
+    interface: standard
+    icon: postgres
+    interface_why: Ordinary Postgres; a dump and restore moves it.
+  object_store:
+    service: Cloud Storage
+    managed: true
+    interface: standard
+    icon: google-cloud
+    interface_why: Has an S3-interoperable XML API.
+  async_work:
+    service: Cloud Tasks and Pub/Sub
+    runtime: Cloud Run
+    runtime_alternatives: [Cloud Run jobs]
+    runtime_why: >
+      The worker is a Cloud Run service or job; Cloud Tasks and Pub/Sub are the queue it drains.
+    managed: true
+    interface: proprietary
+    icon: google-cloud
+  cache:
+    service: Memorystore for Redis
+    managed: true
+    interface: standard
+    icon: redis
+    interface_why: Redis protocol.
+  cdn:
+    service: Cloud CDN
+    managed: true
+    interface: standard
+    icon: google-cloud
+  edge_protection:
+    service: Cloud Armor
+    managed: true
+    interface: proprietary
+    icon: shield
+  secrets:
+    service: Secret Manager
+    managed: true
+    interface: proprietary
+    icon: key
+  observability:
+    service: Cloud Logging and Monitoring
+    managed: true
+    interface: proprietary
+    icon: chart
+  analytics_store:
+    service: BigQuery
+    managed: true
+    interface: standard
+    icon: database
+    interface_why: Standard SQL, though the surrounding tooling does not travel.
+  search:
+    service: Vertex AI Search
+    managed: true
+    interface: proprietary
+    icon: search
+  ai_inference:
+    service: Vertex AI
+    managed: true
+    interface: proprietary
+    icon: sparkles
+  application:
+    service: Cloud Run
+    runtime: Cloud Run
+    runtime_why: >
+      A container service; Cloud Run jobs for batch.
+    managed: true
+    interface: standard
+    icon: google-cloud
+    interface_why: Containers. A container runs anywhere.
+  web_client:
+    service: Cloud Storage and Cloud CDN
+    managed: true
+    interface: standard
+    icon: google-cloud
+  ci_cd:
+    service: Cloud Build
+    managed: true
+    interface: standard
+    icon: github
+runtime:
+  languages: any
+  containers: true
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  native_dependencies: true
+  cold_start: only on Cloud Run with minimum instances at zero
+  max_execution_seconds: null
+pricing:
+  model: usage
+  default_url: https://cloud.google.com/pricing
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.

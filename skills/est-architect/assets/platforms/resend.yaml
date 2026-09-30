@@ -1,0 +1,29 @@
+id: resend
+name: Resend
+kind: saas
+what: Transactional email over a REST API and SMTP.
+
+serves:
+  email:
+    service: Resend
+    managed: true
+    interface: standard
+    interface_why: SMTP (smtp.resend.com) as well as the API, and django-anymail / Nodemailer abstract it; switching provider is a credentials change.
+    icon: mail
+
+runtime: {}
+
+pricing:
+  model: tiered_monthly_volume
+  default_url: https://resend.com/pricing
+
+volatile:
+  regions:
+    value: null
+    checked: null
+  certifications:
+    value: null
+    checked: null
+  residency:
+    value: null
+    checked: null

@@ -1,0 +1,576 @@
+{
+  "schema_version": "1.0",
+  "_reading_this_file": "The capability catalogue, the sub-score weights and the viability gates est-architect scores against. Seeded into {project-root}/_bmad/memory/est/architecture-model.json on first run and NEVER overwritten after: from then on it is the company's own model and this asset is only ever a seed. Kept out of cost-model.json deliberately — that file is hour coefficients fitted to delivered actuals, and nothing here is fitted or is hours. Every weight below is an ASSERTION with no delivered project behind it, which is why each carries a `why` a human can argue with. Confidence 3/10 on the levels, 6/10 on the shape.",
+  "capabilities": {
+    "_what": "The abstract units an architecture is designed in. A capability is bound to a platform in Layer 3 and sourced in Layer 2; it is never a vendor. `signals` are lowercase substrings matched against a story's name, description and task text to build the first-pass capability-to-story map — crude on purpose, and every mapping records that it came from a signal rather than from judgement. `tier` is the diagram column. `settled` names a mode nobody sensibly argues about, with the reason; a settled capability is kept out of the Layer 2 scoring tables entirely.",
+    "identity": {
+      "name": "Identity and access",
+      "what": "Who the user is, what they may do, and how a session is held.",
+      "tier": "edge",
+      "surfaces": [
+        "backend",
+        "frontend"
+      ],
+      "signals": [
+        "login",
+        "sign in",
+        "sign-in",
+        "signup",
+        "sign up",
+        "authenticat",
+        "authoris",
+        "authoriz",
+        "password",
+        "session",
+        "sso",
+        "oauth",
+        "mfa",
+        "two-factor",
+        "role-based",
+        "rbac",
+        "permission",
+        "access control",
+        "user account",
+        "register",
+        "registration",
+        "account",
+        "log in",
+        "logout",
+        "sign out",
+        "credential"
+      ],
+      "icon": "lock",
+      "settled": null
+    },
+    "relational_store": {
+      "name": "Relational data store",
+      "what": "The system of record for structured, related data.",
+      "tier": "data",
+      "surfaces": [
+        "backend",
+        "data"
+      ],
+      "signals": [
+        "database",
+        "postgres",
+        "mysql",
+        "record",
+        "data model",
+        "schema",
+        "persist",
+        "store",
+        "crud",
+        "history",
+        "audit log"
+      ],
+      "icon": "postgres",
+      "settled": null
+    },
+    "object_store": {
+      "name": "Object storage",
+      "what": "Files, documents, media and backups.",
+      "tier": "data",
+      "surfaces": [
+        "backend",
+        "data"
+      ],
+      "signals": [
+        "upload",
+        "download",
+        "file",
+        "document",
+        "attachment",
+        "image",
+        "photo",
+        "video",
+        "pdf",
+        "export",
+        "backup"
+      ],
+      "icon": "aws-simple-storage-service",
+      "settled": null
+    },
+    "async_work": {
+      "name": "Asynchronous work",
+      "what": "Queues, workers and scheduled jobs — anything not done inside a request.",
+      "tier": "services",
+      "surfaces": [
+        "backend"
+      ],
+      "signals": [
+        "background",
+        "queue",
+        "worker",
+        "job",
+        "batch",
+        "scheduled",
+        "cron",
+        "nightly",
+        "async",
+        "retry",
+        "webhook",
+        "ingest",
+        "sync"
+      ],
+      "icon": "server",
+      "settled": null
+    },
+    "cache": {
+      "name": "Cache",
+      "what": "Short-lived shared state in front of a slower store.",
+      "tier": "data",
+      "surfaces": [
+        "backend"
+      ],
+      "signals": [
+        "cache",
+        "caching",
+        "performance",
+        "latency",
+        "rate limit",
+        "throttl"
+      ],
+      "icon": "redis",
+      "settled": null
+    },
+    "cdn": {
+      "name": "Content delivery",
+      "what": "Static assets served near the reader.",
+      "tier": "edge",
+      "surfaces": [
+        "frontend",
+        "infra"
+      ],
+      "signals": [
+        "static",
+        "asset",
+        "cdn",
+        "landing page",
+        "marketing site"
+      ],
+      "icon": "cloudflare",
+      "settled": {
+        "mode": "buy",
+        "why": "Nobody builds a CDN. Every candidate platform includes one and the build option is not a real option."
+      }
+    },
+    "edge_protection": {
+      "name": "Edge protection",
+      "what": "TLS termination, WAF, DDoS absorption, bot filtering.",
+      "tier": "edge",
+      "surfaces": [
+        "infra"
+      ],
+      "signals": [
+        "firewall",
+        "waf",
+        "ddos",
+        "tls",
+        "ssl",
+        "certificate",
+        "bot",
+        "abuse"
+      ],
+      "icon": "shield",
+      "settled": {
+        "mode": "buy",
+        "why": "A hand-rolled WAF is a liability, not a saving. Every platform ships one."
+      }
+    },
+    "secrets": {
+      "name": "Secrets and configuration",
+      "what": "Credentials and per-environment configuration, held out of the repository.",
+      "tier": "services",
+      "surfaces": [
+        "infra",
+        "backend"
+      ],
+      "signals": [
+        "secret",
+        "credential",
+        "api key",
+        "environment variable",
+        "config"
+      ],
+      "icon": "key",
+      "settled": {
+        "mode": "buy",
+        "why": "Every platform has one and building a secret store is how secrets end up in a repository."
+      }
+    },
+    "observability": {
+      "name": "Observability",
+      "what": "Logs, metrics, traces, alerting.",
+      "tier": "services",
+      "surfaces": [
+        "infra",
+        "backend"
+      ],
+      "signals": [
+        "monitor",
+        "log",
+        "metric",
+        "alert",
+        "observab",
+        "trace",
+        "uptime",
+        "health check",
+        "dashboard for ops"
+      ],
+      "icon": "chart",
+      "settled": null
+    },
+    "error_tracking": {
+      "name": "Error tracking",
+      "what": "Exception capture and grouping across client and server.",
+      "tier": "services",
+      "surfaces": [
+        "backend",
+        "frontend"
+      ],
+      "signals": [
+        "error",
+        "exception",
+        "crash",
+        "bug report",
+        "stack trace"
+      ],
+      "icon": "bug",
+      "settled": {
+        "mode": "buy",
+        "why": "Mature free tiers everywhere; the build option has never been worth it."
+      }
+    },
+    "email": {
+      "name": "Transactional email",
+      "what": "Email the system sends to a person because something happened.",
+      "tier": "external",
+      "surfaces": [
+        "backend"
+      ],
+      "signals": [
+        "email",
+        "e-mail",
+        "notification",
+        "notify",
+        "invite",
+        "reset link",
+        "confirmation",
+        "reminder"
+      ],
+      "icon": "mail",
+      "settled": {
+        "mode": "buy",
+        "why": "Deliverability is the product. Self-hosted SMTP lands in spam folders and that is not a bug anyone can fix in a sprint."
+      }
+    },
+    "sms_push": {
+      "name": "SMS and push notification",
+      "what": "Out-of-band messages to a device.",
+      "tier": "external",
+      "surfaces": [
+        "backend"
+      ],
+      "signals": [
+        "sms",
+        "text message",
+        "push notification",
+        "mobile alert",
+        "twilio"
+      ],
+      "icon": "phone",
+      "settled": {
+        "mode": "buy",
+        "why": "Carrier and store relationships cannot be built."
+      }
+    },
+    "payments": {
+      "name": "Payments",
+      "what": "Taking money, subscriptions, invoices.",
+      "tier": "external",
+      "surfaces": [
+        "backend",
+        "frontend"
+      ],
+      "signals": [
+        "payment",
+        "pay",
+        "billing",
+        "invoice",
+        "subscription",
+        "checkout",
+        "card",
+        "stripe",
+        "refund",
+        "pricing tier"
+      ],
+      "icon": "stripe",
+      "settled": {
+        "mode": "buy",
+        "why": "Card data handling is a compliance regime, not a feature. Building it is never the recommendation."
+      }
+    },
+    "search": {
+      "name": "Search",
+      "what": "Full-text or faceted search across the domain data.",
+      "tier": "data",
+      "surfaces": [
+        "backend",
+        "data"
+      ],
+      "signals": [
+        "search",
+        "filter",
+        "facet",
+        "autocomplete",
+        "typeahead",
+        "full text",
+        "find a"
+      ],
+      "icon": "search",
+      "settled": null
+    },
+    "analytics_store": {
+      "name": "Analytics and reporting store",
+      "what": "Where reporting reads from, when reading it from the system of record would not do.",
+      "tier": "data",
+      "surfaces": [
+        "data",
+        "backend"
+      ],
+      "signals": [
+        "report",
+        "analytics",
+        "aggregate",
+        "statistic",
+        "trend",
+        "chart",
+        "bi",
+        "export to csv",
+        "time-series",
+        "time series"
+      ],
+      "icon": "database",
+      "settled": null
+    },
+    "ai_inference": {
+      "name": "Model inference",
+      "what": "Calls to a language or vision model, and whatever holds their context.",
+      "tier": "external",
+      "surfaces": [
+        "backend"
+      ],
+      "signals": [
+        "ai",
+        "llm",
+        "model",
+        "gpt",
+        "claude",
+        "summaris",
+        "summariz",
+        "classif",
+        "embedding",
+        "vector",
+        "recommend",
+        "detect anomal",
+        "predict"
+      ],
+      "icon": "sparkles",
+      "settled": null
+    },
+    "application": {
+      "name": "Application runtime",
+      "what": "Where the code this project writes actually runs.",
+      "tier": "application",
+      "surfaces": [
+        "backend"
+      ],
+      "signals": [],
+      "icon": "server",
+      "settled": {
+        "mode": "build",
+        "why": "This is the project. The platform layer decides where it runs; the sourcing layer has nothing to decide."
+      }
+    },
+    "web_client": {
+      "name": "Web client",
+      "what": "The browser application.",
+      "tier": "application",
+      "surfaces": [
+        "frontend",
+        "design"
+      ],
+      "signals": [],
+      "icon": "monitor",
+      "settled": {
+        "mode": "build",
+        "why": "This is the project."
+      }
+    },
+    "ci_cd": {
+      "name": "Pipeline and environments",
+      "what": "Build, test, deploy, and the environments deployed into.",
+      "tier": "services",
+      "surfaces": [
+        "infra"
+      ],
+      "signals": [
+        "pipeline",
+        "ci",
+        "cd",
+        "deploy",
+        "environment",
+        "staging",
+        "release"
+      ],
+      "icon": "github",
+      "settled": {
+        "mode": "buy",
+        "why": "Hosted CI is universal and effectively free at this scale. Priced as standing work regardless."
+      }
+    }
+  },
+  "tiers": {
+    "_what": "Diagram columns, left to right. A component's capability decides its column, which is what makes the layout deterministic rather than a judgement made afresh each run.",
+    "order": [
+      "actors",
+      "edge",
+      "application",
+      "services",
+      "data",
+      "external"
+    ],
+    "labels": {
+      "actors": "Users",
+      "edge": "Entry and access",
+      "application": "Application",
+      "services": "Platform services",
+      "data": "Data",
+      "external": "Integrations"
+    },
+    "_labels_why": "The external tier is labelled `Integrations` rather than `Third-party integrations` because a bought service hosted ON a platform draws inside that platform's band, and the longer label collided with the band named for the same idea.",
+    "rows": [
+      [
+        "edge",
+        "application"
+      ],
+      [
+        "services",
+        "data",
+        "external"
+      ]
+    ],
+    "_rows_why": "Which tiers share a row inside a platform band: the request path on the first, what it reaches on the second. Laid out as one long line, the application's five edges had to cross every tier between them — and the router avoids obstacles but cannot invent a corridor, so it ran them straight through. A tier not named here keeps the `order` above and lands on a row of its own."
+  },
+  "weights": {
+    "_what": "How the sub-scores of each layer combine into the 0-10 headline. They sum to 1.0 within a layer and are checked to. Nothing here is fitted: they encode what this company says matters, and anybody who weighs lock-in differently edits the file and re-runs rather than arguing with the output.",
+    "stack": {
+      "scope_fit": 0.3,
+      "library_coverage": 0.2,
+      "ecosystem_currency": 0.15,
+      "team_fit": 0.2,
+      "estimate_impact": 0.15,
+      "_why": "Scope fit leads because a stack that cannot serve the backlog is not a candidate whatever else is true of it. Team fit is weighted equal to library coverage because the novelty coefficient says an unfamiliar stack costs 1.15x on every story, which is a larger effect than one missing library."
+    },
+    "sourcing": {
+      "delivery_effort": 0.35,
+      "requirement_fit": 0.25,
+      "maintenance_health": 0.15,
+      "cost_licence": 0.1,
+      "escape_cost": 0.15,
+      "_why": "Delivery effort leads because it is the only sub-score in this module with story ids behind it. Cost is weighted lowest of the five on purpose: a subscription is usually small beside the hours it displaces, and weighting it higher makes the workflow recommend building things to save a figure that rounds to nothing against the estimate."
+    },
+    "platform": {
+      "capability_coverage": 0.22,
+      "runtime_fit": 0.22,
+      "vendor_sprawl": 0.22,
+      "operational_burden": 0.16,
+      "reversibility": 0.08,
+      "constraint_compliance": 0.1,
+      "_why": "Runtime fit is weighted equal to coverage because a platform that serves every capability and cannot run the application is worth nothing. Sprawl at 0.22 is what stops a set taking the best-in-class service for each capability independently and arriving at nine vendors. `constraint_compliance` carried NO weight at all until a real run exposed it: it was emitted with a weight field of 0.0, so an option whose compliance could not be evaluated scored exactly like one that had been checked. It gates viability either way; the weight is what makes an UNEVALUATED gate visible in the number as well as in the prose."
+    }
+  },
+  "house_preference": {
+    "_what": "The tiebreak from the operator's brief: 'we mostly work on AWS, but it varies by project'. A WEIGHT, never a gate. It can never make a non-viable set viable and it cannot overturn a materially better fit.",
+    "bonus": 0.4,
+    "bonus_applies_to": [
+      "team_fit",
+      "operational_burden"
+    ],
+    "material_margin": 0.5,
+    "why": "0.4 of a sub-score point, on the two sub-scores where an existing account and existing on-call knowledge are a real advantage rather than a preference. `material_margin` is the headline gap below which the house set wins the tiebreak AND the report has to say that is why."
+  },
+  "sourcing_liveness": {
+    "_what": "What makes a sourcing decision worth scoring. Everything else is settled with a one-line reason and stays out of the tables — forty-five scores nobody reads is the failure this prevents.",
+    "min_stories": 2,
+    "min_share_of_backlog": 0.02,
+    "why": "A capability touching one story or under 2% of the backlog is not where a build-versus-buy argument pays for itself. Both thresholds, not either: a single very large story can still clear the share test."
+  },
+  "sourcing_effort": {
+    "_what": "What a capability costs to deliver under each sourcing mode, as a share of what BUILDING it costs. The stories at stake are real — named ids with real size bands, read from the inventory. The RATIO applied to them is not: no delivered project of this company's recorded what an adopted component cost against what building it would have. UNMEASURED, confidence 2/10 on the levels and 6/10 on the ordering, and every basis string that quotes one says so. est-calibrate is how these ever become real: an adopted component that cost three times its estimated integration is the first evidence this layer could have.",
+    "build": {
+      "share": 1.0,
+      "why": "The baseline the others are relative to."
+    },
+    "adopt": {
+      "share": 0.5,
+      "why": "An open-source component still has to be selected, configured, wired, upgraded and understood, and the project owns the bugs. Half is an assertion that it removes the core of the work and leaves the edges."
+    },
+    "buy": {
+      "share": 0.3,
+      "why": "A managed service removes the operational surface as well as the core, leaving integration, configuration and the gap-filling the requirement-fit sub-score names separately."
+    },
+    "gap_penalty": {
+      "share": 0.25,
+      "why": "Added back per unmet requirement a candidate does not cover, because a gap is build work on top rather than something the purchase absorbs. Counted in the effort sub-score so it cannot be wished away in prose."
+    },
+    "mode_defaults": {
+      "_what": "The sub-scores BUILDING a capability earns by definition, rather than from research. They are here and not in the script so a reader who disagrees edits a file and re-runs. ASSERTED, like everything else on this layer.",
+      "build": {
+        "requirement_fit": 10.0,
+        "requirement_fit_why": "Building it means building exactly what the stories ask for. This is the one thing build always wins, and it is why a candidate with real gaps loses to it.",
+        "maintenance_health": 5.0,
+        "maintenance_health_why": "No third-party maintenance risk and no abandoned-dependency risk; in exchange the project carries the entire maintenance burden for the life of the system. Mid-scale on purpose — build is neither the safe nor the risky answer here, it is the one where the risk is yours.",
+        "cost_licence": 10.0,
+        "cost_licence_why": "No subscription and no licence to be incompatible with. The hours are counted in delivery effort, not twice here.",
+        "escape_cost": 10.0,
+        "escape_cost_why": "There is nothing to escape from. Code this project owns can be changed."
+      }
+    }
+  },
+  "balance": {
+    "_what": "No target ratio is asserted, because no delivered project of this company's recorded one. What IS checked is the degenerate ends, and a finding here is a question the report must answer rather than an error.",
+    "flag_all_build_above": 0.9,
+    "flag_all_buy_above": 0.75,
+    "why": "Above 90% built, the workflow has almost certainly skipped a mature candidate. Above 75% bought, the integration glue is likely to cost more than the build would have, and the vendor count will have grown past what anyone can operate. The two thresholds differ because the failures are not symmetric: building too much is slow, buying too much is slow AND unfixable."
+  },
+  "costing": {
+    "_what": "The run-cost breakdown. Every figure is fetched from a vendor's pricing page and re-verifiable; nothing here sets a price.",
+    "stale_after_days": 45,
+    "report_currency": "USD",
+    "types": [
+      "one-time",
+      "monthly",
+      "annually"
+    ],
+    "why": "45 days because published cloud prices move on roughly a quarterly cadence and a figure older than half of one should be re-checked before it goes in front of a client. `report_currency` is what totals are summed in; a row priced in another currency keeps its original alongside the rate and the date it was converted."
+  },
+  "gates": {
+    "_what": "Hard constraints. An option violating one is NOT VIABLE and is never recommended, however well it scores — the same shape as est-plan's feasibility check. A preference lowers a score; a constraint removes an option.",
+    "kinds": [
+      "data_residency",
+      "certification",
+      "mandated_platform",
+      "excluded_platform",
+      "licence_class",
+      "procurement"
+    ],
+    "why": "Named kinds rather than free text so architecture-check.py can verify each one was actually evaluated against every option rather than mentioned once in prose."
+  },
+  "vendor_sprawl": {
+    "_what": "How the vendor count is scored. Two corrections from the first real run, both of which had the same shape as a bug already fixed elsewhere in this module.",
+    "decay": 0.75,
+    "decay_why": "`10 x 0.75^(n-1)`, replacing `max(0, 10 - 2.5*(n-1))`. The old form reached zero at five vendors and stayed there, so a five-vendor set and a twenty-vendor set scored identically — the term stopped discriminating exactly where it was most needed. A real set of seven scored 0.0 and still won. This one keeps falling and never floors.",
+    "count_why": "Only vendors introduced by a LIVE sourcing decision are counted. Stripe for payments, Resend for email and a CDN are settled capabilities — nobody chose them, and charging a set for vendors it had no say over punishes the wrong thing. This is the identical mistake `balance()` was already corrected for, repeated here and missed."
+  }
+}

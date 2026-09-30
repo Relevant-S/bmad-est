@@ -1,0 +1,45 @@
+id: cloudflare
+name: Cloudflare
+kind: saas
+what: >
+  Edge network: R2 object storage (S3 API, no egress fees), CDN and WAF. The natural complement
+  to a PaaS that has none of the three.
+
+serves:
+  object_store:
+    service: Cloudflare R2
+    managed: true
+    interface: standard
+    interface_why: S3 API with presigned URLs (1 s to 7 days); boto3 and django-storages work unchanged.
+    icon: cloudflare
+  cdn:
+    service: Cloudflare CDN
+    managed: true
+    interface: standard
+    icon: cloudflare
+  edge_protection:
+    service: Cloudflare WAF and managed TLS
+    managed: true
+    interface: proprietary
+    icon: shield
+
+runtime: {}
+
+pricing:
+  model: usage
+  default_url: https://www.cloudflare.com/plans/
+  urls:
+    object_store: https://developers.cloudflare.com/r2/pricing/
+
+volatile:
+  regions:
+    value: "R2 jurisdictions: us, eu, fedramp; location hints wnam, enam"
+    checked: 2026-09-29
+    url: https://developers.cloudflare.com/r2/reference/data-location/
+  certifications:
+    value: null
+    checked: null
+  residency:
+    value: "R2 `us` jurisdiction available"
+    checked: 2026-09-29
+    url: https://developers.cloudflare.com/r2/reference/data-location/

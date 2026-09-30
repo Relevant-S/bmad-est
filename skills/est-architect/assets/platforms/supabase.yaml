@@ -1,0 +1,97 @@
+id: supabase
+name: Supabase
+kind: baas
+what: >
+  Postgres with identity, object storage and a generated API wrapped around it. The interesting
+  property for this workflow is that it serves several capabilities from ONE vendor, which is
+  what the sprawl sub-score exists to reward — and it is built on open-source parts, which is
+  what keeps its escape cost low for a BaaS.
+
+serves:
+  identity:
+    service: Supabase Auth
+    managed: true
+    interface: standard
+    interface_why: >
+      GoTrue, issuing ordinary JWTs, with OAuth providers. Self-hostable, which is a genuine
+      escape hatch rather than an export button.
+    icon: supabase
+  relational_store:
+    service: Supabase Postgres
+    managed: true
+    interface: standard
+    interface_why: Unmodified Postgres. pg_dump moves it to any other Postgres on this list.
+    icon: postgres
+  object_store:
+    service: Supabase Storage
+    managed: true
+    interface: standard
+    interface_why: S3-compatible.
+    icon: supabase
+  cache:
+    service: null
+    managed: null
+    serves_natively: false
+    note: No managed cache. A set needing one takes it from another platform.
+  async_work:
+    service: Supabase Edge Functions with pg_cron
+    runtime: Supabase Edge Functions
+    runtime_why: >
+      The work runs in an Edge Function; pg_cron schedules it rather than hosting it.
+    managed: true
+    interface: proprietary
+    interface_why: >
+      Deno functions plus database-scheduled triggers. It covers periodic work and does not
+      cover a long-running consumer; runtime fit is where that belongs.
+    icon: supabase
+  search:
+    service: Postgres full-text search
+    managed: true
+    interface: standard
+    interface_why: Built into the database already being paid for; no second system.
+    icon: search
+  application:
+    service: Supabase Edge Functions
+    runtime: Supabase Edge Functions
+    runtime_why: >
+      Deno functions at the edge.
+    managed: true
+    interface: proprietary
+    icon: supabase
+  secrets:
+    service: Supabase Vault
+    managed: true
+    interface: proprietary
+    icon: key
+
+runtime:
+  languages: [typescript, javascript]
+  languages_why: Edge Functions are Deno. Anything else needs a second platform for the application tier.
+  containers: false
+  long_running: false
+  background_jobs: partial
+  background_jobs_why: pg_cron schedules work inside the database; it is not a queue with retries and a dead-letter path.
+  websockets: true
+  websockets_why: Realtime is a first-class product here, which is unusual on this list.
+  scheduled_jobs: true
+  native_dependencies: false
+  cold_start: true
+  max_execution_seconds: null
+
+pricing:
+  model: tier_plus_usage
+  default_url: https://supabase.com/pricing
+
+volatile:
+  regions:
+    value: null
+    checked: null
+  certifications:
+    value: null
+    checked: null
+    note: >
+      Supabase publishes a compliance page and offers a BAA on some plans. Research and date it
+      before any certification gate is evaluated against this platform.
+  residency:
+    value: null
+    checked: null

@@ -1,0 +1,82 @@
+id: fly
+name: Fly.io
+kind: paas
+what: Runs containers close to users in many regions. Chosen for latency or for regional placement rather
+  than for breadth of managed services.
+serves:
+  application:
+    service: Fly Machines
+    runtime: Fly Machines
+    runtime_why: >
+      A Machine per process.
+    managed: true
+    interface: standard
+    icon: fly-io
+    interface_why: Containers.
+  web_client:
+    service: Fly Machines (static or SSR)
+    managed: true
+    interface: standard
+    icon: fly-io
+  relational_store:
+    service: Fly Postgres
+    managed: true
+    interface: standard
+    icon: postgres
+    interface_why: Ordinary Postgres, but operated by the project rather than fully managed.
+  cache:
+    service: Upstash Redis on Fly
+    managed: true
+    interface: standard
+    icon: redis
+    interface_why: Redis protocol.
+  async_work:
+    service: Fly Machines (worker process)
+    runtime: Fly Machines
+    runtime_why: >
+      The worker is another Machine, the same runtime as the web process.
+    managed: true
+    interface: standard
+    icon: fly-io
+    interface_why: An ordinary long-lived process.
+  secrets:
+    service: Fly secrets
+    managed: true
+    interface: standard
+    icon: key
+  edge_protection:
+    service: Fly managed TLS
+    managed: true
+    interface: proprietary
+    icon: shield
+runtime:
+  languages: any
+  containers: true
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  native_dependencies: true
+  cold_start: only when scaled to zero
+  max_execution_seconds: null
+pricing:
+  model: usage
+  default_url: https://fly.io/docs/about/pricing/
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+note: Fly Postgres is an app you run, not a managed service with an SLA. The operational-burden sub-score
+  should see it as self-run; `managed` is true only in the sense that the image is provided.

@@ -77,6 +77,29 @@ est_roles:
   default: "architect,dev,devops,qa,ba,ux"
   example: "no PM — the Architect absorbs PM responsibilities during planning, and appears only in project-level components rather than on individual stories"
 
+est_house_platform:
+  prompt: "Platforms your company already runs, as a tiebreak weight (comma-separated, blank for none)"
+  default: "aws"
+  example: >
+    est-architect adds a small bonus to the team-fit and operational sub-scores of these
+    platforms, because an existing account, an existing pipeline and existing on-call knowledge
+    genuinely cost less. It is a WEIGHT and never a gate — it cannot make a non-viable platform
+    set viable and cannot overturn a materially better fit, and when it decides a close call the
+    report says that is why rather than presenting it as a win.
+
+est_diagram_renderer:
+  prompt: "Renderer for infrastructure diagrams"
+  default: "eraser"
+  example: >
+    eraser is Eraser's own MIT-licensed renderer, pinned to a fixed version. It needs Node 22.12
+    or newer and a Chromium-family browser, neither of which it bundles. The diagram is a
+    required output, so setup installs the pinned CLI and proves it by rendering a fixture.
+
+est_chromium_path:
+  prompt: "Chromium executable for diagram rendering (blank to auto-detect)"
+  default: ""
+  example: "on macOS, usually /Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
 est_min_calibration_samples:
   prompt: "Minimum delivered projects before a coefficient change counts as more than a weak signal"
   default: 3
@@ -102,9 +125,15 @@ directories:
   - "{project-root}/_bmad/memory/est/ledger"
 
 post-install-notes: >
-  Two follow-ups the setup could not do for you. Run the company profile interview so estimates
+  Three follow-ups the setup could not do for you. Run the company profile interview so estimates
   are priced against your teams rather than industry averages — ask Nadia, and she will walk it.
   And read what {project-root}/_bmad/memory/est/cost-model.json says about its own calibration
   rather than assuming: the seed ships fitted to one delivered BMad project, so the honest line
   is n=1 — a far stronger start than industry averages, and still one project, which cannot
   separate what is true of BMad delivery from what was true of that project.
+
+  And answer {project-root}/_bmad/memory/est/architecture-preferences.md. It ships with every
+  section UNANSWERED, and until it is filled in est-architect's team-fit score reports null
+  rather than a number — deliberately, because a team-fit score of 5 invented from nothing reads
+  exactly like one that was measured. Naming what you have actually delivered in is the single
+  highest-value thing you can do for that workflow.

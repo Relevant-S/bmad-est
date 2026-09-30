@@ -1,0 +1,148 @@
+id: aws
+name: Amazon Web Services
+kind: iaas
+what: >
+  The broadest service catalogue and the deepest operational surface. Serves every capability
+  in the catalogue, and makes the team responsible for wiring most of them together.
+
+serves:
+  identity:
+    service: Amazon Cognito
+    managed: true
+    interface: standard
+    interface_why: OIDC and SAML, so a migration off it is a re-issue of tokens rather than a rewrite.
+    icon: aws-cognito
+  relational_store:
+    service: Amazon RDS for PostgreSQL
+    managed: true
+    interface: standard
+    interface_why: Ordinary Postgres wire protocol; a dump and restore moves it anywhere.
+    icon: aws-rds
+  object_store:
+    service: Amazon S3
+    managed: true
+    interface: standard
+    interface_why: The S3 API is the de facto standard and four other vendors implement it.
+    icon: aws-simple-storage-service
+  async_work:
+    service: Amazon SQS with ECS or Lambda workers
+    runtime: AWS Fargate
+    runtime_alternatives: [AWS Lambda]
+    runtime_why: >
+      The worker is a container beside the web container; Amazon SQS is the queue it drains, not the thing the code runs in.
+    managed: true
+    interface: proprietary
+    interface_why: SQS semantics are not AMQP; a move means rewriting the consumer.
+    icon: aws-simple-queue-service
+  cache:
+    service: Amazon ElastiCache for Redis
+    managed: true
+    interface: standard
+    interface_why: Redis protocol.
+    icon: redis
+  cdn:
+    service: Amazon CloudFront
+    managed: true
+    interface: standard
+    icon: aws-cloudfront
+  edge_protection:
+    service: AWS WAF and Shield Standard
+    managed: true
+    interface: proprietary
+    icon: shield
+  secrets:
+    service: AWS Secrets Manager
+    managed: true
+    interface: proprietary
+    icon: key
+  observability:
+    service: Amazon CloudWatch
+    managed: true
+    interface: proprietary
+    interface_why: Log and metric formats are AWS's own; dashboards do not travel.
+    icon: aws-cloudwatch
+  email:
+    service: Amazon SES
+    managed: true
+    interface: standard
+    interface_why: SMTP as well as an API.
+    icon: mail
+  search:
+    service: Amazon OpenSearch Service
+    managed: true
+    interface: standard
+    icon: search
+  analytics_store:
+    service: Amazon Redshift or Athena over S3
+    managed: true
+    interface: standard
+    icon: database
+  application:
+    service: AWS App Runner, ECS Fargate or Lambda
+    runtime: AWS Fargate
+    runtime_alternatives: [AWS App Runner, AWS Lambda]
+    runtime_why: >
+      Containers on Fargate is the default for a long-lived web application: App Runner trades control for convenience and Lambda changes how the code is written.
+    managed: true
+    interface: standard
+    interface_why: Containers. A container runs anywhere.
+    icon: aws-fargate
+  web_client:
+    service: S3 and CloudFront
+    managed: true
+    interface: standard
+    icon: aws-simple-storage-service
+  ci_cd:
+    service: AWS CodePipeline (or GitHub Actions deploying into it)
+    managed: true
+    interface: standard
+    icon: github
+
+runtime:
+  languages: any
+  containers: true
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  native_dependencies: true
+  cold_start: only on Lambda
+  max_execution_seconds: null
+  max_execution_why: >
+    Unbounded on ECS, App Runner and EC2. Lambda caps at 900s, so a profile consumer must read
+    which service a component was bound to rather than the platform as a whole.
+
+pricing:
+  model: usage
+  default_url: https://aws.amazon.com/pricing/
+  price_list_api: https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/price-changes.html
+  price_list_api_why: >
+    AWS publishes a machine-readable price list. price.py prefers it over scraping a page,
+    and the row's `url` becomes the query rather than a marketing page that may not carry the
+    figure at all.
+  urls:
+    relational_store: https://aws.amazon.com/rds/postgresql/pricing/
+    object_store: https://aws.amazon.com/s3/pricing/
+    identity: https://aws.amazon.com/cognito/pricing/
+    application: https://aws.amazon.com/apprunner/pricing/
+    cdn: https://aws.amazon.com/cloudfront/pricing/
+    email: https://aws.amazon.com/ses/pricing/
+    observability: https://aws.amazon.com/cloudwatch/pricing/
+    cache: https://aws.amazon.com/elasticache/pricing/
+    async_work: https://aws.amazon.com/sqs/pricing/
+
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Very many, including EU and UK. Verify the specific region a residency gate needs.
+  certifications:
+    value: null
+    checked: null
+    note: >
+      AWS publishes a large compliance programme list and offers a BAA. NOT recorded as a
+      value here because a certification claim with no date and no URL is a compliance
+      statement nobody checked. Research it before any certification gate is evaluated.
+  residency:
+    value: null
+    checked: null

@@ -1,0 +1,35 @@
+id: clerk
+name: Clerk
+kind: saas
+what: >
+  Hosted authentication and B2B organisations: sign-up, sessions, MFA, social login, and
+  Organizations with roles and permissions. Identity only in this catalogue (Clerk Billing is
+  a separate product and is not a substitute for Stripe Billing).
+
+serves:
+  identity:
+    service: Clerk (auth + orgs)
+    managed: true
+    interface: proprietary
+    interface_why: Proprietary SDKs and UI components; session tokens are standard JWTs, but a migration re-implements the org model and every sign-in surface.
+    icon: clerk
+
+runtime: {}
+
+pricing:
+  model: per_monthly_retained_user_plus_plan
+  default_url: https://clerk.com/pricing
+
+volatile:
+  regions:
+    value: US-hosted only; no regional data residency
+    checked: 2026-09-29
+    url: https://clerk.com/security
+  certifications:
+    value: SOC 2 Type 2 (since 2022-05-06; report on Business plan and above); HIPAA BAA on Enterprise; no ISO 27001
+    checked: 2026-09-29
+    url: https://clerk.com/security
+  residency:
+    value: US
+    checked: 2026-09-29
+    url: https://clerk.com/security

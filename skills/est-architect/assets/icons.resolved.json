@@ -1,0 +1,45 @@
+{
+  "_what": "Every icon this installation has resolved, with where it came from, the licence it carries and the date it was fetched. Icons are not bundled; this is the audit trail for the ones that were.",
+  "updated": "2026-09-30",
+  "icons": {
+    "aws-fargate": {
+      "service": "AWS Fargate",
+      "provider": "aws",
+      "source": "cloud",
+      "id": "aws/service/Containers/64/AWS-Fargate.svg",
+      "url": "https://raw.githubusercontent.com/tf2d2/icons/main/aws/service/Containers/64/AWS-Fargate.svg",
+      "licence": "Vendor trademarks, licensed by each vendor for use in architecture diagrams. Not open-source icons; recorded per resolution.",
+      "aspect": 1.0,
+      "colour": true,
+      "bytes": 106,
+      "fetched": "2026-09-30",
+      "normalised": true
+    },
+    "aws-simple-email-service": {
+      "service": "Amazon SES",
+      "provider": "aws",
+      "source": "cloud",
+      "id": "aws/service/Business-Applications/64/Amazon-Simple-Email-Service.svg",
+      "url": "https://raw.githubusercontent.com/tf2d2/icons/main/aws/service/Business-Applications/64/Amazon-Simple-Email-Service.svg",
+      "licence": "Vendor trademarks, licensed by each vendor for use in architecture diagrams. Not open-source icons; recorded per resolution.",
+      "aspect": 1.0,
+      "colour": true,
+      "bytes": 106,
+      "fetched": "2026-09-30",
+      "normalised": true
+    },
+    "stripe-stubbrand": {
+      "service": "Stripe Connect + Billing",
+      "provider": "stripe",
+      "source": "iconify",
+      "id": "logos:stripe-stubbrand",
+      "url": "https://api.iconify.design/logos/stripe-stubbrand.svg",
+      "licence": "Varies by set; recorded per resolution.",
+      "aspect": 1.0,
+      "colour": true,
+      "bytes": 106,
+      "fetched": "2026-09-30",
+      "normalised": true
+    }
+  }
+}

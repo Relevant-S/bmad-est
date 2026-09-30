@@ -50,6 +50,15 @@ def run(tmp, answers, custom=None, user=None):
     return proc.returncode, json.loads(proc.stdout or "{}"), custom
 
 
+def declared_settings():
+    """Every config variable module.yaml declares — the top-level mappings carrying a `prompt`."""
+    import yaml
+    spec = yaml.safe_load(
+        (Path(__file__).resolve().parents[2] / "assets" / "module.yaml").read_text(
+            encoding="utf-8"))
+    return {k for k, v in spec.items() if isinstance(v, dict) and "prompt" in v}
+
+
 def table(path):
     return (tomllib.loads(Path(path).read_text(encoding="utf-8")).get("modules") or {}).get("est")
 
@@ -61,7 +70,12 @@ class Writing(unittest.TestCase):
             self.assertEqual(code, 0, result)
             values = table(custom)
             self.assertEqual(values["est_default_fidelity"], "presale")
-            self.assertEqual(len(values), 10)
+            # Against module.yaml rather than a literal: the count was hardcoded at 10 and went
+            # stale the first time the module gained a setting, failing a run in which nothing
+            # was actually wrong. What is worth asserting is that EVERY declared setting lands.
+            declared = declared_settings()
+            self.assertEqual(set(declared), set(values))
+            self.assertEqual(len(declared), len(values))
 
     def test_an_answer_overrides_its_default(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -642,15 +642,54 @@ def write_tasks_csv(est, target, inventory=None):
         writer.writerows(rows)
 
 
-def write_xlsx(est, target, inventory=None):
+def cost_tab(costs):
+    """The run-cost breakdown as a sheet, when est-architect produced one.
+
+    A third tab on the workbook est-estimate already writes, rather than a second workbook —
+    the module's standing rule, and the ordering works because est-architect runs first and
+    leaves `costs.json` for the workbook that comes later.
+
+    The first row is the boundary, in the same words every other artefact uses: somebody will
+    otherwise add twelve months of run-cost to a project quote.
+    """
+    price = _architect_price()
+    if not price:
+        return None
+    header, body = price.to_rows(costs)
+    columns = [h.lower().replace(" ", "_") for h in header]
+    rows = [{"item": "RUN COST — NOT DELIVERY COST. These figures are what the system costs to "
+                     "operate, per month and per year, continuing after the project ends. The "
+                     "estimate is hours. The two are never summed."}]
+    rows += [dict(zip(columns, values)) for values in body]
+    for note in costs.get("notes") or []:
+        rows.append({"item": f"NOTE (not a cost, netted into no total): {note}"})
+    return "Costs", columns, rows
+
+
+def _architect_price():
+    """est-architect's own row builder, so the sheet and its markdown cannot drift apart."""
+    path = (Path(__file__).resolve().parent.parent.parent / "est-architect" / "scripts"
+            / "price.py")
+    if not path.exists():
+        return None
+    spec = importlib.util.spec_from_file_location("architect_price", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def write_xlsx(est, target, inventory=None, costs=None):
     """The inventory workbook with the estimate's columns on it — same two tabs, same links."""
     inv_mod = inventory_renderer()
     (story_columns, story_rows), (task_columns, task_rows) = tabular(est, inventory)
     task_parent = "feature_id" if "feature_id" in task_columns else None
     links = inv_mod.workbook_links(story_rows, task_rows) if task_parent else []
-    return inv_mod.write_workbook(
-        [("Stories", story_columns, story_rows), ("Tasks", task_columns, task_rows)],
-        target, links)
+    sheets = [("Stories", story_columns, story_rows), ("Tasks", task_columns, task_rows)]
+    if costs:
+        tab = cost_tab(costs)
+        if tab:
+            sheets.append(tab)
+    return inv_mod.write_workbook(sheets, target, links)
 
 
 def brand():
@@ -700,6 +739,8 @@ def main():
                     help="path to feature-inventory.json. Defaults to the path recorded in the "
                          "estimate. The story and task columns come from it, so without it the "
                          "sheets carry the priced columns only and the render says so.")
+    ap.add_argument("--costs", help="costs.json from est-architect; adds a Costs tab to the "
+                                    "workbook. Run cost is never summed with delivery hours.")
     ap.add_argument("--show-manual-baseline", action="store_true",
                     help="include the build-compression comparison; internal output only")
     ap.add_argument("--stack", help="override; defaults to the profile recorded in the estimate")
@@ -733,9 +774,11 @@ def main():
         target = out_dir / "estimate.tasks.csv"
         write_tasks_csv(est, target, inventory)
         written.append(str(target))
+    costs = (json.loads(Path(args.costs).read_text(encoding="utf-8"))
+             if getattr(args, "costs", None) and Path(args.costs).exists() else None)
     if "xlsx" in formats:
         target = out_dir / "estimate.xlsx"
-        if write_xlsx(est, target, inventory):
+        if write_xlsx(est, target, inventory, costs):
             written.append(str(target))
         else:
             notes.append("xlsx skipped: openpyxl is not importable. Run this under `uv run`, "

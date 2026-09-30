@@ -1,0 +1,134 @@
+id: self-hosted
+name: Self-hosted / on-premise
+kind: self-hosted
+what: 'The client''s own estate: their hardware or their cloud account, operated by the team. Serves
+  everything and manages nothing, which is exactly the trade the operational-burden sub-score exists
+  to price.'
+serves:
+  identity:
+    service: Keycloak
+    managed: false
+    interface: standard
+    icon: lock
+    interface_why: OIDC and SAML.
+  relational_store:
+    service: PostgreSQL
+    managed: false
+    interface: standard
+    icon: postgres
+    interface_why: Ordinary Postgres.
+  object_store:
+    service: MinIO
+    managed: false
+    interface: standard
+    icon: box
+    interface_why: S3-compatible API.
+  async_work:
+    service: Redis or RabbitMQ with a worker process
+    runtime: Docker
+    runtime_why: >
+      A worker container beside the web container; Redis or RabbitMQ is the broker it drains.
+    managed: false
+    interface: standard
+    icon: redis
+    interface_why: Standard protocols.
+  cache:
+    service: Redis
+    managed: false
+    interface: standard
+    icon: redis
+    interface_why: Redis protocol.
+  cdn:
+    service: Nginx or Varnish
+    managed: false
+    interface: standard
+    icon: server
+    interface_why: Standard HTTP caching.
+  edge_protection:
+    service: Nginx with ModSecurity
+    managed: false
+    interface: standard
+    icon: shield
+    interface_why: Standard.
+  secrets:
+    service: HashiCorp Vault
+    managed: false
+    interface: standard
+    icon: key
+    interface_why: Standard API.
+  observability:
+    service: Prometheus and Grafana
+    managed: false
+    interface: standard
+    icon: chart
+    interface_why: Open standards; dashboards travel.
+  error_tracking:
+    service: Self-hosted Sentry
+    managed: false
+    interface: standard
+    icon: bug
+    interface_why: Same API as the hosted product.
+  search:
+    service: OpenSearch
+    managed: false
+    interface: standard
+    icon: search
+    interface_why: Standard API.
+  analytics_store:
+    service: ClickHouse or PostgreSQL
+    managed: false
+    interface: standard
+    icon: database
+    interface_why: SQL.
+  application:
+    service: Containers on the client's own hosts
+    runtime: Docker
+    runtime_why: >
+      Containers on the client's own hosts: the runtime is a container engine, whatever schedules it.
+    managed: false
+    interface: standard
+    icon: docker
+    interface_why: Containers.
+  web_client:
+    service: Nginx
+    managed: false
+    interface: standard
+    icon: server
+    interface_why: Standard.
+  ci_cd:
+    service: Self-hosted runners
+    managed: false
+    interface: standard
+    icon: github
+    interface_why: Standard.
+runtime:
+  languages: any
+  containers: true
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  native_dependencies: true
+  cold_start: false
+  max_execution_seconds: null
+pricing:
+  model: no_vendor_bill
+  default_url: null
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+note: 'No vendor bill, which is not the same as no cost: every component here is operated by the team,
+  and that is people-time the operational-burden sub-score counts and the run-cost table does not.'

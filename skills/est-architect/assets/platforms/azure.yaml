@@ -1,0 +1,121 @@
+id: azure
+name: Microsoft Azure
+kind: iaas
+what: Microsoft's full catalogue. Usually reaches a shortlist because the client already has an enterprise
+  agreement or an Entra tenant rather than on the merits of any one service.
+serves:
+  identity:
+    service: Microsoft Entra External ID
+    managed: true
+    interface: standard
+    icon: lock
+    interface_why: OIDC and SAML.
+  relational_store:
+    service: Azure Database for PostgreSQL
+    managed: true
+    interface: standard
+    icon: postgres
+    interface_why: Ordinary Postgres.
+  object_store:
+    service: Azure Blob Storage
+    managed: true
+    interface: proprietary
+    icon: azure
+  async_work:
+    service: Azure Service Bus
+    runtime: Azure Container Apps
+    runtime_alternatives: [Azure Functions]
+    runtime_why: >
+      The worker is a container app; Service Bus is the queue it drains.
+    managed: true
+    interface: proprietary
+    icon: azure
+  cache:
+    service: Azure Cache for Redis
+    managed: true
+    interface: standard
+    icon: redis
+    interface_why: Redis protocol.
+  cdn:
+    service: Azure Front Door
+    managed: true
+    interface: standard
+    icon: azure
+  edge_protection:
+    service: Azure Front Door WAF
+    managed: true
+    interface: proprietary
+    icon: shield
+  secrets:
+    service: Azure Key Vault
+    managed: true
+    interface: proprietary
+    icon: key
+  observability:
+    service: Azure Monitor
+    managed: true
+    interface: proprietary
+    icon: chart
+  analytics_store:
+    service: Azure Synapse Analytics
+    managed: true
+    interface: proprietary
+    icon: database
+  search:
+    service: Azure AI Search
+    managed: true
+    interface: proprietary
+    icon: search
+  ai_inference:
+    service: Azure OpenAI Service
+    managed: true
+    interface: proprietary
+    icon: sparkles
+  application:
+    service: Azure Container Apps
+    runtime: Azure Container Apps
+    runtime_why: >
+      A container app.
+    managed: true
+    interface: standard
+    icon: azure
+    interface_why: Containers.
+  web_client:
+    service: Azure Static Web Apps
+    managed: true
+    interface: standard
+    icon: azure
+  ci_cd:
+    service: Azure Pipelines
+    managed: true
+    interface: standard
+    icon: github
+runtime:
+  languages: any
+  containers: true
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  native_dependencies: true
+  cold_start: only on Container Apps scaled to zero
+  max_execution_seconds: null
+pricing:
+  model: usage
+  default_url: https://azure.microsoft.com/pricing/
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.

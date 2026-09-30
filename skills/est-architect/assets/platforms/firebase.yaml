@@ -1,0 +1,109 @@
+id: firebase
+name: Firebase
+kind: baas
+what: 'Google''s app backend: hosted auth, a document database, storage and functions. The catalogue''s
+  sharpest trade — it removes almost all backend work for the shapes it fits, and it has NO relational
+  store, which rules it out of anything with a ledger.'
+serves:
+  identity:
+    service: Firebase Authentication
+    managed: true
+    interface: standard
+    icon: firebase
+    interface_why: Issues standard JWTs; the provider config does not travel.
+  relational_store:
+    service: null
+    managed: null
+    serves_natively: false
+  object_store:
+    service: Cloud Storage for Firebase
+    managed: true
+    interface: standard
+    icon: firebase
+    interface_why: Google Cloud Storage underneath.
+  async_work:
+    service: Cloud Functions for Firebase
+    runtime: Cloud Functions for Firebase
+    runtime_why: >
+      The same runtime, triggered by a schedule or an event.
+    managed: true
+    interface: proprietary
+    icon: firebase
+  cdn:
+    service: Firebase Hosting CDN
+    managed: true
+    interface: standard
+    icon: firebase
+  edge_protection:
+    service: Firebase Hosting managed TLS
+    managed: true
+    interface: proprietary
+    icon: shield
+  error_tracking:
+    service: Crashlytics
+    managed: true
+    interface: proprietary
+    icon: bug
+  observability:
+    service: Firebase Performance Monitoring
+    managed: true
+    interface: proprietary
+    icon: chart
+  application:
+    service: Cloud Functions for Firebase
+    runtime: Cloud Functions for Firebase
+    runtime_why: >
+      Serverless functions; the same runtime hosts async work.
+    managed: true
+    interface: proprietary
+    icon: firebase
+  web_client:
+    service: Firebase Hosting
+    managed: true
+    interface: standard
+    icon: firebase
+  ci_cd:
+    service: Firebase App Distribution
+    managed: true
+    interface: proprietary
+    icon: github
+runtime:
+  languages:
+  - javascript
+  - typescript
+  - python
+  - go
+  containers: false
+  long_running: false
+  long_running_why: Functions are request-scoped or event-triggered. A consumer that must hold a process
+    open needs a second platform.
+  background_jobs: true
+  background_jobs_why: Event-triggered functions, not a queue with a dead-letter path.
+  websockets: true
+  websockets_why: Realtime Database and Firestore listeners, not a general socket server.
+  scheduled_jobs: true
+  native_dependencies: false
+  cold_start: true
+  max_execution_seconds: null
+pricing:
+  model: usage
+  default_url: https://firebase.google.com/pricing
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+note: No relational store. A project with a double-entry ledger, leases or anything relational cannot
+  use this as its system of record, and the absence above is recorded rather than omitted so the scoring
+  can see it.

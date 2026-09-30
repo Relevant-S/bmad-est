@@ -1,0 +1,80 @@
+id: railway
+name: Railway
+kind: paas
+what: A PaaS with managed Postgres and Redis and ordinary long-lived processes. Comparable to Render;
+  usually shortlisted for developer experience.
+serves:
+  application:
+    service: Railway service
+    runtime: Railway service
+    runtime_why: >
+      One service per process.
+    managed: true
+    interface: standard
+    icon: railway
+    interface_why: Containers or a native build.
+  web_client:
+    service: Railway service (static or SSR)
+    managed: true
+    interface: standard
+    icon: railway
+  relational_store:
+    service: Railway Postgres
+    managed: true
+    interface: standard
+    icon: postgres
+    interface_why: Ordinary Postgres.
+  cache:
+    service: Railway Redis
+    managed: true
+    interface: standard
+    icon: redis
+    interface_why: Redis protocol.
+  async_work:
+    service: Railway service (worker) and cron
+    runtime: Railway service
+    runtime_why: >
+      A second Railway service running the worker process.
+    managed: true
+    interface: standard
+    icon: railway
+    interface_why: An ordinary long-lived process.
+  secrets:
+    service: Railway variables
+    managed: true
+    interface: standard
+    icon: key
+  ci_cd:
+    service: Railway deploy from Git
+    managed: true
+    interface: proprietary
+    icon: github
+runtime:
+  languages: any
+  containers: true
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  native_dependencies: true
+  cold_start: false
+  max_execution_seconds: null
+pricing:
+  model: usage
+  default_url: https://railway.com/pricing
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.

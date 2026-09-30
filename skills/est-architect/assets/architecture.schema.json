@@ -1,0 +1,708 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Architecture",
+  "description": "What est-architect decides: a technology stack, a sourcing mode per capability, a platform set, the components that result, and the handoff est-estimate reads. Scope is NOT here — the inventory owns that, and this file may never contradict it.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated",
+    "project",
+    "inventory_path",
+    "inputs",
+    "capability_map",
+    "layers",
+    "components",
+    "handoff"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "generated": {
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "inventory_path": {
+      "type": "string"
+    },
+    "estimate_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Set when an estimate already existed, which is what lets the hour-bearing sub-scores report hours rather than story counts."
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Settled before anything was designed. Each carries how it was obtained, because a defaulted constraint and a stated one are not the same evidence.",
+      "required": [
+        "constraints",
+        "nfr",
+        "house_platforms"
+      ],
+      "properties": {
+        "house_platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "procurement": {
+          "type": "object",
+          "properties": {
+            "third_party_allowed": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "holder_after_handover": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "excluded_licence_classes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "basis": {
+              "type": "string"
+            }
+          }
+        },
+        "nfr": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "value",
+              "why",
+              "basis"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "value": {},
+              "why": {
+                "type": "string"
+              },
+              "basis": {
+                "enum": [
+                  "stated",
+                  "inventory",
+                  "operator",
+                  "defaulted"
+                ]
+              }
+            }
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Hard gates. A kind rather than free text so every option can be checked against every one of them mechanically.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "detail",
+              "basis"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "data_residency",
+                  "certification",
+                  "mandated_platform",
+                  "excluded_platform",
+                  "licence_class",
+                  "procurement"
+                ]
+              },
+              "detail": {
+                "type": "string"
+              },
+              "basis": {
+                "enum": [
+                  "stated",
+                  "inventory",
+                  "operator",
+                  "defaulted"
+                ]
+              }
+            }
+          }
+        },
+        "component_overrides": {
+          "type": "object",
+          "description": "Per-capability overrides of a drawn component's `name`, `product`, `icon` and `runs_on`, each with a `why`."
+        }
+      }
+    },
+    "capability_map": {
+      "type": "object",
+      "description": "capability id -> the stories it would implement. The join everything rests on: the sourcing layer's hours, the diagram's `serves` and the check that scope did not move all read it.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "stories",
+          "basis"
+        ],
+        "properties": {
+          "stories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "basis": {
+            "type": "array",
+            "description": "Per story, how it got here. `signal` is a keyword match and is deliberately labelled as the weak evidence it is; `operator` is a human's call.",
+            "items": {
+              "type": "object",
+              "required": [
+                "story",
+                "how"
+              ],
+              "properties": {
+                "story": {
+                  "type": "string"
+                },
+                "how": {
+                  "enum": [
+                    "signal",
+                    "surface",
+                    "operator",
+                    "capability_is_the_project"
+                  ]
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "story_hours": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "share_of_backlog": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "layers": {
+      "type": "object",
+      "required": [
+        "stack",
+        "sourcing",
+        "platform"
+      ],
+      "properties": {
+        "stack": {
+          "$ref": "#/definitions/scored_layer"
+        },
+        "platform": {
+          "$ref": "#/definitions/scored_layer"
+        },
+        "sourcing": {
+          "type": "object",
+          "required": [
+            "decisions",
+            "confirmed",
+            "balance"
+          ],
+          "properties": {
+            "confirmed": {
+              "type": "boolean",
+              "description": "The operator accepted or corrected the batch. Layer 3 must not be scored against an unconfirmed table, and a headless run reports this false rather than hiding it."
+            },
+            "balance": {
+              "type": "object",
+              "description": "The portfolio view. No target ratio is asserted; the distribution is made visible and the degenerate ends raise a finding the report has to answer.",
+              "properties": {
+                "build": {
+                  "type": "integer"
+                },
+                "adopt": {
+                  "type": "integer"
+                },
+                "buy": {
+                  "type": "integer"
+                },
+                "vendors_added": {
+                  "type": "integer"
+                },
+                "stories_avoided": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "findings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            "decisions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "capability",
+                  "live",
+                  "mode",
+                  "why"
+                ],
+                "properties": {
+                  "capability": {
+                    "type": "string"
+                  },
+                  "live": {
+                    "type": "boolean"
+                  },
+                  "mode": {
+                    "enum": [
+                      "build",
+                      "adopt",
+                      "buy"
+                    ]
+                  },
+                  "why": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "enum": [
+                      "settled",
+                      "scored",
+                      "operator"
+                    ]
+                  },
+                  "candidate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/definitions/option"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "description": "What gets drawn. Every one carries `serves`; a component that serves nothing is invented infrastructure and architecture-check.py fails the run on it.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "capability",
+          "name",
+          "tier",
+          "mode",
+          "serves"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "The concrete service name a reader recognises."
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tier": {
+            "enum": [
+              "actors",
+              "edge",
+              "application",
+              "services",
+              "data",
+              "external"
+            ]
+          },
+          "mode": {
+            "enum": [
+              "build",
+              "adopt",
+              "buy",
+              "actor"
+            ]
+          },
+          "icon": {
+            "type": "string"
+          },
+          "interface": {
+            "enum": [
+              "standard",
+              "proprietary",
+              "internal"
+            ]
+          },
+          "serves": {
+            "type": "object",
+            "description": "Why this box exists. At least one of the three must be non-empty.",
+            "properties": {
+              "stories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "standing_work": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "product": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The concrete named thing this component IS — a service, a framework, a library. Null when the design chose nothing and the component keeps its capability's own label, which is not a product and must never be looked up in a brand catalogue: 'Identity and access' finds Ping Identity's logo."
+          },
+          "runs_on": {
+            "type": "object",
+            "description": "The platform service this component runs INSIDE. A thing the team writes and the thing that runs it are two items, and the diagram draws one inside the other.",
+            "required": [
+              "service",
+              "platform"
+            ],
+            "properties": {
+              "service": {
+                "type": "string"
+              },
+              "platform": {
+                "type": "string"
+              },
+              "alternatives": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Runtimes the profile offers and this design did not take."
+              },
+              "why": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "connections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "refusals": {
+      "type": "array",
+      "description": "What was considered and declined, with the reason. A refusal nobody can check is a refusal nobody can argue with.",
+      "items": {
+        "type": "object",
+        "required": [
+          "what",
+          "kind",
+          "why"
+        ],
+        "properties": {
+          "what": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "component",
+              "vendor",
+              "platform",
+              "stack",
+              "candidate"
+            ]
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "description": "What est-estimate reads. EVIDENCE, never a verdict: the classifier still decides every band.",
+      "required": [
+        "stack_profile",
+        "sourcing_notes"
+      ],
+      "properties": {
+        "stack_profile": {
+          "type": "object",
+          "required": [
+            "value",
+            "why"
+          ],
+          "properties": {
+            "value": {
+              "enum": [
+                "standard_saas",
+                "multi_service",
+                "mobile_plus_backend"
+              ]
+            },
+            "why": {
+              "type": "string"
+            }
+          }
+        },
+        "novel_stack": {
+          "type": "object",
+          "properties": {
+            "is_novel": {
+              "type": "boolean"
+            },
+            "why": {
+              "type": "string"
+            },
+            "technologies": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "sourcing_notes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "story",
+              "mode",
+              "note"
+            ],
+            "properties": {
+              "story": {
+                "type": "string"
+              },
+              "capability": {
+                "type": "string"
+              },
+              "mode": {
+                "enum": [
+                  "build",
+                  "adopt",
+                  "buy"
+                ]
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "research": {
+      "type": "object",
+      "description": "What was checked, not only what was found — the denominator, because this module has shipped a checker that compared nothing and reported no findings.",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "concerns_checked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "unsourced_subscores": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "produced_by": {
+      "type": "object",
+      "description": "Which copy of est-architect wrote this. A project installs the skill by copy, so a run can silently execute code months older than the module; the revision is what turns that from a confusing artefact review into a one-line answer.",
+      "properties": {
+        "skill": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "files": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "scored_layer": {
+      "type": "object",
+      "required": [
+        "options",
+        "chosen"
+      ],
+      "properties": {
+        "chosen": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "chosen_why": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/option"
+          }
+        }
+      }
+    },
+    "option": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "axis",
+        "score",
+        "parts",
+        "viable"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "axis": {
+          "type": "string",
+          "description": "The structural thing this option varies. Two options with the same axis are one option written twice."
+        },
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "viable": {
+          "type": "boolean"
+        },
+        "not_viable_because": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "unevaluated_gates": {
+          "type": "array",
+          "description": "Constraints that could not be evaluated because the platform profile field backing them has never been verified. NOT a pass and NOT a fail.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "parts": {
+          "type": "object",
+          "description": "The sub-scores. Every one carries the number it rests on; a part with a null score says so rather than defaulting to the middle.",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "score",
+              "basis"
+            ],
+            "properties": {
+              "score": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "weight": {
+                "type": "number"
+              },
+              "basis": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "detail": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

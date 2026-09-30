@@ -1,0 +1,86 @@
+id: render
+name: Render
+kind: paas
+what: A PaaS that runs ordinary long-lived processes and managed Postgres together. The straightforward
+  alternative to Heroku, and unlike the frontend platforms it CAN host a worker.
+serves:
+  application:
+    service: Render Web Service
+    runtime: Render Web Service
+    runtime_why: >
+      A managed web service.
+    managed: true
+    interface: standard
+    icon: render
+    interface_why: Containers or a native build; a Dockerfile runs anywhere.
+  web_client:
+    service: Render Static Site
+    managed: true
+    interface: standard
+    icon: render
+  relational_store:
+    service: Render Postgres
+    managed: true
+    interface: standard
+    icon: postgres
+    interface_why: Ordinary Postgres.
+  cache:
+    service: Render Key Value (Redis)
+    managed: true
+    interface: standard
+    icon: redis
+    interface_why: Redis protocol.
+  async_work:
+    service: Render Background Worker and Cron Job
+    runtime: Render Background Worker
+    runtime_alternatives: [Render Cron Job]
+    runtime_why: >
+      A Background Worker for continuous consumption; a Cron Job for scheduled work.
+    managed: true
+    interface: standard
+    icon: render
+    interface_why: An ordinary long-lived process.
+  cdn:
+    service: Render CDN
+    managed: true
+    interface: standard
+    icon: render
+  secrets:
+    service: Render environment groups
+    managed: true
+    interface: standard
+    icon: key
+  ci_cd:
+    service: Render auto-deploy from Git
+    managed: true
+    interface: proprietary
+    icon: github
+runtime:
+  languages: any
+  containers: true
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  native_dependencies: true
+  cold_start: only on free instance types
+  max_execution_seconds: null
+pricing:
+  model: instance_plus_usage
+  default_url: https://render.com/pricing
+volatile:
+  regions:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  certifications:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.
+  residency:
+    value: null
+    checked: null
+    note: Never verified by this installation. NOT evidence of absence — a certification or residency
+      gate against this is reported unevaluated. Research it, write the value, the URL and the date.

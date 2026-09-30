@@ -1,0 +1,116 @@
+id: heroku
+name: Heroku
+kind: paas
+what: >
+  A buildpack PaaS running long-lived web and worker processes beside managed Postgres and a
+  managed Valkey key-value store. Serves the application tier and its data tier from one
+  vendor; does NOT serve object storage, a CDN, a WAF or email, which a set must take from
+  elsewhere. Since 2026-02-06 in a "sustaining engineering model" (stability, security and
+  support; no new features; Enterprise contracts closed to new customers, self-serve unchanged)
+  — a reversibility and roadmap fact a client should hear before choosing it.
+  https://www.heroku.com/blog/an-update-on-heroku/ (checked 2026-09-29)
+
+serves:
+  application:
+    service: Heroku dynos (web + worker)
+    runtime: Heroku Dyno
+    runtime_why: >
+      A web dyno. The worker dyno is the async_work runtime, and they are separate processes.
+    managed: true
+    interface: standard
+    interface_why: Buildpack-built processes behind a Procfile; the same app runs on any container host.
+    icon: heroku
+  web_client:
+    service: Heroku web dyno
+    managed: true
+    interface: standard
+    icon: heroku
+  relational_store:
+    service: Heroku Postgres
+    managed: true
+    interface: standard
+    interface_why: Postgres wire protocol (PG 16-18); pg_dump moves it. Essential tier has no additional credentials, so an RLS app role needs Standard or above.
+    icon: postgres
+  async_work:
+    service: Heroku worker + Key-Value Store
+    runtime: Heroku Dyno
+    runtime_why: >
+      A worker dyno. Heroku Key-Value Store is the broker it drains, not the runtime.
+    managed: true
+    interface: standard
+    interface_why: Redis/Valkey protocol broker and ordinary processes; Heroku Scheduler is "expected but not guaranteed", so critical nightly jobs run from a clock process.
+    icon: redis
+  cache:
+    service: Heroku Key-Value Store
+    managed: true
+    interface: standard
+    icon: redis
+  edge_protection:
+    service: Heroku ACM (TLS)
+    managed: true
+    interface: standard
+    interface_why: Managed TLS certificates only; no user-configurable WAF (third-party add-on only).
+    icon: shield
+  secrets:
+    service: Heroku Config Vars
+    managed: true
+    interface: standard
+    icon: key
+  ci_cd:
+    service: Heroku Pipelines
+    managed: true
+    interface: proprietary
+    interface_why: Pipelines and Review Apps for promotion; CI itself runs in GitHub Actions.
+    icon: heroku
+  object_store:
+    service: null
+    managed: null
+    note: No native object storage; Heroku points to Amazon S3 or the Bucketeer add-on. https://devcenter.heroku.com/articles/s3
+  cdn:
+    service: null
+    managed: null
+    note: No native CDN; Heroku suggests CloudFront.
+  email:
+    service: null
+    managed: null
+    note: No first-party transactional email; marketplace add-ons only.
+  observability:
+    service: null
+    managed: null
+    note: Heroku Metrics gives response-time and error-rate alerts on Basic+ dynos but no external synthetic uptime check and no uptime report, which is what the stories ask for.
+
+runtime:
+  languages: any
+  containers: true
+  containers_why: Cedar Container Registry; Fir builds Cloud Native Buildpacks only.
+  long_running: true
+  background_jobs: true
+  websockets: true
+  scheduled_jobs: true
+  scheduled_jobs_why: Heroku Scheduler may skip or double-run; a clock process on a worker dyno is Heroku's own advice for critical jobs.
+  native_dependencies: true
+  native_dependencies_why: Pango/Cairo (WeasyPrint) preinstalled on Heroku-22/24/26 base images.
+  cold_start: only on Eco dynos
+  max_execution_seconds: 30
+  max_execution_why: HTTP router timeout 30 s, not configurable; workers are unbounded. Dynos restart at least every 24 h.
+
+pricing:
+  model: per_dyno_and_plan
+  default_url: https://www.heroku.com/pricing
+  urls:
+    application: https://www.heroku.com/pricing
+    relational_store: https://elements.heroku.com/addons/heroku-postgresql#pricing
+    async_work: https://elements.heroku.com/addons/heroku-redis#pricing
+
+volatile:
+  regions:
+    value: "Common Runtime: us, eu. Private Spaces: virginia, oregon and others"
+    checked: 2026-09-29
+    url: https://devcenter.heroku.com/articles/regions
+  certifications:
+    value: "ISO 27001, ISO 27017, ISO 27018, SOC 1, SOC 2, SOC 3 (Common Runtime, Postgres, Key-Value Store); PCI DSS and HIPAA on Shield only; Fir not yet SOC-certified"
+    checked: 2026-09-29
+    url: https://www.heroku.com/compliance/
+  residency:
+    value: null
+    checked: null

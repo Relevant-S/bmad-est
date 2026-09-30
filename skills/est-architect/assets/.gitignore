@@ -1,0 +1,6 @@
+# Fetched at render time and rebuilt on demand — not source. Holds the official icons this
+# installation has resolved, plus the cloud-icon index. 2,693 vendor SVGs are not this
+# repository's to carry, and they are revised quarterly.
+icon-cache/
+# Written by `check-renderer.py --install`: the pinned renderer and its node_modules.
+renderer/

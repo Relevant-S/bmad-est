@@ -90,6 +90,8 @@ Scaffold `{est_output_folder}` while you are here — it is `modules.est.est_out
 
 **Seed the cost model** by copying `{skill-root}/../est-estimate/assets/cost-model.seed.json` to `{memory}/cost-model.json` — **only if it is not already there.** That file becomes the company's own model the moment it exists: `est-calibrate` writes to it under an audit trail, and overwriting it with the seed would discard every calibration and every logged judgement change. If it exists, leave it and say so.
 
+**Seed the architecture model and preferences** the same way: copy `{skill-root}/../est-architect/assets/architecture-model.seed.json` to `{memory}/architecture-model.json` and `{skill-root}/../est-architect/assets/architecture-preferences.seed.md` to `{memory}/architecture-preferences.md`, **only if they are not already there.** The model holds `est-architect`'s sub-score weights, its capability catalogue and its viability gates; the preferences file records what this company has actually delivered in. Kept out of `cost-model.json` deliberately — that file is hour coefficients fitted to delivered actuals, and preference weights are neither fitted nor hours.
+
 **Seed the company profile** the same way: copy `{skill-root}/../est-agent-estimator/assets/company-profile.seed.md` to `{memory}/company-profile.md`, **only if it is not already there.** The four inputs it settles — team profile, BMad adoption depth, stack, QA capability, engagement model — are the ones `est-estimate` otherwise defaults silently, and a blank file nobody knew to write is why they stayed defaulted. Seeded, the questions are on the page with what each one costs beside it.
 
 It arrives with every section marked **UNANSWERED**, and that marker is the state, not the file's absence: a seeded profile is not a written one. Report it as still needing the interview, and say which sections are unanswered rather than that the file is missing.
@@ -114,9 +116,46 @@ So the one thing worth checking is **`pdftotext`** — `shutil.which("pdftotext"
 
 Report what is available rather than failing — a missing converter degrades the extraction, it does not break it. Every converter returns `needs_native_read` instead of raising, and the manifest lists what was missing.
 
+## Provision the diagram renderer
+
+**This one is different: it is not a degradation, it is a dependency.** `est-architect`'s
+infrastructure diagram is a *required* output, so a setup that reports success while the
+renderer is absent has only moved the failure to the first artefact a client sees.
+
+```
+uv run {skill-root}/../est-architect/scripts/check-renderer.py --install
+```
+
+It installs the **pinned** `@eraserlabs/diagrams-cli` and then **proves it by rendering a
+fixture and reading the bytes back** — a group, two icons and a routed connection, checked for
+the PNG magic number and a non-zero size. Checking that three commands exist is a survey; this
+is a proof, and the difference is the whole point of doing it at install time.
+
+Two prerequisites it cannot install for the operator:
+
+| Prerequisite | If missing |
+| --- | --- |
+| **Node 22.12 or newer** | Exit 2, named. The renderer requires it and does not bundle it. |
+| **A Chromium-family browser** | Exit 2, named. Chrome, Chromium, Edge or Brave; or set `est_chromium_path` / `CHROMIUM_PATH`. |
+
+The version is pinned rather than floating because the package was six weeks old when this
+module was built and is explicitly closed to outside contribution: a required output must not
+change shape because an upstream minor shipped overnight.
+
+Report the outcome plainly — which Chromium it found and how, whether the fixture rendered, and
+how many bytes came back. If it did not pass, say that `/est-architect` will refuse to run and
+what to install; do not report the module as fully set up.
+
+**Report `produced_by.revision` too.** A project installs this module by copy, so a run can
+execute code months older than the module without anything saying so — one real run was reviewed
+for a day against the repository's behaviour before anyone noticed it had no icon resolver and
+seven platform profiles instead of twenty. The same revision is stamped on every
+`architecture.json`, so an artefact under review can always be traced to the code that made it.
+`uv run {skill-root}/../est-architect/scripts/capabilities.py --revision` prints it on demand.
+
 ## Then hand over
 
-Show what was written: the settings and where, the help entries registered, whether the cost model was seeded or left alone, and which converters are missing. Display `module_greeting` from `assets/module.yaml`.
+Show what was written: the settings and where, the help entries registered, whether the cost model was seeded or left alone, which converters are missing, and whether the diagram renderer rendered its fixture. Display `module_greeting` from `assets/module.yaml`.
 
 Two things this setup cannot do, and both matter more than any setting here:
 

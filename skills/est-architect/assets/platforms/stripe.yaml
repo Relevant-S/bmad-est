@@ -1,0 +1,35 @@
+id: stripe
+name: Stripe
+kind: saas
+what: >
+  Payments. Connect (connected accounts for landlords; Express/Standard/Custom types are
+  Legacy for new platforms, replaced by controller properties / Accounts v2), ACH Direct Debit
+  with Financial Connections, cards, and Stripe Billing for SaaS subscriptions.
+
+serves:
+  payments:
+    service: Stripe Connect + Billing
+    managed: true
+    interface: proprietary
+    interface_why: Stripe's own API and object model; connected accounts and saved bank mandates do not migrate to another processor without re-onboarding.
+    icon: stripe
+
+runtime: {}
+
+pricing:
+  model: per_transaction_plus_connect_fees
+  default_url: https://stripe.com/pricing
+  urls:
+    payments: https://stripe.com/pricing/local-payment-methods#ach-direct-debit
+
+volatile:
+  regions:
+    value: null
+    checked: null
+  certifications:
+    value: null
+    checked: null
+    note: Stripe is a PCI DSS Level 1 service provider by reputation; not re-verified with a URL this run.
+  residency:
+    value: null
+    checked: null

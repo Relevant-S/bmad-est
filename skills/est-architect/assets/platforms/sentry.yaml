@@ -1,0 +1,40 @@
+id: sentry
+name: Sentry
+kind: saas
+what: >
+  Error monitoring, plus Uptime Monitors and Cron Monitors in the same account — which lets one
+  vendor cover exception tracking, the 1-minute production check and the nightly-job heartbeat.
+
+serves:
+  error_tracking:
+    service: Sentry Errors
+    managed: true
+    interface: proprietary
+    interface_why: Sentry SDK protocol; several vendors (e.g. Better Stack) accept Sentry-SDK events, but alert rules and history do not travel.
+    icon: sentry
+  observability:
+    service: Sentry Uptime + Crons
+    managed: true
+    interface: proprietary
+    interface_why: Monitor configuration is Sentry's own. No monthly uptime report found (F85 asks for one).
+    icon: sentry
+
+runtime: {}
+
+pricing:
+  model: plan_plus_pay_as_you_go
+  default_url: https://sentry.io/pricing/
+  urls:
+    observability: https://docs.sentry.io/pricing/
+
+volatile:
+  regions:
+    value: null
+    checked: null
+  certifications:
+    value: SOC 2, ISO 27001 (listed on the pricing matrix)
+    checked: 2026-09-29
+    url: https://sentry.io/pricing/
+  residency:
+    value: null
+    checked: null
