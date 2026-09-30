@@ -43,7 +43,9 @@ caps = _load("capabilities", HERE / "capabilities.py")
 layout = _load("layout", HERE / "layout.py")
 icons = _load("icons", HERE / "icons.py")
 renderer = _load("check_renderer", HERE / "check-renderer.py")
-routing = _load("routing_check", HERE / "routing-check.py")
+routing = _load("diagram_check", HERE / "diagram-check.py")
+theme = _load("theme", HERE / "theme.py")
+graph = _load("graph", HERE / "graph.py")
 
 
 def verified_icons():
@@ -93,6 +95,9 @@ def api_render(doc, out_path, chromium, directory, cache, scale, fmt, measured_p
         return None, None
     request = {"mode": "render", "rendererDir": str(directory), "chromiumPath": chromium,
                "cacheDir": str(cache), "scale": scale, "unknownIcon": "error",
+               # Sections E-G. Generated from the company palette rather than written here, so
+               # the diagram and the workbook cannot drift into two visual identities.
+               "theme": theme.render_config(),
                "document": doc, "json": str(measured_path)}
     request["png" if fmt == "png" else "html"] = str(out_path)
     try:
@@ -112,11 +117,15 @@ def api_render(doc, out_path, chromium, directory, cache, scale, fmt, measured_p
 
 def render(architecture, out_path, model=None, platforms=None, chromium=None,
            directory=None, scale=2, fmt="png", doc_path=None, resolve_icons=True,
-           measured_path=None):
+           measured_path=None, icon_cache=None, graph_path=None):
     model = model or caps.load_model()
     platforms = platforms if platforms is not None else caps.load_platforms()
     directory = Path(directory or (ASSETS / "renderer"))
-    cache = ASSETS / "icon-cache"
+    # A caller may point the icon cache somewhere else, and a test MUST. A stubbed resolver
+    # writing into the shipped cache put a green square in `aws-simple-email-service.svg` and a
+    # row for it in the audit manifest, and that square was then drawn on a client's diagram —
+    # the "placeholder visuals" defect, authored by this repository's own test suite.
+    cache = Path(icon_cache) if icon_cache else (ASSETS / "icon-cache")
 
     # Official icons first. Nothing is bundled: the vendors publish 2,693 architecture SVGs and
     # revise them quarterly, so they are fetched on demand into the renderer's cache. When the
@@ -128,8 +137,9 @@ def render(architecture, out_path, model=None, platforms=None, chromium=None,
         try:
             resolution, manifest = icons.resolve_components(
                 architecture.get("components") or [], caps.capabilities(model),
-                renderer_dir=directory, stats=lookup)
-            icons.save_manifest(manifest)
+                cache_dir=cache, renderer_dir=directory, stats=lookup)
+            if not icon_cache:
+                icons.save_manifest(manifest)
             if lookup.get("unresolved"):
                 every = lookup["unresolved"] == lookup["looked_up"] and lookup["looked_up"] > 2
                 report_note = (f"{lookup['unresolved']} of {lookup['looked_up']} products "
@@ -145,7 +155,21 @@ def render(architecture, out_path, model=None, platforms=None, chromium=None,
     else:
         report_note = "icon resolution skipped"
 
-    doc = layout.document(architecture, model, platforms, resolution)
+    try:
+        doc = layout.document(architecture, model, platforms, resolution, directory,
+                              official={n for n in resolution.values() if n in manifest})
+    except layout.LayoutUnavailable as exc:
+        return ({"ok": False, "produced_by": caps.revision(), "findings": [{
+            "kind": "layout_unavailable",
+            "detail": f"{exc}. The layout engine is a build requirement, not a nicety: without "
+                      f"it there is no diagram to degrade to. Run /est-setup."}]}, None, 2)
+    plan = doc.pop("_layout", {})
+    if graph_path and plan.get("graph"):
+        # Step 1 of the pipeline, kept. The picture is an opinion about a graph; this is the
+        # graph, and it is what the A-checks and the text form are both read from.
+        staged = dict(plan["graph"], validation=graph.validate(plan["graph"]))
+        Path(graph_path).write_text(json.dumps(staged, indent=2, ensure_ascii=False) + "\n",
+                                    encoding="utf-8")
 
     drawn = [e for e in doc["entities"] if e.get("tag") == "Icon"]
     report = {"ok": False, "entities": len(doc["entities"]),
@@ -155,12 +179,20 @@ def render(architecture, out_path, model=None, platforms=None, chromium=None,
               # capability glyphs too, so a run in which nothing resolved still reported a
               # number.
               "icons_resolved": len({n for n in resolution.values() if n in manifest}),
-              "icons": {"official": sum(1 for e in drawn
-                                        if e["icon"] not in layout.GENERIC_ICONS),
-                        "glyph": sum(1 for e in drawn if e["icon"] in layout.GENERIC_ICONS),
+              "icons": {"official": sum(1 for e in drawn if not e.get("color")),
+                        # F2: a glyph is the one that had to be tinted, because no vendor art
+                        # exists for it. A vendor logo brings its own colour and is left alone.
+                        "glyph": sum(1 for e in drawn if e.get("color")),
                         "raw": sorted(n for n, r in manifest.items()
                                       if r.get("normalised") is False)},
-              "routing": None, "produced_by": caps.revision(), "findings": []}
+              "routing": None, "produced_by": caps.revision(),
+              "layout": {"engine": "elk", "aspect": plan.get("aspect"),
+                         "passes": len(plan.get("attempts") or []),
+                         "iterations": plan.get("iterations"),
+                         "longest_edge": plan.get("longest_edge"),
+                         "graph": (plan.get("graph") or {}).get("notes")},
+              "graph": graph.validate(plan["graph"]) if plan.get("graph") else None,
+              "findings": []}
     if report_note:
         report["icons_note"] = report_note
 
@@ -222,7 +254,7 @@ def render(architecture, out_path, model=None, platforms=None, chromium=None,
             report["warnings"] = api.get("warnings") or []
             report["scene"] = api.get("scene")
             if measured:
-                report["routing"] = routing.check(measured)
+                report["routing"] = routing.check(measured, authored=doc)
 
     path = Path(out_path)
     size = path.stat().st_size if path.exists() else 0
@@ -233,27 +265,32 @@ def render(architecture, out_path, model=None, platforms=None, chromium=None,
             "detail": f"the renderer reported success but wrote {size} bytes"})
         return report, doc, 1
 
-    # An arrow over a GROUP is passing through a boundary, which a reader can follow. An arrow
-    # over an ICON has covered the thing the reader was trying to identify, so it fails the run.
-    crossed = [f for f in ((report["routing"] or {}).get("findings") or [])
-               if f["kind"] != "group_crossed"]
-    if crossed:
+    # D2 is absolute: an edge may overlap its own endpoints and their containers, and nothing
+    # else. A group crossing used to be a NOTE, which is exactly how a diagram whose third-party
+    # edge ran through the Data group was measured, reported and shipped with exit 0.
+    #
+    # H2 is the one place a budget exists, because zero edge crossings is a planarity question
+    # rather than a layout setting. `diagram-check` tolerates the first and fails on the rest.
+    section_h = [f for f in ((report["routing"] or {}).get("findings") or [])
+                 if f.get("severity", "fail") == "fail"]
+    if section_h:
+        by_check = {}
+        for finding in section_h:
+            by_check.setdefault(finding.get("check", "H1"), []).append(finding)
         report["findings"].append({
-            "kind": "connector_over_component",
-            "detail": "; ".join(f"{f['connection']} runs over {f['what'] or f['over']}"
-                                for f in crossed[:6])})
+            "kind": "design_contract",
+            "detail": "; ".join(
+                f"{check}: " + ", ".join(
+                    f.get("detail") or f"{f.get('connection', f.get('what'))} over "
+                                       f"{f.get('what') or f.get('over')}"
+                    for f in items[:3])
+                for check, items in sorted(by_check.items()))})
         return report, doc, 1
-    soft = [f for f in ((report["routing"] or {}).get("findings") or [])]
-    if soft:
-        report["findings"].append({
-            "kind": "connector_over_group",
-            "detail": "; ".join(f"{f['connection']} crosses {f['what'] or f['over']}"
-                                for f in soft[:6])})
 
     report["ok"] = True
     report["bytes"] = size
     report["checked"] = (
-        f"{len(doc['entities'])} entities and {len(doc['connections'])} group-level connections "
+        f"{len(doc['entities'])} entities and {len(doc['connections'])} connections "
         f"rendered to a {size}-byte {fmt.upper()} at scale {scale}, with unknown icons treated as "
         f"errors; {report['icons']['official']} of {len(drawn)} icons are official art; "
         + ((report["routing"] or {}).get("checked") or "connector routing was NOT checked"))
@@ -299,6 +336,7 @@ def main():
     ap.add_argument("-o", "--output", default="architecture.png")
     ap.add_argument("--document", help="also write the eraser document here, so a render is "
                                        "reproducible without re-deriving it")
+    ap.add_argument("--graph", help="write the semantic graph (step 1) beside the diagram")
     ap.add_argument("--measured", help="also write the measured document — final boxes and "
                                        "routed connector points — here")
     ap.add_argument("--format", default="png", choices=("png", "html"))
@@ -315,7 +353,7 @@ def main():
                              caps.load_platforms(args.platforms), args.chromium_path,
                              scale=args.scale, fmt=args.format, doc_path=args.document,
                              resolve_icons=not args.no_icon_resolution,
-                             measured_path=args.measured)
+                             measured_path=args.measured, graph_path=args.graph)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return code
 

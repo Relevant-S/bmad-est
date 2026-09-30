@@ -418,27 +418,31 @@ def thin_reported(report):
            f"identity has {counts.get('identity', 0)} candidates")
 
 
-@case("a-runtime-contains-the-software-it-runs")
-def runtime_containment(report):
+@case("the-runtime-is-a-badge-and-never-a-second-box")
+def runtime_badge(report):
     """"Django on Fargate" was one box carrying two products, and its icon was a coin toss
-    between a framework and a cloud service. The split is a field, not a parse: the framework
-    comes from the stack layer and the runtime from the platform profile."""
+    between a framework and a cloud service. The split is a field, not a parse. Drawing the
+    runtime as a CONTAINER then cost four levels of nesting and put `AWS Fargate` on the canvas
+    twice, so it is a badge now: two official icons, one node, one name."""
     layout = load("layout", ARCH / "scripts" / "layout.py")
+    if not (ARCH / "assets" / "renderer" / "node_modules" / "elkjs").exists():
+        report("SKIPPED - elkjs is not installed; run /est-setup")
+        return
     out = build(WORKER_BACKLOG, {"house_platforms": ["aws"]})
     application = next(c for c in out["components"] if c["capability"] == "application")
     runtime = (application.get("runs_on") or {}).get("service")
-    assert runtime, "the application names no runtime, so the diagram cannot draw it inside one"
+    assert runtime, "the application names no runtime, so the diagram cannot show where it runs"
     assert runtime.lower() not in application["name"].lower(), \
         f"the label '{application['name']}' still carries its own runtime"
 
     doc = layout.document(out, MODEL, PLATFORMS, {"application:runtime": "aws-fargate"})
-    group = next(e for e in doc["entities"] if e["id"] == "runtime-application")
     icon = next(e for e in doc["entities"] if e["id"] == "application")
-    assert group["title"]["text"] == runtime
-    assert group["title"].get("icon") == "aws-fargate", "the runtime has no icon of its own"
-    assert icon["containerId"] == group["id"], "the software is not drawn inside its runtime"
+    assert icon.get("badge", {}).get("icon") == "aws-fargate", \
+        "the runtime has no icon of its own on the node"
+    titles = [(e.get("title") or {}).get("text") for e in doc["entities"]]
+    assert runtime not in titles, f"`{runtime}` is drawn as a container as well as a badge"
     assert not layout.overlaps(doc)
-    report(f"'{application['name']}' drawn inside '{runtime}', each with its own icon")
+    report(f"'{application['name']}' carries '{runtime}' as a badge, each with its own icon")
 
 
 @case("a-capability-label-is-never-searched-for-a-logo")
@@ -477,13 +481,79 @@ def no_logo_for_a_label(report):
            f"{len(out['components']) - len(unnamed)} named products were")
 
 
+@case("the-browser-never-reaches-the-secrets-store")
+def the_graph_is_true(report):
+    """The defect no layout engine can fix. Edges were derived from TIERS — every component in
+    the application tier joined to every component in services, data and external — and the web
+    client lives in that tier, so a browser was given authored edges to a secrets manager, a
+    relational store and a payment vendor. Half the graph was false, and aggregating every edge
+    to its tier group before drawing it is what kept that invisible."""
+    out = build(WORKER_BACKLOG, {"house_platforms": ["aws"]})
+    edges = {(e["from"], e["to"]) for e in out["connections"]}
+    drawn = {c["id"] for c in out["components"]}
+    forbidden = [t for t in ("secrets", "relational_store", "object_store", "payments",
+                             "email", "observability", "async_work") if t in drawn]
+    for target in forbidden:
+        assert ("web_client", target) not in edges, \
+            f"the browser is drawn talking straight to {target}"
+    if "web_client" in drawn and "application" in drawn:
+        assert ("web_client", "application") in edges, "the browser reaches nothing at all"
+    for actor in (c["id"] for c in out["components"] if c["mode"] == "actor"):
+        assert (actor, "identity") not in edges, "an actor is pointed at the identity provider"
+    report(f"{len(edges)} edges; the browser reaches the API and none of "
+           f"{len(forbidden)} back-end services directly")
+
+
+@case("a-label-says-what-flows")
+def labels_name_their_cargo(report):
+    """`uses`, `calls` twice, and `admits`. D7 wants a verb and an object, and the label comes
+    from the TARGET capability so two edges cannot share one without sharing a destination."""
+    out = build(WORKER_BACKLOG, {"house_platforms": ["aws"]})
+    labelled = [e for e in out["connections"] if e.get("label")]
+    assert labelled, "nothing carries a label at all"
+    seen = {}
+    for edge in labelled:
+        assert edge["label"].lower() not in {"uses", "calls", "admits", "reads and writes"}, \
+            f"`{edge['label']}` names no cargo"
+        assert 2 <= len(edge["label"].split()) <= 5, edge["label"]
+        assert edge["label"] not in seen, \
+            f"`{edge['label']}` is used for {seen.get(edge['label'])} and {edge['to']}"
+        seen[edge["label"]] = edge["to"]
+    report(f"{len(labelled)} labels, each a verb and an object, none repeated across targets")
+
+
+@case("a-node-says-what-it-is-in-two-lines")
+def name_and_role(report):
+    """A5 and G7. The name wraps inside the cell and the role sits under it; `AWS End User
+    Messaging SMS` took four lines at a ~90px wrap width, because an Icon carried no authored
+    size and the caption was measured against 1.8x the 50px glyph."""
+    layout = load("layout", ARCH / "scripts" / "layout.py")
+    theme = load("theme", ARCH / "scripts" / "theme.py")
+    out = build(WORKER_BACKLOG, {"house_platforms": ["aws"]})
+    size = theme.tokens()["type"]
+    long_names = ["AWS End User Messaging SMS", "Amazon RDS for PostgreSQL",
+                  "Stripe Connect Express + Stripe Billing"]
+    for name in long_names:
+        lines = layout.wrap(name, size["node_name"]["px"])
+        assert len(lines) <= layout.NAME_LINE_CEILING, \
+            f"'{name}' wraps to {len(lines)} lines, past G7's stated exception"
+    assert not layout.name_overflow([{"name": n} for n in long_names])
+    for component in out["components"]:
+        assert component.get("role"), f"{component['id']} has no second label line"
+        assert " on " not in component["name"], \
+            f"'{component['name']}' folds its runtime back into the label"
+    report(f"{len(out['components'])} nodes carry a name and a role; the longest name wraps to "
+           f"{max(len(layout.wrap(n, size['node_name']['px'])) for n in long_names)} lines")
+
+
 @case("no-connector-runs-over-a-component")
 def connectors_stay_clear(report):
-    """The router avoids obstacles but falls back to a STRAIGHT LINE when no corridor exists.
-    The first real diagram had nineteen segments crossing components and nobody could have
-    counted them from the PNG. This renders and measures rather than looking."""
+    """D2 is absolute: an edge may overlap its own endpoints and their containers and nothing
+    else. The first real diagram had nineteen such segments and nobody could have counted them
+    from the PNG; the second had two, was measured, was reported, and shipped anyway because a
+    group crossing was only a note. This renders and measures rather than looking."""
     layout = load("layout", ARCH / "scripts" / "layout.py")
-    routing = load("routing_check", ARCH / "scripts" / "routing-check.py")
+    routing = load("diagram_check", ARCH / "scripts" / "diagram-check.py")
     renderer = load("check_renderer", ARCH / "scripts" / "check-renderer.py")
     rd = load("render_diagram", ARCH / "scripts" / "render-diagram.py")
 
@@ -503,9 +573,12 @@ def connectors_stay_clear(report):
                                       ARCH / "assets" / "icon-cache", 1, "png", measured)
         assert api and api.get("ok"), f"the render failed: {api}"
         assert geometry, "the renderer returned no measured geometry"
-        verdict = routing.check(geometry)
-    assert verdict["ok"], "; ".join(
-        f"{f['connection']} over {f['what'] or f['over']}" for f in verdict["findings"])
+        verdict = routing.check(geometry, authored=doc)
+    over = [f for f in verdict["findings"] if f.get("check") == "H1"]
+    assert not over, "; ".join(f"{f['connection']} over {f['what'] or f['over']}" for f in over)
+    replaced = (verdict.get("routes") or {}).get("replaced") or []
+    assert not replaced, ("the renderer threw our route away and re-routed it: "
+                          + "; ".join(replaced[:4]))
     report(verdict["checked"])
 
 

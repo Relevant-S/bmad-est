@@ -49,12 +49,25 @@ async function normalize(request) {
 }
 
 async function render(request) {
-  const { createRenderer, createEraserIconLoader } = await library(request.rendererDir)
+  const { createRenderer, createEraserIconLoader, stockLibrary } = await library(request.rendererDir)
 
   const options = {
     chromiumPath: request.chromiumPath,
     onUnknownIcon: request.unknownIcon ?? 'error',
     deviceScaleFactor: request.scale ?? 2,
+  }
+
+  // The design system, sections E-G. Most of it is authored per entity — fill, border, radius,
+  // title chip, font size, label colour are all real props — but weight, letter-spacing, case,
+  // the shadow and the icon caption are hardcoded in the stock templates with no prop behind
+  // them. `library.baseCss` is the renderer's own theming channel: it is injected unscoped and
+  // unlinted, so bare selectors reach inside every template. Appending rather than replacing
+  // means an upgrade keeps its own base and only our overrides ride on top.
+  if (request.theme?.baseCss) {
+    options.library = { ...stockLibrary, baseCss: stockLibrary.baseCss + '\n' + request.theme.baseCss }
+  }
+  if (request.theme?.fonts) {
+    options.fonts = request.theme.fonts
   }
   if (request.cacheDir) {
     await mkdir(request.cacheDir, { recursive: true })
@@ -87,6 +100,8 @@ async function render(request) {
       warnings: result.warnings,
       degradedFonts: renderer.degradedFonts,
       scene: result.json?.scene ?? null,
+      fonts: options.fonts ? Object.values(options.fonts.roles ?? {}) : null,
+      themed: Boolean(options.library),
       timingsMs: result.timingsMs,
     }
   } finally {

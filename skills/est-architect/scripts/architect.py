@@ -666,10 +666,13 @@ def build_components(decisions, binding, platforms, cap_map, model, inventory, i
     software = stack_software(stack)
 
     out = []
-    for actor in (inputs.get("actors") or [{"name": "Users", "why": "every story is delivered "
+    # Not "Users": the actors' own boundary is labelled `Users` by the tier catalogue, and A4
+    # wants every name on the canvas to be unique. A default that collides with a container of
+    # ours is our defect, not the operator's.
+    for actor in (inputs.get("actors") or [{"name": "End users", "why": "every story is delivered "
                                                                    "to somebody"}]):
         out.append({"id": f"actor-{len(out)}", "capability": "_actor",
-                    "name": actor["name"], "tier": "actors", "mode": "actor",
+                    "name": actor["name"], "tier": "actors", "mode": "actor", "role": "User",
                     "icon": actor.get("icon", "user"), "interface": "internal",
                     "serves": {"stories": all_stories, "standing_work": [],
                                "assumptions": [actor.get("why", "")] if actor.get("why") else []}})
@@ -710,6 +713,10 @@ def build_components(decisions, binding, platforms, cap_map, model, inventory, i
             continue
         component = {
             "id": cap, "capability": cap, "name": name, "product": product,
+            # The diagram's second label line: the product on top, what it IS underneath. The
+            # catalogue's own `name` is the fallback, so a capability added by research still
+            # gets one rather than a blank line.
+            "role": spec.get("role") or spec["name"],
             "platform": pid, "tier": spec["tier"], "mode": d["mode"],
             "icon": served.get("icon") or spec.get("icon") or "box",
             "interface": served.get("interface") or ("internal" if d["mode"] == "build"
@@ -760,33 +767,82 @@ def apply_component_overrides(components, overrides):
     return components, unknown
 
 
-def build_connections(components):
-    """The graph, derived from tiers rather than authored.
+def build_connections(components, catalogue=None):
+    """The graph the architecture actually has, read off the capability catalogue.
 
-    Left to right through the tiers the model declares, so the same architecture draws the same
-    way every run. A reader follows a request from an actor to the data it reaches.
+    The previous version derived edges from TIERS: every component in the application tier was
+    joined to every component in services, data and external. `web_client` lives in that tier, so
+    a browser was given authored edges to a secrets manager, a relational store and a payment
+    vendor — half the graph was false, and no layout engine can draw a false graph well. It was
+    invisible because the diagram aggregated every edge to its tier group before drawing.
+
+    So each capability names what it talks to. `reaches` draws an edge to every listed capability
+    the architecture contains; `reaches_first` draws one edge, to the first that is present, which
+    keeps the request path a path when an optional hop like a CDN is not in the set. The label
+    comes from the TARGET's `edge_label` — what arrives here — so a label says what flows, and two
+    edges cannot share one without sharing a target.
+
+    A capability added by research carries none of those fields. It is reached from the application
+    rather than left floating, and labelled from its own name: the honest default, and the report
+    says a default was used.
     """
-    by_tier = {}
+    catalogue = catalogue or {}
+    by_cap = {}
     for c in components:
-        by_tier.setdefault(c["tier"], []).append(c)
-    edges = []
+        if c["capability"] != "_actor":
+            by_cap.setdefault(c["capability"], []).append(c)
+    spec = lambda cap: catalogue.get(cap) or {}
 
-    # An actor's first contact is the edge — the CDN, the TLS terminator, the identity provider —
-    # and the edge's own connection to the application is drawn already. Pointing actors straight
-    # at the application both overstated it and made the one edge that reaches furthest across
-    # the diagram jump the tier that sits in its way.
-    front = by_tier.get("edge") or by_tier.get("application") or []
-    for actor in by_tier.get("actors", []):
-        for target in front[:1]:
-            edges.append({"from": actor["id"], "to": target["id"], "label": "uses"})
-    for edge in by_tier.get("edge", []):
-        for app in by_tier.get("application", []):
-            edges.append({"from": edge["id"], "to": app["id"], "label": "admits"})
-    for app in by_tier.get("application", []):
-        for tier, label in (("services", "uses"), ("data", "reads and writes"),
-                            ("external", "calls")):
-            for target in by_tier.get(tier, []):
-                edges.append({"from": app["id"], "to": target["id"], "label": label})
+    def label_for(cap, target):
+        # A capability the catalogue knows says what arrives at it. One added by research does
+        # not, so the edge is named after the thing itself — still a verb and an object, still
+        # unique, and visibly a default rather than a phrase somebody chose.
+        return spec(cap).get("edge_label") or f"Calls {target['name']}"
+
+    edges, defaulted = [], []
+
+    def join(source, cap):
+        for target in by_cap.get(cap, []):
+            if target["id"] != source["id"]:
+                edges.append({"from": source["id"], "to": target["id"],
+                              "label": label_for(cap, target)})
+
+    for cap, items in by_cap.items():
+        for source in items:
+            for target_cap in spec(cap).get("reaches") or []:
+                join(source, target_cap)
+            for target_cap in spec(cap).get("reaches_first") or []:
+                if target_cap in by_cap:
+                    join(source, target_cap)
+                    break
+
+    # A capability the catalogue does not know reaches nothing and is reached by nothing, so it
+    # would float off the canvas unconnected. The application is what would call it.
+    reached = {e["to"] for e in edges}
+    for cap, items in by_cap.items():
+        if spec(cap).get("reaches") or spec(cap).get("reaches_first"):
+            continue
+        for target in items:
+            if target["id"] in reached or target["capability"] == "application":
+                continue
+            for source in by_cap.get("application", []):
+                edges.append({"from": source["id"], "to": target["id"],
+                              "label": label_for(cap, target)})
+                defaulted.append(target["id"])
+
+    # An actor touches the front of the system, not its identity provider. Which component is the
+    # front depends on what the set contains, so it is a preference list rather than a tier lookup.
+    front = None
+    for cap in ("edge_protection", "cdn", "web_client", "application"):
+        if by_cap.get(cap):
+            front = by_cap[cap][0]
+            break
+    if front is not None:
+        for actor in components:
+            if actor["capability"] == "_actor":
+                edges.append({"from": actor["id"], "to": front["id"],
+                              "label": label_for(front["capability"], front)})
+
     seen, unique = set(), []
     for e in edges:
         key = (e["from"], e["to"])
@@ -794,6 +850,19 @@ def build_connections(components):
             continue
         seen.add(key)
         unique.append(e)
+    # Several arrows converging on one box describe one flow, so they carry one label between
+    # them rather than the same words three times over. This is what keeps D7's "unique in the
+    # diagram" honest: a label may not mean two different things, but one meaning does not need
+    # to be written out once per arrowhead.
+    labelled = set()
+    for e in unique:
+        key = (e["to"], e["label"])
+        if key in labelled:
+            e["label"] = ""
+        else:
+            labelled.add(key)
+        if e["to"] in defaulted:
+            e["defaulted"] = True
     return unique
 
 
@@ -958,7 +1027,7 @@ def build_architecture(inventory, model, platforms, inputs, stacks=None, candida
         "gate": {"pending": None, "order": list(gates.ORDER),
                  "stopped_after": stop_after},
         "components": components,
-        "connections": build_connections(components),
+        "connections": build_connections(components, caps.capabilities(model)),
         "refusals": refusals,
         "handoff": build_handoff(stack, decisions, cap_map),
         # What the options were chosen FROM. A recommendation drawn from a catalogue of one is

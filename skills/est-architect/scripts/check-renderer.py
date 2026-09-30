@@ -36,6 +36,17 @@ ASSETS = HERE.parent / "assets"
 # a required output must not change shape because an upstream minor shipped overnight.
 CLI_PACKAGE = "@eraserlabs/diagrams-cli"
 CLI_VERSION = "0.2.0"
+
+# The layout engine. `@eraserlabs/layout` routes connections and explicitly "treats entity
+# placement as input", so without this nothing decides where a box goes. Pinned for the same
+# reason as the renderer: a required output must not change shape because an upstream minor
+# shipped overnight. Dual-licensed EPL-2.0 OR GPL-3.0-or-later; we take EPL-2.0, install it at
+# setup time into this gitignored directory, and never vendor it — the same posture as the
+# MIT-licensed renderer beside it.
+LAYOUT_PACKAGE = "elkjs"
+LAYOUT_VERSION = "0.12.0"
+LAYOUT_LICENCE = "EPL-2.0"
+
 MIN_NODE = (22, 12)
 
 CHROMIUM_CANDIDATES = (
@@ -89,14 +100,40 @@ def find_chromium(explicit=None):
     return (found, "found on PATH") if found else (None, None)
 
 
+def layout_engine(directory):
+    """Is the pinned layout engine installed? Without it there is no diagram to degrade to."""
+    entry = Path(directory) / "node_modules" / LAYOUT_PACKAGE
+    if not entry.exists():
+        return None
+    try:
+        version = json.loads((entry / "package.json").read_text(encoding="utf-8")).get("version")
+    except (OSError, ValueError):
+        version = None
+    return {"package": LAYOUT_PACKAGE, "version": version, "pinned": LAYOUT_VERSION,
+            "licence": LAYOUT_LICENCE, "path": str(entry)}
+
+
 def install(directory):
-    """Install the pinned CLI into `directory` so the version cannot drift under the module."""
+    """Install the pinned CLI and layout engine so neither version can drift under the module."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
+    existing = directory / "package.json"
+    if existing.exists():
+        # An install from before the layout engine existed has a package.json without it.
+        try:
+            spec = json.loads(existing.read_text(encoding="utf-8"))
+        except ValueError:
+            spec = {}
+        deps = spec.setdefault("dependencies", {})
+        if deps.get(LAYOUT_PACKAGE) != LAYOUT_VERSION or deps.get(CLI_PACKAGE) != CLI_VERSION:
+            deps[CLI_PACKAGE] = CLI_VERSION
+            deps[LAYOUT_PACKAGE] = LAYOUT_VERSION
+            existing.write_text(json.dumps(spec, indent=2) + "\n", encoding="utf-8")
     if not (directory / "package.json").exists():
         (directory / "package.json").write_text(
             json.dumps({"name": "est-architect-renderer", "private": True,
-                        "dependencies": {CLI_PACKAGE: CLI_VERSION}}, indent=2) + "\n",
+                        "dependencies": {CLI_PACKAGE: CLI_VERSION,
+                                         LAYOUT_PACKAGE: LAYOUT_VERSION}}, indent=2) + "\n",
             encoding="utf-8")
     result = subprocess.run(["npm", "install", "--no-audit", "--no-fund"],
                             cwd=directory, capture_output=True, text=True, timeout=600)
@@ -170,6 +207,16 @@ def verify(chromium=None, directory=None, do_install=False, icon_cache=None):
         if not ok:
             report["findings"].append({"kind": "install_failed", "detail": detail})
             return report, 2
+
+    # The diagram is a required output and ELK decides where every box goes, so its absence is
+    # a missing prerequisite rather than a degraded picture.
+    report["layout_engine"] = layout_engine(directory)
+    if not report["layout_engine"]:
+        report["findings"].append({
+            "kind": "layout_engine_missing",
+            "detail": f"{LAYOUT_PACKAGE}@{LAYOUT_VERSION} is not installed, so nothing can decide "
+                      f"where a component goes. Run this with --install."})
+        return report, 2
 
     command, invoked_by = cli_command(directory)
     report["cli"] = {"invocation": " ".join(command) if command else None, "how": invoked_by}

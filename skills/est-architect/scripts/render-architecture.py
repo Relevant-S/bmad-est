@@ -33,7 +33,7 @@ def _load(name, path):
 
 caps = _load("capabilities", HERE / "capabilities.py")
 price = _load("price", HERE / "price.py")
-layout = _load("layout", HERE / "layout.py")
+graph = _load("graph", HERE / "graph.py")
 
 # Every artefact this module produces says this, in these words, because somebody will
 # otherwise add twelve months of run-cost to a project quote.
@@ -111,33 +111,34 @@ def _safe(node_id):
 def mermaid(architecture, model=None, platforms=None):
     """The same graph as text. For diffing and for a terminal, never as a substitute.
 
-    Bands come from `layout.plan`, the same function the PNG is drawn from, so the two views
-    cannot disagree. Deriving them a second time here put every built component in a
-    `third_party` group while the diagram correctly drew it inside the platform hosting it —
-    two pictures of one architecture, which is worse than either on its own.
+    Both views are built from `graph.build`, so the picture and the prose cannot disagree about
+    what is inside what. They used to share `layout.plan`, which tied the text form to a box
+    model full of pixel constants; now they share the SEMANTIC graph, which is the thing they
+    actually have in common.
     """
-    bands, _ = layout.plan(architecture, model or caps.load_model())
-    names = {p: (platforms or {}).get(p, {}).get("name", p) for p in
-             {b["id"] for b in bands}}
+    g = graph.build(architecture, model or caps.load_model(), platforms or {})
+    by_zone, by_group = {}, {}
+    for node in g["nodes"]:
+        (by_group.setdefault(node["groupId"], []) if node["groupId"]
+         else by_zone.setdefault(node["zoneId"], [])).append(node)
+    groups_of = {}
+    for group in g["groups"]:
+        groups_of.setdefault(group["zoneId"], []).append(group)
+
     lines = ["```mermaid", "flowchart LR"]
-    for band in bands:
-        label = band["label"] or names.get(band["id"]) or band["id"]
-        lines.append(f'  subgraph {_safe(band["id"])}["{label}"]')
-        for _, items in [t for row in band["rows"] for t in row["tiers"]]:
-            for component in items:
-                mode = component.get("mode")
-                runtime = (component.get("runs_on") or {}).get("service")
-                text = component["name"].replace('"', "'")
-                # The text view says the containment in words, because a mermaid subgraph per
-                # runtime would put forty of them on the page.
-                if runtime:
-                    text += f" in {runtime}".replace('"', "'")
-                suffix = f"<br/><i>{mode}</i>" if mode and mode != "actor" else ""
-                lines.append(f'    {_safe(component["id"])}["{text}{suffix}"]')
+    for zone in g["zones"]:
+        lines.append(f'  subgraph {_safe(zone["id"])}["{zone["title"]}"]')
+        for node in by_zone.get(zone["id"]) or []:
+            lines.append(f'    {_node_line(node)}')
+        for group in groups_of.get(zone["id"]) or []:
+            lines.append(f'    subgraph {_safe(group["id"])}["{group["title"]}"]')
+            for node in by_group.get(group["id"]) or []:
+                lines.append(f'      {_node_line(node)}')
+            lines.append("    end")
         lines.append("  end")
-    drawn = {_safe(c["id"]) for b in bands
-             for row in b["rows"] for _, items in row["tiers"] for c in items}
-    for edge in architecture.get("connections") or []:
+
+    drawn = {_safe(n["id"]) for n in g["nodes"]}
+    for edge in g["edges"]:
         source, target = _safe(edge["from"]), _safe(edge["to"])
         if source not in drawn or target not in drawn:
             continue
@@ -146,6 +147,16 @@ def mermaid(architecture, model=None, platforms=None):
                      else f'  {source} --> {target}')
     lines.append("```")
     return "\n".join(lines)
+
+
+def _node_line(node):
+    """Name, role, and the runtime in words — a mermaid subgraph per runtime would put forty of
+    them on the page, and the diagram now says it with a badge rather than a box."""
+    text = node["name"].replace('"', "'")
+    if node.get("runtime"):
+        text += f" on {node['runtime']}".replace('"', "'")
+    role = (node.get("role") or "").replace('"', "'")
+    return f'{_safe(node["id"])}["{text}{f"<br/><i>{role}</i>" if role else ""}"]'
 
 
 def cost_section(costs):

@@ -312,6 +312,10 @@
                     "items": {
                       "$ref": "#/definitions/option"
                     }
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "The diagram's second label line: what this component IS, under the product's own name. A5 — never one string carrying both, which is what 'Django on Fargate' was."
                   }
                 }
               }
@@ -454,7 +458,12 @@
             "type": "string"
           },
           "label": {
-            "type": "string"
+            "type": "string",
+            "description": "A verb and an object, 2-5 words, taken from the TARGET capability's `edge_label` so it says what arrives rather than that something happens. Blank when another arrow into the same target already carries it: several arrows converging describe one flow."
+          },
+          "defaulted": {
+            "type": "boolean",
+            "description": "The catalogue does not describe this capability, so the edge was drawn from the application and named after the component itself rather than from a `reaches` declaration. Visible as a default rather than a decision."
           }
         }
       }

@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "_reading_this_file": "The capability catalogue, the sub-score weights and the viability gates est-architect scores against. Seeded into {project-root}/_bmad/memory/est/architecture-model.json on first run and NEVER overwritten after: from then on it is the company's own model and this asset is only ever a seed. Kept out of cost-model.json deliberately — that file is hour coefficients fitted to delivered actuals, and nothing here is fitted or is hours. Every weight below is an ASSERTION with no delivered project behind it, which is why each carries a `why` a human can argue with. Confidence 3/10 on the levels, 6/10 on the shape.",
   "capabilities": {
-    "_what": "The abstract units an architecture is designed in. A capability is bound to a platform in Layer 3 and sourced in Layer 2; it is never a vendor. `signals` are lowercase substrings matched against a story's name, description and task text to build the first-pass capability-to-story map — crude on purpose, and every mapping records that it came from a signal rather than from judgement. `tier` is the diagram column. `settled` names a mode nobody sensibly argues about, with the reason; a settled capability is kept out of the Layer 2 scoring tables entirely.",
+    "_what": "The abstract units an architecture is designed in. A capability is bound to a platform in Layer 3 and sourced in Layer 2; it is never a vendor. `signals` are lowercase substrings matched against a story's name, description and task text to build the first-pass capability-to-story map — crude on purpose, and every mapping records that it came from a signal rather than from judgement. `tier` is the diagram column. `settled` names a mode nobody sensibly argues about, with the reason; a settled capability is kept out of the Layer 2 scoring tables entirely. `role` is the node's second label line on the diagram — the capability, under the product's own name. `reaches` names the capabilities this one talks to and draws an edge to every one the architecture actually contains; `reaches_first` draws a single edge, to the first that is present, which is how the request path stays a path when an optional hop like a CDN is absent. `edge_label` is the verb-and-object phrase for an edge arriving HERE, so a label describes what flows rather than that something flows, and two edges cannot share a label without sharing a target. A capability added by research carries none of these: it is reached from the application tier and labelled from its own name, which is the honest default.",
     "identity": {
       "name": "Identity and access",
       "what": "Who the user is, what they may do, and how a session is held.",
@@ -40,7 +40,9 @@
         "credential"
       ],
       "icon": "lock",
-      "settled": null
+      "settled": null,
+      "role": "Sign-in and roles",
+      "edge_label": "Signs users in"
     },
     "relational_store": {
       "name": "Relational data store",
@@ -64,7 +66,9 @@
         "audit log"
       ],
       "icon": "postgres",
-      "settled": null
+      "settled": null,
+      "role": "System of record",
+      "edge_label": "Reads and writes records"
     },
     "object_store": {
       "name": "Object storage",
@@ -88,7 +92,9 @@
         "backup"
       ],
       "icon": "aws-simple-storage-service",
-      "settled": null
+      "settled": null,
+      "role": "Files and exports",
+      "edge_label": "Stores files"
     },
     "async_work": {
       "name": "Asynchronous work",
@@ -113,7 +119,16 @@
         "sync"
       ],
       "icon": "server",
-      "settled": null
+      "settled": null,
+      "role": "Background jobs",
+      "edge_label": "Queues background jobs",
+      "reaches": [
+        "relational_store",
+        "object_store",
+        "email",
+        "sms_push",
+        "ai_inference"
+      ]
     },
     "cache": {
       "name": "Cache",
@@ -131,7 +146,9 @@
         "throttl"
       ],
       "icon": "redis",
-      "settled": null
+      "settled": null,
+      "role": "Hot data",
+      "edge_label": "Caches hot data"
     },
     "cdn": {
       "name": "Content delivery",
@@ -152,7 +169,13 @@
       "settled": {
         "mode": "buy",
         "why": "Nobody builds a CDN. Every candidate platform includes one and the build option is not a real option."
-      }
+      },
+      "role": "Static delivery",
+      "edge_label": "Serves static assets",
+      "reaches_first": [
+        "web_client",
+        "application"
+      ]
     },
     "edge_protection": {
       "name": "Edge protection",
@@ -175,7 +198,14 @@
       "settled": {
         "mode": "buy",
         "why": "A hand-rolled WAF is a liability, not a saving. Every platform ships one."
-      }
+      },
+      "role": "WAF and DDoS",
+      "edge_label": "Filters inbound traffic",
+      "reaches_first": [
+        "cdn",
+        "web_client",
+        "application"
+      ]
     },
     "secrets": {
       "name": "Secrets and configuration",
@@ -196,7 +226,9 @@
       "settled": {
         "mode": "buy",
         "why": "Every platform has one and building a secret store is how secrets end up in a repository."
-      }
+      },
+      "role": "Credentials",
+      "edge_label": "Fetches credentials"
     },
     "observability": {
       "name": "Observability",
@@ -218,7 +250,9 @@
         "dashboard for ops"
       ],
       "icon": "chart",
-      "settled": null
+      "settled": null,
+      "role": "Metrics and logs",
+      "edge_label": "Ships metrics and logs"
     },
     "error_tracking": {
       "name": "Error tracking",
@@ -239,7 +273,9 @@
       "settled": {
         "mode": "buy",
         "why": "Mature free tiers everywhere; the build option has never been worth it."
-      }
+      },
+      "role": "Crash reports",
+      "edge_label": "Reports errors"
     },
     "email": {
       "name": "Transactional email",
@@ -262,7 +298,9 @@
       "settled": {
         "mode": "buy",
         "why": "Deliverability is the product. Self-hosted SMTP lands in spam folders and that is not a bug anyone can fix in a sprint."
-      }
+      },
+      "role": "Transactional mail",
+      "edge_label": "Sends email"
     },
     "sms_push": {
       "name": "SMS and push notification",
@@ -282,7 +320,9 @@
       "settled": {
         "mode": "buy",
         "why": "Carrier and store relationships cannot be built."
-      }
+      },
+      "role": "Alerts and OTP",
+      "edge_label": "Sends messages"
     },
     "payments": {
       "name": "Payments",
@@ -308,7 +348,9 @@
       "settled": {
         "mode": "buy",
         "why": "Card data handling is a compliance regime, not a feature. Building it is never the recommendation."
-      }
+      },
+      "role": "Billing",
+      "edge_label": "Takes payments"
     },
     "search": {
       "name": "Search",
@@ -328,7 +370,9 @@
         "find a"
       ],
       "icon": "search",
-      "settled": null
+      "settled": null,
+      "role": "Full-text search",
+      "edge_label": "Indexes and queries"
     },
     "analytics_store": {
       "name": "Analytics and reporting store",
@@ -351,7 +395,9 @@
         "time series"
       ],
       "icon": "database",
-      "settled": null
+      "settled": null,
+      "role": "Reporting data",
+      "edge_label": "Writes analytics events"
     },
     "ai_inference": {
       "name": "Model inference",
@@ -376,7 +422,9 @@
         "predict"
       ],
       "icon": "sparkles",
-      "settled": null
+      "settled": null,
+      "role": "Model calls",
+      "edge_label": "Requests inference"
     },
     "application": {
       "name": "Application runtime",
@@ -390,7 +438,25 @@
       "settled": {
         "mode": "build",
         "why": "This is the project. The platform layer decides where it runs; the sourcing layer has nothing to decide."
-      }
+      },
+      "role": "Business logic",
+      "edge_label": "Calls the API",
+      "reaches": [
+        "identity",
+        "relational_store",
+        "object_store",
+        "cache",
+        "search",
+        "analytics_store",
+        "async_work",
+        "secrets",
+        "observability",
+        "error_tracking",
+        "email",
+        "sms_push",
+        "payments",
+        "ai_inference"
+      ]
     },
     "web_client": {
       "name": "Web client",
@@ -405,7 +471,13 @@
       "settled": {
         "mode": "build",
         "why": "This is the project."
-      }
+      },
+      "role": "User interface",
+      "edge_label": "Loads the interface",
+      "reaches": [
+        "application",
+        "identity"
+      ]
     },
     "ci_cd": {
       "name": "Pipeline and environments",
@@ -427,7 +499,12 @@
       "settled": {
         "mode": "buy",
         "why": "Hosted CI is universal and effectively free at this scale. Priced as standing work regardless."
-      }
+      },
+      "role": "Build and deploy",
+      "edge_label": "Deploys releases",
+      "reaches": [
+        "application"
+      ]
     }
   },
   "tiers": {

@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.10"
 # ///
-"""Tests for routing-check.py — does any connector run over something it is not joined to?
+"""Tests for diagram-check.py — does any connector run over something it is not joined to?
 
 The renderer's router avoids obstacles but falls back to a straight line when no corridor
 exists, and the first real diagram had nineteen segments crossing components. Looking at a PNG
@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import fixtures as F  # noqa: E402
 
-routing = F.load("routing_check", F.ARCH / "scripts" / "routing-check.py")
+routing = F.load("diagram_check", F.ARCH / "scripts" / "diagram-check.py")
 
 
 def box(eid, x, y, w, h, tag="Group", container=None, title=None):
@@ -72,11 +72,15 @@ class AnEdgeMayTouchItsOwnEndpointsAndTheirContainers(unittest.TestCase):
         ], "connections": [edge("left", "right", [(140, 90), (400, 90)])]}
 
     def test_crossing_the_band_both_ends_sit_in_is_allowed(self):
-        self.assertTrue(routing.check(self.document())["ok"])
+        # H1 only. These fixtures are two boxes and a line, so the composition checks — a
+        # container with one child, an aspect ratio, a row of one — have nothing to say about
+        # them and would drown the thing under test.
+        report = routing.check(self.document())
+        self.assertEqual([], [f for f in report["findings"] if f.get("check") == "H1"])
 
     def test_an_icon_inside_an_endpoint_is_not_reported(self):
         report = routing.check(self.document())
-        self.assertNotIn("deep", [f["over"] for f in report["findings"]])
+        self.assertNotIn("deep", [f.get("over") for f in report["findings"]])
 
 
 class CrossingAnIconIsWorseThanCrossingAGroup(unittest.TestCase):
@@ -131,6 +135,75 @@ class TheRealDiagramRoutesCleanly(unittest.TestCase):
                                          {"house_platforms": ["aws"]})
         doc = layout.document(design, F.model(), F.caps.load_platforms())
         self.assertEqual([], layout.overlaps(doc))
+
+
+class SeverityIsTheDifferenceBetweenWrongAndImprovable(unittest.TestCase):
+    """A connector over a box is a defect somebody reported and is fixable, so it fails. An
+    aspect ratio of 3.2 on an architecture with seven columns is a fact about the architecture."""
+
+    def document(self):
+        return {"entities": [
+            box("a", 0, 0, 100, 100, tag="Icon"),
+            box("b", 400, 0, 100, 100, tag="Icon"),
+            box("wall", 200, 0, 60, 100, tag="Icon"),
+        ], "connections": [edge("a", "b", [(100, 50), (400, 50)])],
+            "scene": {"x": 0, "y": 0, "width": 1000, "height": 100}}
+
+    def test_a_connector_over_a_box_fails(self):
+        report = routing.check(self.document())
+        self.assertFalse(report["ok"])
+        self.assertEqual("fail", report["checks"]["H1"])
+
+    def test_an_aspect_ratio_is_reported_not_failed(self):
+        doc = self.document()
+        doc["entities"] = [dict(e, icon="server") for e in doc["entities"][:2]]
+        doc["connections"] = []
+        report = routing.check(doc)
+        self.assertEqual("note", report["checks"]["H10"])
+        self.assertTrue(report["ok"], report["findings"])
+
+    def test_an_icon_with_no_artwork_at_all_fails(self):
+        """H8. A node drawing nothing is the placeholder the brief rules out."""
+        doc = self.document()
+        doc["connections"] = []
+        report = routing.check(doc)
+        self.assertEqual("fail", report["checks"]["H8"])
+
+
+class TheCrossingBudgetScalesWithTheGraph(unittest.TestCase):
+    """Zero crossings is a planarity question. Two components reaching the same two others form
+    a K(2,2), which cannot be drawn in two layers without one — so a constant budget of one
+    would mean a required output some real architectures can never produce."""
+
+    def document(self, edges):
+        entities = [box(f"n{i}", i * 200, 0, 60, 60, tag="Icon") for i in range(8)]
+        return {"entities": entities, "connections": edges,
+                "scene": {"x": 0, "y": 0, "width": 1600, "height": 800}}
+
+    def test_one_crossing_in_a_small_graph_is_tolerated(self):
+        edges = [edge("n0", "n1", [(60, 30), (200, 30)])]
+        report = routing.check(self.document(edges))
+        self.assertEqual(1, report["crossing_budget"])
+
+    def test_the_budget_grows_with_the_edge_count(self):
+        edges = [edge("n0", "n1", [(60, i * 10), (200, i * 10)]) for i in range(20)]
+        report = routing.check(self.document(edges))
+        self.assertEqual(2, report["crossing_budget"])
+
+
+class TheRendererMustDrawWhatWasAuthored(unittest.TestCase):
+    """An authored polyline is adopted only when it is strictly orthogonal and clears every
+    obstacle; otherwise the renderer re-routes it and says nothing."""
+
+    def test_a_replaced_route_is_a_finding(self):
+        authored = {"entities": [], "connections": [edge("a", "b", [(0, 0), (100, 0)])]}
+        measured = {"entities": [], "connections": [edge("a", "b", [(0, 0), (0, 80), (100, 80)])]}
+        verdict = routing.adopted(authored, measured)
+        self.assertEqual(["a -> b"], verdict["replaced"])
+
+    def test_an_untouched_route_is_not(self):
+        same = {"entities": [], "connections": [edge("a", "b", [(0, 0), (100, 0)])]}
+        self.assertEqual([], routing.adopted(same, same)["replaced"])
 
 
 if __name__ == "__main__":

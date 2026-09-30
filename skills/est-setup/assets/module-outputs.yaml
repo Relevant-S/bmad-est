@@ -147,7 +147,7 @@ est-architect:
     - path: diagram.measured.json
       role: the same document after the browser laid it out — final boxes and every connector's
             routed points. This is what makes "no arrow runs over a component" a check rather
-            than an impression; routing-check.py reads it, and the first real diagram had
+            than an impression; diagram-check.py reads it, and the first real diagram had
             nineteen crossings nobody could have counted from the PNG.
   optional:
     - path: costs.json
@@ -170,6 +170,16 @@ est-architect:
             that is the normal outcome of the first three invocations, not an error.
     - path: "research/{concern}.json"
       when: a research subagent wrote its findings to disk instead of returning them
+    - path: graph.json
+      when: the render was asked for it with `--graph`. The SEMANTIC graph — zones, groups,
+            nodes, edges — with no geometry, plus its A-check verdict. The picture is an opinion
+            about a graph; this is the graph, and both the PNG and the mermaid form are read
+            from it, so the two cannot disagree about what is inside what.
+    - path: "architect/{step}.json"
+      when: the workflow staged an intermediate — scored stack options, candidate sets, the
+            inputs it was given, a vendor's priced rows — in the workspace rather than passing
+            it between beats in the conversation. Working files, declared so `--strict` can
+            tell them apart from an output nobody meant to write.
     - path: stacks.json
       when: the research pass wrote its stack options to the workspace rather than passing them
             inline. An INPUT the operator can edit and re-run against, which is why it is

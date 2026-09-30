@@ -126,8 +126,8 @@ renderer is absent has only moved the failure to the first artefact a client see
 uv run {skill-root}/../est-architect/scripts/check-renderer.py --install
 ```
 
-It installs the **pinned** `@eraserlabs/diagrams-cli` and then **proves it by rendering a
-fixture and reading the bytes back** — a group, two icons and a routed connection, checked for
+It installs the **pinned** `@eraserlabs/diagrams-cli` and the **pinned `elkjs`** layout engine,
+and then **proves them by rendering a fixture and reading the bytes back** — a group, two icons and a routed connection, checked for
 the PNG magic number and a non-zero size. Checking that three commands exist is a survey; this
 is a proof, and the difference is the whole point of doing it at install time.
 
@@ -138,9 +138,17 @@ Two prerequisites it cannot install for the operator:
 | **Node 22.12 or newer** | Exit 2, named. The renderer requires it and does not bundle it. |
 | **A Chromium-family browser** | Exit 2, named. Chrome, Chromium, Edge or Brave; or set `est_chromium_path` / `CHROMIUM_PATH`. |
 
-The version is pinned rather than floating because the package was six weeks old when this
-module was built and is explicitly closed to outside contribution: a required output must not
-change shape because an upstream minor shipped overnight.
+Both versions are pinned rather than floating. The renderer was six weeks old when this module
+was built and is explicitly closed to outside contribution; `elkjs` decides where every box on
+the diagram goes. A required output must not change shape because an upstream minor shipped
+overnight. `elkjs` is dual-licensed EPL-2.0 OR GPL-3.0-or-later and taken under **EPL-2.0**:
+installed here at setup time, never vendored into the repository, the same posture as the
+MIT-licensed renderer beside it.
+
+The renderer positions nothing on its own — `@eraserlabs/layout` routes connections and its own
+README says it *"treats entity placement as input"* — so a setup without the layout engine is a
+setup with no diagram. `check-renderer.py` reports `layout_engine` and exits 2 when it is
+absent.
 
 Report the outcome plainly — which Chromium it found and how, whether the fixture rendered, and
 how many bytes came back. If it did not pass, say that `/est-architect` will refuse to run and

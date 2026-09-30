@@ -154,9 +154,16 @@ def search_cloud(cfg, service, provider, index):
     if not wanted:
         return []
     head = cfg.get("require_head_token", True)
+    refuse = spec.get("refuse_path") or []
     hits = []
     for path in index.get("paths") or []:
         if not path.startswith(provider + "/"):
+            continue
+        # A CATEGORY icon is a section header in the vendor's own deck — "End User Computing",
+        # "Storage" — and never a service mark. Left eligible, it answered "AWS End User Messaging
+        # SMS" with the virtual-desktop category on the shared words `end` and `user`, which is a
+        # substitute drawn where no official art exists: the one thing the brief rules out.
+        if any(marker in path for marker in refuse):
             continue
         stem = _tokens(Path(path).stem, cfg)
         fit = _match(wanted, stem, head)
@@ -244,11 +251,16 @@ def search_iconify(cfg, service):
         return []
     wanted = _tokens(service, cfg)
     prefer = spec.get("prefer_prefixes") or []
-    avoid = set(spec.get("avoid_prefixes") or [])
+    # An ALLOW list. Iconify indexes 300,000 icons and only a handful of its sets are brand
+    # catalogues; everything else is UI glyphs whose names collide with product words. Denying
+    # the sets that had embarrassed us was whack-a-mole, and every new one was found by somebody
+    # looking at a finished diagram — `mdi:railway` for Railway, `bytesize:end` for `AWS End User
+    # Messaging SMS`. A product has a brand mark or it has none.
+    allow = set(spec.get("allow_prefixes") or [])
     hits = []
     for full in found.get("icons") or []:
         prefix, _, name = full.partition(":")
-        if prefix in avoid:
+        if allow and prefix not in allow:
             continue
         # A set that is not on the preferred list is not necessarily a UI glyph set, but it is
         # not known to be a brand set either, so it sits below every preferred one.

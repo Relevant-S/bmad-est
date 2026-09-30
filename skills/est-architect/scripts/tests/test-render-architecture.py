@@ -107,13 +107,16 @@ class TheCostTableKeepsWhatTheReaderNeeds(unittest.TestCase):
 
 
 class ThePictureAndTheTextDescribeOneArchitecture(unittest.TestCase):
-    def test_the_mermaid_bands_match_the_diagram_bands(self):
+    def test_the_mermaid_containers_match_the_diagram_containers(self):
+        """Both views are built from `graph.build`, so they cannot disagree about what is inside
+        what. They used to share `layout.plan`, which tied the text form to a box model of pixel
+        constants; the semantic graph is the thing they actually have in common."""
         architecture, _, md = rendered()
-        layout = F.load("layout", F.ARCH / "scripts" / "layout.py")
-        bands, _ = layout.plan(architecture, F.model())
-        for band in bands:
-            label = band["label"] or F.caps.load_platforms().get(band["id"], {}).get("name")
-            self.assertIn(f'["{label}"]', md, f"band {label} is missing from the text form")
+        graph = F.load("graph", F.ARCH / "scripts" / "graph.py")
+        g = graph.build(architecture, F.model(), F.caps.load_platforms())
+        for container in g["zones"] + g["groups"]:
+            self.assertIn(f'["{container["title"]}"]', md,
+                          f"{container['title']} is missing from the text form")
 
     def test_a_built_component_is_not_shown_as_third_party(self):
         """Deriving the bands a second time here put every built component in a third-party
@@ -123,11 +126,16 @@ class ThePictureAndTheTextDescribeOneArchitecture(unittest.TestCase):
         third_party = block.split('subgraph _external')[1] if 'subgraph _external' in block else ""
         self.assertNotIn("Relational data store", third_party)
 
-    def test_the_mode_is_on_every_node(self):
+    def test_the_role_is_on_every_node(self):
+        """A5. The second line says what a thing IS. Build/buy/adopt is a sourcing decision with
+        a scored table and a gate of its own; stamping it on the artwork gave every node a second
+        label and cost the picture a corner to a key nobody needed."""
         _, _, md = rendered()
         block = md.split("```mermaid")[1].split("```")[0]
-        self.assertIn("<i>build</i>", block)
-        self.assertIn("<i>buy</i>", block)
+        self.assertIn("<i>Business logic</i>", block)
+        self.assertIn("<i>System of record</i>", block)
+        self.assertNotIn("<i>build</i>", block)
+        self.assertNotIn("<i>buy</i>", block)
 
 
 class WhatRestsOnNothingIsNamed(unittest.TestCase):

@@ -166,11 +166,23 @@ not in any option.
 A **required output**: an unknown icon is an error rather than a placeholder glyph, a connector
 drawn over a component fails the run, and a failed render fails the run.
 
-Read the report rather than the exit code alone. `icons.official` against `icons.glyph` says how
-much of the artwork is the vendors' own; `routing` says how many connectors were checked against
-how many boxes, and names any that crossed something. `routing: null` means **nobody looked** —
-the measured geometry needs the pinned local renderer, so run `/est-setup` rather than shipping
-an unchecked diagram.
+Read the report rather than the exit code alone.
+
+- `routing.checks` is **H1 to H10** against the geometry the browser actually produced, each one
+  `pass`, `note` or `fail`. A `note` is a shape the layout could not improve on this architecture
+  — an aspect ratio, a fourth bend — and is reported rather than hidden. `routing: null` means
+  **nobody looked**: the measured geometry needs the pinned local renderer, so run `/est-setup`
+  rather than shipping an unchecked diagram.
+- `routing.routes.replaced` should be empty. It names connectors whose authored route the renderer
+  threw away and re-drew for itself, which is a layout failure wearing a finished picture.
+- `routing.edge_crossings` against `routing.crossing_budget`. Zero crossings is a planarity
+  question, not a setting: two components reaching the same two others form a K(2,2) and force
+  one. The budget scales with the graph and the number is always stated.
+- `layout.iterations` — up to five ELK strategies, scored on nothing-broken, then shape, then
+  notes. `layout.aspect` is what was chosen.
+- `graph` — sections A1, A2, A4 and A5 on the semantic graph: a wrapper container, a duplicate
+  name, a node with no second label line.
+- `icons.official` against `icons.glyph` says how much of the artwork is the vendors' own.
 
 Icons are **resolved on demand from the vendors' own catalogues** — the official AWS, Azure and
 GCP architecture sets, then SVGL, then Iconify — and cached. Nothing is bundled: there are 2,693
@@ -271,13 +283,22 @@ as though somebody had made it.
   A run wrote six profiles into memory and nothing read them, because the loader defaulted to
   the asset directory — so the scoring ran against a three-platform catalogue while nine were
   on disk.
-- **The diagram's edges join groups, not icons.** An application touching nine components draws
-  nine near-parallel lines across the canvas: a picture of the fan-out rather than of the
-  system. It also took one render from a third of a second to eighty.
+- **The graph has to be true before the picture can be good.** Edges were once derived from
+  tiers, which joined every component in the application tier to every component in services,
+  data and external — so the browser was drawn talking straight to a secrets manager and a
+  payment vendor, and aggregating edges to their groups hid it behind six plausible arrows. The
+  catalogue declares `reaches` now. No layout engine rescues a false graph.
+- **Nothing here computes a coordinate.** `graph.py` says what, ELK says where, `layout.py`
+  adapts. The box model that preceded it grew a constant per defect and produced a 2x3 grid with
+  no reading direction.
 - **No connector runs over a component, and that is measured.** `render.mjs` asks the renderer
-  for the laid-out geometry — final boxes and routed points — and `routing-check.py` tests every
+  for the laid-out geometry — final boxes and routed points — and `diagram-check.py` tests every
   segment against every box that is not an endpoint or its container. The first real diagram had
-  nineteen crossings and nobody could have said so from the PNG.
+  nineteen such crossings; the second had two, was measured, was reported, and shipped anyway
+  because a group crossing was only a note. It fails the run now.
+- **A test never writes into `assets/icon-cache`.** A stubbed resolver that did put a green
+  square in `aws-simple-email-service.svg`, and that square was drawn on a client's diagram.
+  `render()` takes an `icon_cache`; the suite passes a temporary one.
 - **`produced_by` says which copy of this skill ran.** A project installs the module by copy. One
   real run was reviewed for a day against this repository's behaviour before anyone noticed it
   had executed a copy three weeks old. If the revision in `architecture.json` does not match the

@@ -26,7 +26,11 @@
         "/48/",
         "/32/",
         "/16/"
-      ]
+      ],
+      "refuse_path": [
+        "/category/"
+      ],
+      "_refuse_path_why": "A category icon is a section header in the vendor's own icon deck, not a service mark. `AWS End User Messaging SMS` matched `aws/category/64/End-User-Computing.svg` on `end` and `user` and drew a virtual-desktop glyph on a messaging box. When no official art exists the honest answer is the capability glyph, not the nearest picture."
     },
     {
       "id": "svgl",
@@ -52,23 +56,6 @@
         "simple-icons"
       ],
       "prefer_prefixes_why": "`logos`, `thesvg-color` and `devicon` are full-colour brand marks. `simple-icons` is authentic artwork but paints with `fill=\"currentColor\"`, so it renders FLAT MONOCHROME — it sits last, below every colour set, and is reached only when nothing coloured matches. Everything else is a UI glyph set whose `railway` is a train.",
-      "avoid_prefixes": [
-        "mdi",
-        "ri",
-        "pixel",
-        "pixelarticons",
-        "lineicons",
-        "file-icons",
-        "material-icon-theme",
-        "icon-park-outline",
-        "mingcute",
-        "hugeicons",
-        "tabler",
-        "carbon",
-        "ph",
-        "solar",
-        "iconoir"
-      ],
       "licence": "Varies by set; recorded per resolution.",
       "prefer_suffix": "-icon",
       "prefer_suffix_why": "Brand sets carry both a lockup and a square mark: `logos:supabase` has a viewBox of 512x99 — 5.17:1 — while `logos:supabase-icon` is 0.97:1. Dropped into a 50px icon slot the lockup renders as an illegible sliver, which is what the first diagrams using real brand art looked like.",
@@ -77,7 +64,18 @@
       ],
       "skip_suffix": [
         "-dark"
-      ]
+      ],
+      "allow_prefixes": [
+        "logos",
+        "thesvg-color",
+        "devicon",
+        "skill-icons",
+        "vscode-icons",
+        "simple-icons",
+        "cib",
+        "fa6-brands"
+      ],
+      "_allow_prefixes_why": "An ALLOW list, not a deny list. Iconify indexes 300,000 icons across 200+ sets and only a handful of them are brand catalogues; the rest are UI glyph sets whose names collide with product words. Denying the ones that had embarrassed us was whack-a-mole — `mdi:railway` for Railway, then `bytesize:end` for `AWS End User Messaging SMS` — and each new one was found by a client looking at a diagram. A product either has a brand mark in a brand catalogue or it has none, and F1 says what happens then: the capability's own outline glyph, never a substitute."
     }
   ],
   "timeout_seconds": 20,
@@ -145,6 +143,7 @@
     "background",
     "cache",
     "client",
+    "cloud",
     "compute",
     "container",
     "containers",
@@ -152,6 +151,7 @@
     "crons",
     "data",
     "email",
+    "end",
     "file",
     "files",
     "frontend",
@@ -162,9 +162,11 @@
     "machine",
     "machines",
     "mail",
+    "managed",
     "object",
     "payment",
     "payments",
+    "platform",
     "queue",
     "runner",
     "search",
@@ -172,16 +174,20 @@
     "secrets",
     "server",
     "serverless",
+    "service",
+    "services",
     "static",
     "storage",
     "store",
     "task",
     "tasks",
+    "user",
+    "users",
     "web",
     "worker",
     "workers"
   ],
-  "_generic_heads_why": "When a full name resolves nothing the lookup is narrowed to its HEAD word, because product names lead: 'Celery worker + beat' narrows to 'Celery'. Narrowing to the TAIL is what once drew an arcade game for 'Fly Machines (static or SSR)'. These heads are common nouns rather than products, so a name that narrows to one of them narrows to nothing instead.",
+  "_generic_heads_why": "Narrowing a name that matched nothing to its head word is safe only when that word names a product. `Celery worker + beat` narrows to `Celery`; `AWS End User Messaging SMS` must not narrow to `end`.",
   "wordmark_aspect": 3.3,
   "_wordmark_aspect_why": "Some brands publish no square mark at all — Stripe's only official art is a 2.39:1 lockup. A coloured lockup up to this ratio is still the official branded icon and beats a monochrome square; past it (`logos:supabase` is 5.17:1) it is an illegible sliver and the square monochrome mark wins. The ladder is: coloured and square, coloured lockup, monochrome and square, then whatever measured.",
   "_colour_why": "Whether an icon has colour of its own is MEASURED from the paint values in the SVG, not guessed from its set: `simple-icons:celery` and `thesvg-color:celery` are the same artwork, and only one of them is green. Greyscale paints do not count as colour — a brand mark hardcoded to #000 renders as the same flat line-art as `currentColor`.",
