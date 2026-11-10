@@ -264,7 +264,7 @@ def story_block(f, inv, links, page, by_feature, src_by_id, names):
     rows = f.get("tasks") or []
     shown = {}
     if rows:
-        out += ["", f"**Source rows ({len(rows)}):**", ""]
+        out += ["", f"**Source claims ({len(rows)}):**", ""]
         for task in rows:
             out += [f"<a id=\"{task.get('id')}\"></a>",
                     f"#### {task.get('id')} — {task.get('name')}", ""]
@@ -306,13 +306,15 @@ def render_index(inv, pages, links):
                f"granularity: {inv.get('granularity', 'unspecified')}")
 
     tasks = sum(len(f.get("tasks") or []) for f in features)
-    # Story count, epic count and source-row count on one line, because the ratio between them
-    # is the fastest way to see whether the workbook was grouped or transliterated.
+    # Story count, epic count and source-claim count on one line, because the ratio between them
+    # is the fastest way to see whether the source was grouped or transliterated.
     counts = [f"**{len(features)} stories**"]
     if epics:
         counts.append(f"{len(epics)} epics")
-    if tasks:
-        counts.append(f"{tasks} source rows")
+    # Printed at zero too. `if tasks:` used to drop the term entirely, so an inventory with no
+    # claims under any story read as an inventory that simply had nothing to say about them —
+    # which is how 33 stories, an empty Tasks tab and two header-only CSVs got read as finished.
+    counts.append(f"{tasks} source claims" if features else "no stories")
     if implicit:
         counts.append(f"{len(implicit)} implicit")
     counts += [f"{len(inv.get('not_scope', []))} passages excluded from scope",
@@ -758,7 +760,15 @@ def main():
         notes.append("no --normalized: citations rendered as plain text, without links into "
                      "the converted sources.")
 
-    result = {"ok": True, "written": written, "features": len(inv.get("features", []))}
+    features = inv.get("features", [])
+    tasks = sum(len(f.get("tasks") or []) for f in features)
+    if features and not tasks:
+        notes.append(
+            "no story carries tasks, so the Tasks view is a header row and nothing else. From "
+            "schema 1.2 inventory-check.py refuses that; below 1.2 this note is the only thing "
+            "that says so."
+        )
+    result = {"ok": True, "written": written, "features": len(features), "tasks": tasks}
     if notes:
         result["notes"] = notes
     print(json.dumps(result, indent=2))

@@ -167,9 +167,37 @@ class TestRender(unittest.TestCase):
         self.assertTrue((self.dir / "feature-inventory.csv").exists())
         self.assertTrue((self.dir / "feature-inventory.tasks.csv").exists())
 
+    def test_a_header_only_tasks_view_is_reported_rather_than_written_in_silence(self):
+        """The assertion whose absence let a run ship two deliverables containing a header row
+        and nothing else. `inventory()` carries no tasks, exactly like the run that shipped:
+        the file is still written, because a task id a story names has to resolve to a file —
+        but the run now says what is in it."""
+        path = self.write(inventory())
+        sys.argv = ["render-inventory.py", str(path), "--formats", "md,csv"]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(render.main(), 0)
+        result = json.loads(out.getvalue())
+        self.assertEqual(result["tasks"], 0)
+        self.assertTrue(any("header row and nothing else" in n for n in result["notes"]), result)
+        body = (self.dir / "feature-inventory.tasks.csv").read_text(encoding="utf-8-sig")
+        self.assertEqual(len(body.strip().splitlines()), 1, "still header-only, but now declared")
+
+    def test_a_populated_tasks_view_draws_no_note(self):
+        f = feature("F1", "Login",
+                    tasks=[task("T1", "Sign in", "§2.1", "Users must be able to log in.")])
+        path = self.write(inventory(features=[f]))
+        sys.argv = ["render-inventory.py", str(path), "--formats", "md,csv"]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(render.main(), 0)
+        result = json.loads(out.getvalue())
+        self.assertEqual(result["tasks"], 1)
+        self.assertFalse(any("header row" in n for n in result.get("notes") or []), result)
+
 
 class Grouping(unittest.TestCase):
-    """The counts a reader checks first: stories against epics against source rows."""
+    """The counts a reader checks first: stories against epics against source claims."""
 
     def grouped(self):
         f = feature("F1", "Lead list: search, filter and sort", epic_id="E1",
@@ -183,7 +211,7 @@ class Grouping(unittest.TestCase):
         md = render.render_markdown(self.grouped())
         self.assertIn("**1 stories**", md)
         self.assertIn("1 epics", md)
-        self.assertIn("2 source rows", md)
+        self.assertIn("2 source claims", md)
 
     def test_every_source_row_is_still_named_under_its_story(self):
         """A reviewer checks the inventory against the client's own document line by line,
@@ -527,7 +555,11 @@ class Tasks(unittest.TestCase):
         self.assertEqual((row["sheet"], row["row"]), ("Operators - Feature list", "9"))
         self.assertEqual(row["source_id"], "S1")
 
-    def test_a_story_with_no_tasks_produces_no_task_rows(self):
+    def test_a_pre_1_2_story_with_no_tasks_still_renders(self):
+        """The renderer stays total. Every inventory written before schema 1.2 has stories
+        with no tasks, and they must keep rendering — the refusal belongs in
+        inventory-check.py, where it can be version-gated, not here where it would make
+        history unreadable. What was missing is the *reporting*, below."""
         self.inv["features"][0].pop("tasks")
         self.assertEqual(self.rows(), [])
 

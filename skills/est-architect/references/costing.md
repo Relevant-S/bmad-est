@@ -95,7 +95,15 @@ row in a real run read `not_found` although all six quotes were on the US page. 
 depends on where the machine is sitting is not a verdict.
 
 Script tags are excluded from the search: a price that appears only inside one has not been
-published on the page a reader would open.
+published on the page a reader would open. That includes a price behind a JavaScript toggle: Sentry
+serves `$26/mo When billed annually` and shows the monthly figure only after a click, so the
+checkable quote is the annual one and the row says so.
+
+**A page is read whole or not at all.** The fetch used to stop at 3 MB. AWS's machine-readable
+RDS price list for one region is 22 MB, its PostgreSQL rows sit past the cut, and three quotes
+that were verbatim on the page came back `not_found` — the verdict that means fabricated or moved.
+It now reads up to 64 MB, and a page larger than that is `unreachable` with the reason, never
+`not_found`.
 
 ## The boundary
 

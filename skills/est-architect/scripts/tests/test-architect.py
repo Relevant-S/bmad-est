@@ -593,6 +593,47 @@ class AnOverrideThatNamesNothingIsRecorded(unittest.TestCase):
         self.assertEqual(["nonesuch"], unknown)
 
 
+class ADrawnEdgeIsADecisionAboutTheDesign(unittest.TestCase):
+    """passenger-seat, 2026-11-10. Every actor was drawn into the WAF, so learners on a mobile app
+    entered through the staff console's door; and `reaches` is company-wide, so an API that sends
+    nothing itself was still drawn sending email."""
+
+    def build(self, **inputs):
+        return arch.build_architecture(F.clinical(), F.model(), F.caps.load_platforms(),
+                                       {"house_platforms": ["aws"], **inputs})
+
+    def test_an_actor_that_names_what_it_uses_is_joined_to_that(self):
+        out = self.build(actors=[{"name": "Staff", "why": "admin", "reaches": ["web_client"]}])
+        edges = {(e["from"], e["to"]) for e in out["connections"] if e["from"].startswith("actor")}
+        self.assertEqual({("actor-0", "web_client")}, edges)
+
+    def test_an_actor_naming_nothing_drawn_falls_back_to_the_front_door(self):
+        out = self.build(actors=[{"name": "Staff", "why": "admin", "reaches": ["no_such_thing"]}])
+        edges = [e for e in out["connections"] if e["from"] == "actor-0"]
+        self.assertEqual(1, len(edges))
+
+    def test_a_removed_connection_is_gone_and_says_why(self):
+        base = {(e["from"], e["to"]) for e in self.build()["connections"]}
+        self.assertIn(("application", "email"), base)
+        out = self.build(connection_overrides={"remove": [
+            {"from": "application", "to": "email", "why": "sent by the workers"}]})
+        edges = {(e["from"], e["to"]) for e in out["connections"]}
+        self.assertNotIn(("application", "email"), edges)
+        self.assertIn({"what": "application -> email", "kind": "connection",
+                       "why": "sent by the workers"}, out["refusals"])
+        self.assertEqual("sent by the workers",
+                         out["inputs"]["connection_overrides"]["remove"][0]["why"])
+
+    def test_removing_an_edge_that_is_not_drawn_is_recorded(self):
+        out = self.build(connection_overrides={"remove": [
+            {"from": "application", "to": "no_such_thing", "why": "typo"}]})
+        self.assertTrue(any(r["kind"] == "connection_override" for r in out["refusals"]))
+
+    def test_a_removal_without_a_reason_is_refused(self):
+        with self.assertRaises(SystemExit):
+            self.build(connection_overrides={"remove": [{"from": "application", "to": "email"}]})
+
+
 class TheRunSaysWhichCopyOfTheSkillWroteIt(unittest.TestCase):
     """A project installs the module by copy, and one real run was reviewed for a day against
     this repository's behaviour before anyone noticed it had executed a copy three weeks old."""

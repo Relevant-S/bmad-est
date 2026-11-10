@@ -34,8 +34,12 @@ est-scope-extract:
     - path: feature-inventory.csv
       when: csv is in est_output_formats
     - path: feature-inventory.tasks.csv
-      when: csv is in est_output_formats. One row per source row, so a task id a story names
-            resolves to a row rather than to nothing.
+      when: csv is in est_output_formats. One row per source claim, so a task id a story names
+            resolves to a row rather than to nothing. This check is presence-only and cannot
+            tell a populated file from a header row; a run once shipped this file and the Tasks
+            tab of the workbook containing neither. What catches that is inventory-check.py,
+            which from schema 1.2 refuses a story carrying no claims, and render-inventory.py,
+            which reports the count either way.
     - path: feature-inventory.xlsx
       when: xlsx is in est_output_formats and openpyxl is importable
     - path: "normalized/S{n}-{stem}.md"
@@ -43,7 +47,9 @@ est-scope-extract:
     - path: beats.json
       when: plan-beats.py cut the sources into units of parallel extraction
     - path: "extract/{beat_id}.json"
-      when: an extraction subagent wrote its beat to disk instead of returning it
+      when: an extraction subagent wrote its beat to disk instead of returning it. One per beat
+            that found something; beats over a converter comment or a bare heading produce none,
+            so the count sits at or below the beats planned.
     - path: "review/{source_id}.json"
       when: a review subagent wrote its findings to disk instead of returning them
     - path: check.json
@@ -170,6 +176,12 @@ est-architect:
             that is the normal outcome of the first three invocations, not an error.
     - path: "research/{concern}.json"
       when: a research subagent wrote its findings to disk instead of returning them
+    - path: "research/{concern}.md"
+      when: the orchestrator recorded a research pass's findings as notes — one fact per line,
+            each with its source URL and date, snippet-only and secondary sources marked. The
+            skill's "record what you checked, not only what you found" lands here so the
+            denominator survives the conversation (added 2026-11-10 on passenger-seat, whose
+            four research notes were otherwise reported as stray files).
     - path: graph.json
       when: the render was asked for it with `--graph`. The SEMANTIC graph — zones, groups,
             nodes, edges — with no geometry, plus its A-check verdict. The picture is an opinion

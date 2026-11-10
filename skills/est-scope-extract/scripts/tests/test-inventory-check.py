@@ -529,16 +529,35 @@ class QuoteCompleteness(unittest.TestCase):
         self.assertEqual(findings, [])
         self.assertTrue(any("ends cleanly but leaves" in w for w in warnings))
 
-    def test_an_unresolvable_location_is_not_second_guessed(self):
-        """Same rule resolve_location already follows: a reference with no anchor produces
-        noise rather than a finding."""
+    def test_a_self_quote_is_caught_even_where_the_location_resolves_to_no_row(self):
+        """The rule used to have teeth only for spreadsheets.
+
+        `resolve_location` deliberately does not second-guess a reference with no anchor, and
+        this check inherited that: a task whose location was "§3.1" fell to a warning however
+        much of the source it skipped. Schema 1.2 requires tasks for transcripts and briefs,
+        where NO location resolves to a row — so the 912-self-citation defect would have been
+        unenforceable in exactly the place the requirement is new. The location is still not
+        second-guessed; the passage is found by its content instead.
+        """
         inv = self.inv("Enforce domain access", "Enforce domain access")
+        for cit in (inv["features"][0]["citations"][0],
+                    inv["features"][0]["tasks"][0]["citations"][0]):
+            cit["location"] = "§3.1"
+        findings, _ = self.run_check(inv)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("the quote is the task's own name", findings[0])
+
+    def test_a_self_quote_the_source_says_no_more_than_stays_a_warning(self):
+        """The prose counterpart of the short-catalogue-row case. Where the passage really is
+        the title and nothing else, there is nothing being skipped, and reporting it as an
+        error would train people to ignore the check."""
+        inv = self.inv(self.SHORT, self.SHORT, row=12, story_quote=self.SHORT)
         for cit in (inv["features"][0]["citations"][0],
                     inv["features"][0]["tasks"][0]["citations"][0]):
             cit["location"] = "§3.1"
         findings, warnings = self.run_check(inv)
         self.assertEqual(findings, [])
-        self.assertTrue(any("does not resolve to a row" in w for w in warnings))
+        self.assertTrue(any("says no more than the title" in w for w in warnings), warnings)
 
 
 class TaskCitationsAreChecked(unittest.TestCase):
@@ -679,6 +698,94 @@ class MandatoryGroupingAtOnePointOne(unittest.TestCase):
         ledger entry in history becomes a finding."""
         inv = inventory(schema_version="1.0", features=[feature("F1", "Login")])
         self.assertEqual([f for f in check.check_grouping(inv) if "epic" in f], [])
+
+
+class MandatoryTasksAtOnePointTwo(unittest.TestCase):
+    """From schema 1.2 a story carries the source claims it was assembled from.
+
+    The run this is for produced 9 epics, 33 stories, 306 verified citations and ZERO tasks,
+    and every check passed — because every task rule in this file was a loop over tasks that
+    existed. Two deliverables shipped as a header row and nothing else, and nothing said so.
+    """
+
+    QUOTE = "Users must be able to log in with an email and password."
+
+    def story(self, tasks=None, **over):
+        f = feature("F1", "Login", epic_id="E1", surfaces=["backend"])
+        if tasks is not None:
+            f["tasks"] = tasks
+        f.update(over)
+        return f
+
+    def contained(self):
+        """A story whose evidence is distributed over its claims, which is the shape asked for."""
+        return [{"id": "F1-T1", "name": "Sign in with email and password",
+                 "citations": [{"source_id": "S1", "location": "§2.1", "quote": self.QUOTE}]}]
+
+    def inv(self, features, version="1.2"):
+        return inventory(schema_version=version, features=features,
+                         epics=[{"id": "E1", "name": "Access", "origin": "source"}])
+
+    def test_a_story_with_no_tasks_is_refused(self):
+        findings = check.check_grouping(self.inv([self.story()]))
+        self.assertTrue(any("no tasks" in f for f in findings), findings)
+
+    def test_the_same_story_is_accepted_at_one_point_one(self):
+        """The obligation is new, and every inventory on disk predates it. A validate run over
+        a stored 1.1 inventory must stay silent rather than turning history into findings."""
+        findings = check.check_grouping(self.inv([self.story()], version="1.1"))
+        self.assertEqual([f for f in findings if "task" in f], [])
+
+    def test_a_story_whose_claims_carry_its_evidence_passes(self):
+        self.assertEqual(check.check_grouping(self.inv([self.story(tasks=self.contained())])), [])
+
+    def test_a_citation_no_task_carries_is_refused(self):
+        """Containment. The story's evidence has to sit in its parts, not pooled above them —
+        otherwise a reader opening an epic sees claims that account for none of why it is here.
+        """
+        f = self.story(tasks=self.contained())
+        f["citations"] = f["citations"] + [
+            {"source_id": "S1", "location": "§2.2", "quote": "Sessions expire after 30 minutes."}]
+        findings = check.check_grouping(self.inv([f]))
+        self.assertTrue(any("carried by no task" in f for f in findings), findings)
+        self.assertTrue(any("§2.2" in f for f in findings), findings)
+
+    def test_a_task_quoting_the_same_passage_at_greater_length_still_carries_it(self):
+        """The story and its claim routinely quote one passage to different lengths. Requiring
+        the two to match exactly would refuse a correct extraction, so the test is containment
+        — the same rule render-inventory.py uses to decide the story's citation is redundant."""
+        f = self.story(tasks=self.contained())
+        f["citations"] = [{"source_id": "S1", "location": "§2.1", "quote": "log in with an email"}]
+        self.assertEqual(check.check_grouping(self.inv([f])), [])
+
+    def test_evidence_from_a_document_the_claims_do_not_quote_is_left_alone(self):
+        """A story cites a PRD paragraph standing behind rows it took from a backlog. That
+        passage is a story-level fact, not a claim anybody dropped. Measured on a sound
+        extraction: the unscoped rule flagged 14 of 89 stories, every one of them this shape.
+        """
+        f = self.story(tasks=self.contained())
+        f["citations"] = f["citations"] + [
+            {"source_id": "S2", "location": "page 3", "quote": "The portal is multi-tenant."}]
+        inv = self.inv([f])
+        inv["sources"].append({"id": "S2", "path": "docs/prd.pdf", "doc_type": "prd",
+                               "language": "en", "converter": "pdftotext"})
+        self.assertEqual(check.check_grouping(inv), [])
+
+    def test_implicit_scope_is_exempt(self):
+        """It has no citations property at all — it carries a rationale instead, because the
+        work is implied and never stated. There is no passage to put under a task, and
+        requiring one would invite the invention the field exists to keep out."""
+        inv = self.inv([self.story(tasks=self.contained())])
+        inv["implicit_scope"] = [{"id": "I1", "name": "Backfill", "description": "d",
+                                  "rationale": "ten years of bookings implies a migration"}]
+        self.assertEqual(check.check_grouping(inv), [])
+
+    def test_the_task_count_is_reported_even_where_it_is_not_yet_a_finding(self):
+        """What would have caught this. At 1.1 a missing task layer draws no finding, so the
+        only thing that can surface it is the count — and the count was never printed."""
+        cov = check.coverage(self.inv([self.story()], version="1.1"), classified=False)
+        self.assertEqual(cov["tasks"], 0)
+        self.assertEqual(cov["stories_without_tasks"], ["F1"])
 
     def test_at_one_point_one_a_story_with_no_epic_is_refused_even_with_no_epics_declared(self):
         inv = inventory(schema_version="1.1", features=[feature("F1", "Login")])

@@ -73,7 +73,11 @@ LOCALES = {
 }
 
 
-def fetch(url, timeout=25, locale=None):
+# AWS publishes its price list as per-service, per-region JSON, and price.py prefers it over a
+# marketing page. Those files run to tens of megabytes (RDS eu-west-2: 22 MB).
+MAX_PAGE_BYTES = 64_000_000
+
+def fetch(url, timeout=60, locale=None):
     spec = LOCALES.get((locale or "").lower()) or {}
     try:
         headers = {"User-Agent": UA}
@@ -82,7 +86,15 @@ def fetch(url, timeout=25, locale=None):
             headers["Cookie"] = spec["cookie"]
         request = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read(3_000_000)
+            raw = response.read(MAX_PAGE_BYTES + 1)
+        # A page longer than the cap was NOT read, so nothing can be said about a quote on it.
+        # This used to read 3 MB and stop: AWS's machine-readable RDS price list for one region
+        # is 22 MB, its PostgreSQL rows sit past the cut, and three quotes that were verbatim on
+        # the page came back `not_found` — the verdict that means "fabricated or moved", on text
+        # the checker never looked at (passenger-seat, 2026-11-10).
+        if len(raw) > MAX_PAGE_BYTES:
+            return None, (f"page larger than {MAX_PAGE_BYTES // 1_000_000} MB; not read in full, "
+                          f"so the quote was not checked")
         return normalise(raw.decode("utf-8", "replace")), None
     except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError) as exc:
         return None, f"{type(exc).__name__}: {exc}"

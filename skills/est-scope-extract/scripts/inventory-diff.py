@@ -82,6 +82,25 @@ def compare(old, new):
     return changes
 
 
+def _renumber_tasks(feature, was):
+    """Carry a story's task ids across a renumber, so the Stories/Tasks join still resolves.
+
+    Task ids are conventionally the story's id with a suffix — `F3-T9`. `build_merge` keeps the
+    OLD feature id on a matched story precisely so everything keyed to it still resolves, and
+    without this the story becomes `F7` while its tasks stay `F3-T9`: the two-way link between
+    `feature-inventory.csv` and `feature-inventory.tasks.csv` breaks, and a reader following a
+    task id lands on a story that does not claim it. Ids that do not carry the old prefix are
+    left exactly as they are — they belong to whoever wrote them.
+    """
+    now = feature["id"]
+    if now == was:
+        return
+    for task in feature.get("tasks") or []:
+        tid = str(task.get("id") or "")
+        if tid.startswith(f"{was}-"):
+            task["id"] = f"{now}-{tid[len(was) + 1:]}"
+
+
 def build_merge(old_inv, new_inv, pairs, added, removed):
     """Produce the merged inventory deterministically, and list what a human must still decide.
 
@@ -105,6 +124,7 @@ def build_merge(old_inv, new_inv, pairs, added, removed):
     for feature, source_feature in zip(merged.get("features", []), new_inv.get("features", [])):
         match = by_identity.get(id(source_feature))
         old = match[0] if match else None
+        was = feature["id"]
         if old:
             remap[feature["id"]] = old["id"]
             feature["id"] = old["id"]
@@ -115,6 +135,7 @@ def build_merge(old_inv, new_inv, pairs, added, removed):
             feature["id"] = f"F{next_id}"
             taken.add(feature["id"])
             next_id += 1
+        _renumber_tasks(feature, was)
 
         if not old:
             continue

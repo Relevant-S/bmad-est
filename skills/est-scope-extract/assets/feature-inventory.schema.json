@@ -17,7 +17,8 @@
       "type": "string",
       "enum": [
         "1.0",
-        "1.1"
+        "1.1",
+        "1.2"
       ]
     },
     "generated": {
@@ -107,7 +108,7 @@
           },
           "description": {
             "type": "string",
-            "description": "What this story commits to, in the working language, standing on its own. A reader who has never seen the source should finish it knowing what gets built and how it behaves. It is your prose, not a quote: where several source rows were grouped into one story, this is what they add up to, and the rows themselves stay in tasks with their text."
+            "description": "What this story commits to, in the working language, standing on its own. A reader who has never seen the source should finish it knowing what gets built and how it behaves. It is your prose, not a quote: where several source claims were grouped into one story, this is what they add up to, and the claims themselves stay in tasks with their text."
           },
           "citations": {
             "type": "array",
@@ -217,7 +218,8 @@
           },
           "tasks": {
             "type": "array",
-            "description": "The source rows this story was assembled from. A spreadsheet line is an acceptance criterion, not an estimable unit; pricing one per row multiplied a backlog into a project. The rows still have to be here, because a reviewer verifies the inventory against the client's own document line by line, and that is only possible if every line still appears.",
+            "minItems": 1,
+            "description": "The source claims this story was assembled from \u2014 one discrete thing the source asks for, named, carrying that claim's own text in a verbatim citation. For a backlog workbook a claim is a row; for an RFP a numbered requirement; for a SOW a scope clause or deliverable; for a PRD a user story with its acceptance criteria; for a transcript a speaker turn asking for something; for a brief a sentence stating a want. A spreadsheet line is an acceptance criterion, not an estimable unit; pricing one per row multiplied a backlog into a project. The claims still have to be here, because a reviewer verifies the inventory against the client's own document line by line, and that is only possible if every claim still appears \u2014 and because the tasks are what say, under an epic, what it actually consists of. Required from schema 1.2, where every citation on a story must also appear under one of its tasks: a run that kept 306 citations and produced no tasks passed every check, because nothing counted the tasks that were not there.",
             "items": {
               "type": "object",
               "required": [
@@ -271,7 +273,7 @@
           }
         }
       },
-      "description": "The estimable units — stories, not source rows. Each carries the source rows it was assembled from as `tasks`."
+      "description": "The estimable units — stories, not source claims. Each carries the source claims it was assembled from as `tasks`."
     },
     "not_scope": {
       "type": "array",
@@ -507,7 +509,7 @@
           },
           "description": {
             "type": "string",
-            "description": "What this story commits to, in the working language, standing on its own. A reader who has never seen the source should finish it knowing what gets built and how it behaves. It is your prose, not a quote: where several source rows were grouped into one story, this is what they add up to, and the rows themselves stay in tasks with their text."
+            "description": "What this story commits to, in the working language, standing on its own. A reader who has never seen the source should finish it knowing what gets built and how it behaves. It is your prose, not a quote: where several source claims were grouped into one story, this is what they add up to, and the claims themselves stay in tasks with their text."
           },
           "scope_status": {
             "type": "string",
@@ -583,7 +585,7 @@
           },
           "tasks": {
             "type": "array",
-            "description": "The source rows this story was assembled from. A spreadsheet line is an acceptance criterion, not an estimable unit; pricing one per row multiplied a backlog into a project. The rows still have to be here, because a reviewer verifies the inventory against the client's own document line by line, and that is only possible if every line still appears.",
+            "description": "The source claims this story was assembled from, where there are any. Implicit scope is work the source implies and never states, so it carries a `rationale` instead of citations and is EXEMPT from the schema-1.2 requirement that a story carry tasks: there is no passage to quote, and inventing one would be the invention this field exists to keep out.",
             "items": {
               "type": "object",
               "required": [

@@ -365,11 +365,18 @@ def adopted(authored, measured):
     return {"authored": len([p for p in ours.values() if p]), "replaced": replaced}
 
 
-def check(document, authored=None):
+def check(document, authored=None, allowance=None):
     """Every check in section H, over the geometry the browser actually produced.
 
     Each one names its denominator. This module has shipped a checker that compared nothing and
     reported no findings, and that is why every report here says what it looked at.
+
+    `allowance` is an OPERATOR's acceptance of crossings above the budget, `{"crossings": n,
+    "why": ..., "accepted_by": ...}`. One per ten edges cannot be met by every true graph:
+    passenger-seat's mobile app and API both reach the same three vendors directly, and eight ELK
+    strategies all returned eight. The allowance never hides a crossing — each accepted one stays
+    in the findings as a `note` naming both edges — and it only covers up to the number a person
+    accepted: a ninth crossing still fails.
     """
     all_boxes = boxes(document)
     connections = [c for c in document.get("connections") or [] if c.get("points")]
@@ -380,6 +387,16 @@ def check(document, authored=None):
 
     budget = max(1, len(connections) // CROSSINGS_PER_EDGES)
     tolerated = crossings[:budget]
+    allowed = 0
+    if allowance:
+        if not (allowance.get("why") and allowance.get("accepted_by")):
+            raise SystemExit("a crossing allowance needs `why` and `accepted_by`: it overrules the "
+                             "design contract on a client-facing picture")
+        allowed = max(0, int(allowance.get("crossings") or 0) - budget)
+    accepted = crossings[budget:budget + allowed]
+    for crossing in accepted:
+        crossing["severity"] = "note"
+        crossing["kind"] = "edge_crossing_accepted"
     findings = route_findings + crossings[budget:] + structure_findings
     # Severity is the difference between "the picture could be better" and "the picture is
     # wrong". A connector over a box, a duplicate name, a wrapper container and a placeholder
@@ -396,6 +413,8 @@ def check(document, authored=None):
         "aspect": round(aspect, 3) if aspect else None,
         "edge_crossings": len(crossings),
         "tolerated_crossings": len(tolerated),
+        "accepted_crossings": len(accepted),
+        "crossing_allowance": allowance or None,
         "findings": findings,
         "routes": adopted(authored, document),
     }
@@ -427,6 +446,9 @@ def check(document, authored=None):
     if tolerated:
         report["checked"] += (f"; {len(tolerated)} edge crossing(s) are within the budget of "
                               f"{budget} for {len(connections)} edges and are drawn with a hop")
+    if accepted:
+        report["checked"] += (f"; {len(accepted)} more were ACCEPTED by {allowance['accepted_by']} "
+                              f"above that budget: {allowance['why']}")
     return report
 
 

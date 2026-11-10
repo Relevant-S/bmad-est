@@ -22,6 +22,7 @@ never overwritten after. Each entry carries:
 | `signals` | Lowercase phrases matched against a story's name, description and task text. |
 | `icon` | A name from `assets/icons.verified.json` — see *Icons* below. |
 | `settled` | A mode nobody sensibly argues about, with the reason. A settled capability never reaches a scoring table. |
+| `zone` | Optional `{id, title}`: the boundary the component is drawn in when it is NOT hosted by a platform — a mobile app runs on the user's device, and without this it was drawn inside the host cloud. See `references/diagramming.md`. |
 
 ## The map is built by keyword, and says so
 

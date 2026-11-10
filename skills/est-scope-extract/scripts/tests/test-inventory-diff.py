@@ -76,6 +76,28 @@ class TestMerge(unittest.TestCase):
         merged = self.merged([feature("F1", "User login")], [feature("F90", "User login")])
         self.assertEqual([f["id"] for f in merged["features"]], ["F1"])
 
+    def test_task_ids_follow_their_story_through_a_renumber(self):
+        """The merge keeps the OLD story id so everything keyed to it still resolves — and
+        used to leave the tasks behind, so a re-extraction produced story `F1` owning `F90-T1`.
+        That silently breaks the two-way link between the Stories and Tasks views: a reader
+        following a task id lands on a story that does not claim it. Harmless while the prose
+        path produced no tasks at all; corrupting from the moment they are required."""
+        cite = [{"source_id": "S1", "location": "§2.1", "quote": "q"}]
+        new_f = feature("F90", "User login",
+                        tasks=[{"id": "F90-T1", "name": "Sign in", "citations": cite}])
+        merged = self.merged([feature("F1", "User login")], [new_f])
+        story = merged["features"][0]
+        self.assertEqual(story["id"], "F1")
+        self.assertEqual([t["id"] for t in story["tasks"]], ["F1-T1"])
+
+    def test_a_task_id_that_does_not_carry_the_story_prefix_is_left_alone(self):
+        """Someone else's naming scheme is not ours to rewrite."""
+        cite = [{"source_id": "S1", "location": "§2.1", "quote": "q"}]
+        new_f = feature("F90", "User login",
+                        tasks=[{"id": "ROW-14", "name": "Sign in", "citations": cite}])
+        merged = self.merged([feature("F1", "User login")], [new_f])
+        self.assertEqual([t["id"] for t in merged["features"][0]["tasks"]], ["ROW-14"])
+
     def test_new_feature_gets_an_id_that_collides_with_nothing(self):
         merged = self.merged([feature("F1", "User login"), feature("F2", "Export")],
                              [feature("F1", "User login"), feature("F9", "Tracking page")])

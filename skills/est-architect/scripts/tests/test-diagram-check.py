@@ -191,6 +191,44 @@ class TheCrossingBudgetScalesWithTheGraph(unittest.TestCase):
         self.assertEqual(2, report["crossing_budget"])
 
 
+class AnAcceptedCrossingIsStillReported(unittest.TestCase):
+    """passenger-seat, 2026-11-10: a true graph whose floor was eight crossings against a budget of
+    three. The operator may accept more, by number and with a reason; nothing is hidden and the
+    first crossing past what they accepted still fails."""
+
+    def document(self):
+        entities = [box(f"n{i}", 900 + i * 80, 900, 40, 40, tag="Icon") for i in range(8)]
+        edges = [edge("n0", "n1", [(0, 100), (500, 100)]), edge("n2", "n3", [(0, 200), (500, 200)]),
+                 edge("n4", "n5", [(100, 0), (100, 300)]), edge("n6", "n7", [(300, 0), (300, 300)])]
+        return {"entities": entities, "connections": edges,
+                "scene": {"x": 0, "y": 0, "width": 1600, "height": 1000}}
+
+    def test_without_an_allowance_the_excess_fails(self):
+        report = routing.check(self.document())
+        self.assertEqual(4, report["edge_crossings"])
+        self.assertEqual("fail", report["checks"]["H2"])
+
+    def test_an_allowance_covers_exactly_what_was_accepted(self):
+        accepted = {"crossings": 3, "why": "true K(2,2)", "accepted_by": "operator"}
+        report = routing.check(self.document(), allowance=accepted)
+        self.assertEqual(2, report["accepted_crossings"])
+        self.assertEqual("fail", report["checks"]["H2"], "the fourth crossing was never accepted")
+
+    def test_a_full_allowance_passes_as_a_note_and_says_who(self):
+        accepted = {"crossings": 4, "why": "true K(2,2)", "accepted_by": "operator"}
+        report = routing.check(self.document(), allowance=accepted)
+        self.assertEqual("note", report["checks"]["H2"])
+        self.assertFalse([f for f in report["findings"]
+                          if f.get("check") == "H2" and f["severity"] == "fail"])
+        self.assertIn("ACCEPTED by operator", report["checked"])
+        self.assertEqual(3, sum(1 for f in report["findings"]
+                                if f.get("kind") == "edge_crossing_accepted"))
+
+    def test_an_allowance_without_a_reason_is_refused(self):
+        with self.assertRaises(SystemExit):
+            routing.check(self.document(), allowance={"crossings": 4})
+
+
 class TheRendererMustDrawWhatWasAuthored(unittest.TestCase):
     """An authored polyline is adopted only when it is strictly orthogonal and clears every
     obstacle; otherwise the renderer re-routes it and says nothing."""

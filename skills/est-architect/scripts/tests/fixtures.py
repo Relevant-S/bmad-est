@@ -7,7 +7,17 @@ nothing would let every signal change pass here and fail on the first real backl
 
 import importlib.util
 import json
+import os
+import tempfile
 from pathlib import Path
+
+# Module memory is found by walking UP from the working directory (`capabilities.memory_dir`).
+# Run from inside an installed project, the suite therefore read that project's company memory:
+# its own platform profiles and capabilities merged over the shipped ones, and five tests failed
+# on a project that had done nothing wrong (passenger-seat, 2026-11-10). Every test starts from a
+# directory with no `_bmad` above it; the tests that exercise memory resolution chdir into their
+# own temporary root, as they always did.
+os.chdir(tempfile.mkdtemp(prefix="est-architect-tests-"))
 
 ROOT = Path(__file__).resolve().parents[3]
 ARCH = ROOT / "est-architect"

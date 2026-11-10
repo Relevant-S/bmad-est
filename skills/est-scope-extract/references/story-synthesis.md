@@ -1,6 +1,6 @@
 # Story synthesis
 
-Rows in, stories out. This is the step where an estimate stops being a transliteration of
+Claims in, stories out. This is the step where an estimate stops being a transliteration of
 someone's spreadsheet and starts being a statement about work.
 
 ## Why this step exists
@@ -97,12 +97,42 @@ verbs look.
 epics, make one story for building it and cheap instantiation tasks or stories for applying
 it. Nine full-price copies is the single biggest inflation in a workbook-shaped input.
 
+## What a claim is
+
+A **claim** is one discrete thing the source asks for. It is the unit a story is assembled
+from, and it exists in every kind of document — only its shape changes:
+
+| Source | A claim is |
+| --- | --- |
+| Backlog workbook | a row |
+| RFP / tender | a numbered requirement |
+| SOW / contract | a scope clause, a deliverable, an acceptance criterion |
+| PRD / product spec | a user story with its acceptance criteria — not a section heading |
+| Transcript | a speaker turn asking for one thing, cited by timestamp and speaker |
+| Brief / email | a sentence stating a want |
+
+"Row" was the word this file used throughout, and it was only ever true of workbooks. An
+extraction reading four call transcripts found no rule here at all, produced no tasks, and
+shipped — which is the second failure this file now records.
+
+The count is bounded by what the source says. Three claims from three sentences is the right
+answer for a three-sentence brief; thirty is the confident elaboration `references/source-type-playbook.md`
+already forbids. **Never invent a claim to satisfy the requirement** — a task with no passage
+behind it is worse than the missing layer, because it looks like evidence.
+
 ## What stays visible
 
-Every source row still appears, as a `task` under its story, **carrying the row's own text**.
+Every claim still appears, as a `task` under its story, **carrying the claim's own text**.
 A task has an `id`, a `name` and a citation, and the citation's `quote` is where the text
 lives — there is no separate description field, because a quote is checked against the
 document and a paraphrase is not.
+
+**And every citation on a story appears under one of its tasks.** A passage that justified the
+story belongs to one of its parts; evidence pooled above the tasks is evidence a reader cannot
+attach to anything that has to be built. The test is containment, not equality — a task may
+quote a passage the story does not, and the two routinely quote one passage to different
+lengths. A passage from a *different* document, standing behind claims taken from this one, is
+a story-level fact and is left alone.
 
 The text is the point, and it is the part that goes missing. A real run gave all 912 of its
 tasks a citation quoting the task's own title:
@@ -124,9 +154,19 @@ reviewer is meant to check the inventory against the client's document **without
 task quoting its own name is a finding rather than a pass.
 
 A task belongs to exactly one story — `inventory-check.py` rejects a task id used twice,
-because a row in two stories is work counted twice.
+because a claim in two stories is work counted twice.
 
-Size the **story**, not the sum of its rows. Ten rows describing one screen is one screen.
+The second worked failure is the mirror of the first, and it is why the rule is now enforced
+rather than described. A run over two call transcripts and two call summaries produced 9 epics,
+33 stories and 306 verified citations — and **zero tasks**. `feature-inventory.tasks.csv` and
+`estimate.tasks.csv` shipped with a header row and nothing else, the Tasks tab of both
+workbooks was empty, `inventory-check.py` returned `ok: true` with no findings, and the
+extraction report never used the word. Every task rule in the checker was a loop over tasks
+that existed, so an inventory with none drew nothing. The 100 named, cited claims its beats had
+already read were discarded at fan-in. Nothing was wrong with the reading; the contract simply
+never asked for them back.
+
+Size the **story**, not the sum of its claims. Ten claims describing one screen is one screen.
 
 ## Surfaces
 

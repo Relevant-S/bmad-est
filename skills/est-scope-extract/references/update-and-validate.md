@@ -44,6 +44,8 @@ Only once both pass, move the original to `feature-inventory.prev.json`, promote
 
 **Then update `extraction-report.md`** with a scope-change section: features added and removed, stories whose description moved under a classification that was already made, and anything `classification-merge.py` could not re-key. Append a memlog `decision` entry for each `needs_decision` the operator resolved. A story whose text changed under an existing judgement deserves its own line — re-reading it can move the number more than several new small features.
 
+**An inventory below schema 1.2 is not re-stamped by an update or a validate run.** The task requirement arrived at 1.2 and is gated on the stamp, so a stored 1.0 or 1.1 inventory keeps validating exactly as it did. What moves it is a re-extraction, which reads the sources again and produces the claims; there is no back-fill migration and there will not be one, because back-filling tasks means inventing the grouping a reader is meant to check.
+
 ## Validate — read-only recheck
 
 A confidence check before an inventory feeds an estimate, or after someone has hand-edited it. It changes nothing and writes nothing the user has to keep.

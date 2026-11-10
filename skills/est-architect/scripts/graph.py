@@ -56,10 +56,19 @@ def _host(components):
     return None
 
 
-def zone_of(component, host, reach):
-    """Which boundary a component is drawn inside."""
+def zone_of(component, host, reach, spec=None):
+    """Which boundary a component is drawn inside.
+
+    A capability may declare its own `zone` in the catalogue. Code the project writes and does
+    NOT host — a mobile app on the learner's phone — has no platform, and fell through to the
+    host's zone: a React Native app was drawn inside the AWS boundary on passenger-seat, which is
+    false, and every edge from it to a third party then wove through the API's own fan-out.
+    """
     if component.get("tier") == "actors":
         return ACTORS_ZONE
+    declared = ((spec or {}).get("zone") or {}).get("id")
+    if declared:
+        return declared
     pid = component.get("platform")
     if pid and (pid == host or reach.get(pid, 0) >= ZONE_MIN_CAPABILITIES):
         return pid
@@ -139,9 +148,16 @@ def build(architecture, model=None, platforms=None):
     for pid, profile in platforms.items():
         zone_title[pid] = profile.get("name") or pid
 
+    for spec in catalogue.values():
+        declared = (spec.get("zone") or {}) if isinstance(spec, dict) else {}
+        if declared.get("id"):
+            zone_title.setdefault(declared["id"], declared.get("title") or declared["id"])
+    declared_zones = {z for z in zone_title if z not in (ACTORS_ZONE, EXTERNAL_ZONE, PROJECT_ZONE)
+                      and z not in platforms}
+
     nodes, notes = [], []
     for component in components:
-        zid = zone_of(component, host, reach)
+        zid = zone_of(component, host, reach, catalogue.get(component.get("capability")))
         nodes.append({
             "id": component["id"],
             "zoneId": zid,
@@ -168,9 +184,10 @@ def build(architecture, model=None, platforms=None):
 
     used_zones = {n["zoneId"] for n in nodes}
     zones = [{"id": z, "title": zone_title.get(z, z), "kind":
-              "platform" if z not in (ACTORS_ZONE, EXTERNAL_ZONE, PROJECT_ZONE) else "outside",
+              "outside" if z in (ACTORS_ZONE, EXTERNAL_ZONE, PROJECT_ZONE) or z in declared_zones
+              else "platform",
               "isHost": z == host}
-             for z in sorted(used_zones, key=lambda z: _zone_rank(z, host))]
+             for z in sorted(used_zones, key=lambda z: _zone_rank(z, host, declared_zones))]
 
     groups = []
     for zone in zones:
@@ -190,6 +207,7 @@ def build(architecture, model=None, platforms=None):
 
     zones, groups, nodes, merged = _merge_redundant(zones, groups, nodes)
     notes.extend(merged)
+    notes.extend(_qualify_repeated_titles(zones, groups))
 
     edges = []
     for edge in architecture.get("connections") or []:
@@ -204,10 +222,15 @@ def build(architecture, model=None, platforms=None):
             "tier_order": tier_order, "host": host, "notes": notes}
 
 
-def _zone_rank(zone, host):
-    """B3: actors first, third parties last, the host platform ahead of the other platforms."""
+def _zone_rank(zone, host, declared=()):
+    """B3: actors first, third parties last, the host platform ahead of the other platforms.
+
+    A zone a capability declares for itself (the user's device) sits between the actors and the
+    platforms, because that is where a request starts after a person."""
     if zone == ACTORS_ZONE:
         return (0, "")
+    if zone in declared:
+        return (0, zone)
     if zone == EXTERNAL_ZONE:
         return (3, "")
     if zone == PROJECT_ZONE:
@@ -247,6 +270,34 @@ def _merge_redundant(zones, groups, nodes, ):
         if node["groupId"] in dissolved:
             node["groupId"] = None
     return zones, groups, nodes, notes
+
+
+def _qualify_repeated_titles(zones, groups):
+    """A6. A group is titled by its tier, and a tier recurs in more than one zone.
+
+    On passenger-seat the AWS zone held `Integrations` (Bedrock, End User Messaging) and
+    `Platform services` (SQS, CloudWatch), and so did the third-party zone (RevenueCat, Mixpanel
+    | Sentry): four boxes, two names, and a failed render with nothing wrong in the design. The
+    host zone keeps the bare tier label — it is where the reader starts — and every other
+    occurrence is qualified with its zone's own title.
+    """
+    notes = []
+    count = {}
+    for group in groups:
+        count[group["title"]] = count.get(group["title"], 0) + 1
+    zone_by_id = {z["id"]: z for z in zones}
+    for group in groups:
+        if count[group["title"]] < 2:
+            continue
+        zone = zone_by_id.get(group["zoneId"]) or {}
+        if zone.get("isHost"):
+            continue
+        bare = group["title"]
+        group["title"] = f"{zone.get('title', group['zoneId'])} {bare[:1].lower()}{bare[1:]}"
+        notes.append({"kind": "title_qualified", "detail":
+                      f"`{bare}` appears in more than one zone, so the one in "
+                      f"`{zone.get('title')}` is drawn as `{group['title']}`"})
+    return notes
 
 
 def validate(graph):

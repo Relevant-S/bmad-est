@@ -4,7 +4,11 @@ Scope hides differently in different documents, and reading one kind as though i
 
 Everything below serves one output: features with verbatim citations, a `not_scope` entry for every substantive passage that did not become one, and honest `commitment` and `clarity` tags.
 
+Each section also says **what a claim is** in that document, because every story carries the claims it was assembled from as `tasks` and the shape of a claim is the one thing that changes with the document type. This file used to answer that question only under *Backlog workbook*; an extraction reading four call transcripts therefore had no rule, produced no tasks at all, and every check passed. `references/story-synthesis.md` has the obligation.
+
 ## Transcript (discovery call, workshop, sales meeting)
+
+**A claim here is one speaker turn asking for one thing** — cited by timestamp and speaker, quoting the turn, not your summary of it. A problem stated as a problem is a claim: "every Monday they hand-copy the job list into a spreadsheet" is the claim, and the solution shape belongs in `open_questions`.
 
 The hardest input and the most common thin one. Speech mixes commitment levels freely and nobody in the room marks the boundary.
 
@@ -16,6 +20,8 @@ Almost everything from a transcript is `clarity: low`. Resist the pull to write 
 
 ## SOW / contract
 
+**A claim here is a numbered scope clause, a deliverable or an acceptance criterion.** Exclusions are not claims — they are `assumptions`.
+
 Written to be binding, so it is precise about obligations and often silent about the work. The scope section is the smallest part of the document and the only part that is scope — rates, payment terms, IP, liability, notice periods and governing law all belong in `not_scope`, each with a reason, because a reviewer needs to see they were read and dismissed rather than missed.
 
 **A SOW defines the agreed scope, which makes everything outside it a commercial question.** Once a SOW or RFP is among the sources, any feature the other sources raise but the contract does not cover — the dispatcher workflow described at length on a call and absent from the scope section, the "oh and" at minute 21 — is marked `scope_status: outside_agreed_scope`. It is still extracted and still estimated, because the work is real and someone will be asked to do it; it is simply reported as an addition rather than folded into the agreed number. Stop and ask the operator before tagging one, presenting the feature, its evidence, and the three options: inside the agreed scope, outside it, or not scope at all. Deciding this silently either inflates the agreed price or quietly gives the work away.
@@ -23,6 +29,8 @@ Written to be binding, so it is precise about obligations and often silent about
 Two things carry disproportionate weight. **Exclusions** are as load-bearing as inclusions: an explicit "does not include data migration" belongs in `assumptions` so the estimate does not quietly price it. And **acceptance criteria**, where present, are the strongest `clarity: high` evidence any document type offers. Deliverables and milestones often name features that the scope prose never does — read them as scope.
 
 ## RFP / tender
+
+**A claim here is a numbered requirement**, and its number is the location: it is the most verifiable anchor this document type offers.
 
 Written to be answered, so it is exhaustive about requirements and vague about implementation, and it is usually padded. Requirements are typically numbered — cite the number, it is the most verifiable location anchor you will get.
 
@@ -32,11 +40,15 @@ An RFP's evaluation criteria and boilerplate go in `not_scope`, but its stated i
 
 ## PRD / product spec
 
+**A claim here is a user story with its acceptance criteria — never a section heading.** The headings are the document's narrative structure, which is exactly what not to inherit.
+
 The friendliest input: written to be built from, usually already decomposed into features with acceptance criteria. The risk is the opposite one — inheriting its structure uncritically.
 
 A PRD's sections are not necessarily estimable units. Merge what the document splits for narrative reasons and split what it bundles for convenience. Its stated non-goals go in `assumptions`. Its user stories carry acceptance criteria that justify `clarity: high` — cite them.
 
 ## Backlog workbook (xlsx / csv, often multi-tab)
+
+**A claim here is a row**, cited by sheet and row number. This is the base case every other type generalises: the row is the claim, the story is what the rows add up to.
 
 Nearly a finished inventory, which makes it the most dangerous to skim. Read every tab: scope frequently lives on one and assumptions, out-of-scope items, questions or a phasing plan live on others, and a tab named "Sheet3" is as likely to hold real content as one named "Scope".
 
@@ -53,6 +65,8 @@ Watch for a phase, priority or MoSCoW column. **Priority and MoSCoW map onto `co
 **A status column has already made decisions for you.** `REMOVE` means `not_scope`, not a feature with an open question attached. A "deprioritisation candidate" flag belongs in the cut-line list, not in a footnote under a fully-priced row. And where the workbook has per-discipline estimate columns — `FE Min`, `BE Max`, `DevOps Min` — the client is telling you which roles they expect on this work: read them as evidence for `surfaces`, and still leave the numbers as theirs rather than yours.
 
 ## Brief / email / two paragraphs
+
+**A claim here is a sentence stating a want.** A two-paragraph brief makes two or three claims, and that is the right number of tasks — inventing more to fill the layer is the same elaboration this section already forbids.
 
 The thin end, and the case the whole module exists to handle honestly. Extract what is there, tag nearly all of it `clarity: low`, and put real effort into `open_questions` — with an input this thin, the questions are the deliverable and the number is a placeholder.
 

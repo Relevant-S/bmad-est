@@ -19,6 +19,7 @@ Each of these replaces a question. **Take the default, then log it** — an unat
 | Feature not traceable to a contractual source | Ask: inside, outside, or not scope | Set `scope_status: outside_agreed_scope` — the conservative reading, since it is reported as an addition rather than folded into the agreed number — and list it |
 | Sources that contradict each other | Surface for resolution | Record in `conflicts` and leave unresolved; never pick one |
 | Per-source review pass | Subagents, or sequential fallback | Same; when neither is available, say so in the report rather than skipping it |
+| A claim that looks like it should be dropped | Confirm with the operator | **Do not drop it.** Carry it as a task under its story, and list it in `needs_confirmation` with kind `claim_not_scope` |
 
 The conservative choice is always the one that keeps the decision visible: an inference stays marked as one rather than being asserted, and uncovered work is priced separately rather than absorbed into an agreed number someone will later be held to.
 
@@ -46,6 +47,7 @@ Emit this and nothing else — a caller needs paths, not prose:
   "report": "<path>/extraction-report.md",
   "memlog": "<path>/.memlog.md",
   "features": 12,
+  "tasks": 37,
   "input_completeness": null,
   "needs_confirmation": [
     {"feature": "F4", "kind": "outside_agreed_scope", "detail": "raised on the call, absent from the SOW"},
@@ -54,6 +56,6 @@ Emit this and nothing else — a caller needs paths, not prose:
 }
 ```
 
-Use `"intent": "update"` or `"validate"` as appropriate. When the run cannot finish — no source could be read, or `inventory-check.py` will not come back clean — return `"status": "blocked"` with a one-line `"reason"` and still return the `memlog` path, so the caller can read what happened rather than guessing from an absence.
+Use `"intent": "update"` or `"validate"` as appropriate. A task-less inventory is one of the things that cannot finish: from schema 1.2 every story carries the source claims it was assembled from, `inventory-check.py` refuses an inventory without them, and there is no headless default that waves it through. An unattended run that would previously have shipped 33 stories with an empty Tasks view now blocks, which is the intended trade: a batch caller can see a blocked project, and cannot see a silently empty layer. When the run cannot finish — no source could be read, or `inventory-check.py` will not come back clean — return `"status": "blocked"` with a one-line `"reason"` and still return the `memlog` path, so the caller can read what happened rather than guessing from an absence.
 
 `needs_confirmation` is the load-bearing field. It is what lets a batch of twenty presale extractions be triaged by a human in minutes: everything the machine was unsure about, in one list, per project.

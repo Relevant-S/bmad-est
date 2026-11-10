@@ -51,6 +51,26 @@ application that exists — and never the identity provider. A capability resear
 none of these fields: it is reached from the application rather than left floating, labelled
 after itself, and the edge is marked `defaulted` so the default is visible as one.
 
+### What one project may say about its own graph
+
+`reaches` is company-wide: it says what a capability *usually* talks to. Four inputs let a project
+say what is true of **its** design, and each is recorded where a reader of the deliverable sees it.
+All four came from one real run (passenger-seat, 2026-11-10), whose diagram drew a React Native app
+inside the AWS boundary, every person entering through the WAF, and an API sending email it never
+sends.
+
+| Input | Where | What it does |
+| --- | --- | --- |
+| `zone: {id, title}` | the capability, in `{memory}/architecture-model.json` | Draws the component in its own boundary instead of the host's. Code the project writes but does not host — a mobile app on the learner's phone — has no platform and fell through to the host zone, which is false. A declared zone sits between the actors and the platforms. |
+| `reaches: [capability]` | an actor, in `inputs.actors` | Joins the person to what they actually use. Without it every actor is drawn into the front door, so learners on a phone app entered where staff on a browser console do. A named capability that is not drawn falls back to the front door. |
+| `connection_overrides.remove: [{from, to, why}]` | `inputs` | Takes an edge the catalogue would draw off the picture **because the design routes it differently** — every email and push leaving through the workers, never the request path. `why` is required; each removal is listed in `refusals` as `kind: connection`, and one naming an edge that is not drawn is recorded as changing nothing. Never a way to make H2 pass by deleting a true edge. |
+| `diagram.crossing_allowance: {crossings, why, accepted_by}` | `inputs` | An operator accepting more crossings than the budget, by number. See *What the checks can and cannot promise*. |
+
+A tier's group title is the same in every zone, so a design with integrations both inside the host
+and in the third-party band carried `Integrations` twice and failed A6 with nothing wrong in it. The
+host keeps the bare title; every other occurrence is qualified with its zone's (`Third-party
+integrations`).
+
 Several arrows converging on one box carry **one label between them**. That is what keeps D7's
 "unique in the diagram" honest: a label may not mean two different things, but one meaning does
 not need writing out once per arrowhead.
@@ -136,6 +156,18 @@ K(2,2), which cannot be drawn in two layers without a crossing. One real archite
 such pairs, so its floor is two, and six different ELK strategies all return exactly two. A
 constant budget of one would mean a required output that some real architectures can never
 produce, so the budget scales with the graph and the report always states the number.
+
+**One per ten edges is still not every true graph's floor.** On passenger-seat a mobile app and its
+API both reach the same three vendors directly — device SDKs and the server — a K(2,3), plus a
+staff edge that must pass the device column: eight crossings against a budget of three, and eight
+ELK strategies all returned eight. The budget is not raised for that. An **operator** may accept a
+number with `inputs.diagram.crossing_allowance: {crossings, why, accepted_by}`; the check then
+passes H2 as a `note`, keeps every accepted crossing in the findings as `edge_crossing_accepted`
+naming both edges, says who accepted them in `checked`, and still fails the first crossing past the
+number accepted. An allowance without `why` and `accepted_by` is refused. Exhaust the truthful
+levers first — a component drawn where it does not run, an actor joined to a door they do not use
+and an edge the design does not have were all found that way, and each removed crossings by
+making the picture *truer*.
 
 **H4's three bends are not always reachable.** A hub node reaching a column with another column
 in between must leave, pass the intervening column above or below, turn into the gap beyond it,

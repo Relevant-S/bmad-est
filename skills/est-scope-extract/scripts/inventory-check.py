@@ -132,6 +132,22 @@ def _comparable(text):
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+def _carried_quotes(tasks):
+    """Every passage a story's tasks quote, keyed by the place it was quoted from.
+
+    Deliberately the same rule `render-inventory.py` uses to suppress a story citation it has
+    already printed under a task. The checker and the renderer have to agree about when a
+    story's citation is redundant, or the document will show a passage the checker thinks is
+    missing, or hide one it thinks is present.
+    """
+    carried = {}
+    for task in tasks:
+        for cit in task.get("citations") or []:
+            key = (cit.get("source_id"), cit.get("location"))
+            carried[key] = carried.get(key, "") + " " + _comparable(cit.get("quote"))
+    return carried
+
+
 def iter_citations(inv, tasks=True, implicit=True):
     """Every citation in the inventory, with the label that locates it and what owns it.
 
@@ -343,6 +359,30 @@ PARTIAL_CHARS = 80        # a cleanly-ended quote that still leaves this much of
 PARTIAL_SHARE = 0.4       # ...and this share of it
 
 
+def _passages(text):
+    """The source cut into the passages a quote could have come from, longest-first.
+
+    A workbook quote is checked against the cell it sits in; prose has no cell, which is why
+    the self-citation check below was sheet-only and a prose task quoting its own title passed.
+    This is the equivalent for a source whose location resolves to no row.
+
+    The unit is the LINE, widened to its blank-line-separated block only when the line is not a
+    table row. Taking the block unconditionally would be wrong in the one place it matters: a
+    converted spreadsheet is a single markdown table with no blank line in it, so "the passage"
+    would be the entire sheet and every short cell would read as a passage skipped.
+    """
+    out = []
+    for block in re.split(r"\n\s*\n", text):
+        rows = [ln for ln in block.splitlines() if ln.strip()]
+        if not rows:
+            continue
+        if any(ln.lstrip().startswith("|") for ln in rows):
+            out += [(ln, _comparable(ln)) for ln in rows]
+        else:
+            out.append((block.strip(), _comparable(block)))
+    return out
+
+
 def _row_cells(text_lines, line_no):
     """The cells of one converted table row, in order, unescaped."""
     if not 1 <= line_no <= len(text_lines):
@@ -368,11 +408,12 @@ def check_quote_completeness(inv, normalized_dir):
     cleanly but still leaves most of its cell unread is advisory.
     """
     findings, warnings = [], []
-    lines, anchors = {}, {}
+    lines, anchors, blocks = {}, {}, {}
     for sid, path in _normalized_files(inv, normalized_dir).items():
         text = path.read_text(encoding="utf-8", errors="replace")
         lines[sid] = text.splitlines()
         anchors[sid] = index_anchors(text)
+        blocks[sid] = _passages(text)
 
     for label, cit, _feature, task in iter_citations(inv):
         sid = cit.get("source_id")
@@ -410,11 +451,29 @@ def check_quote_completeness(inv, normalized_dir):
                     f"reader gets back is the label and none of the rest of the row"
                 )
             else:
-                warnings.append(
-                    f"{label}: the quote is the task's own name, and the location does not "
-                    f"resolve to a row this can check it against. If the source says more than "
-                    f"the title, quote that instead"
-                )
+                # Prose. There is no cell, so the passage the quote sits in is the block it was
+                # found in. Without this the rule "quote the claim, not its label" had teeth
+                # only for spreadsheets — and schema 1.2 requires tasks for transcripts too,
+                # which is exactly where a task quoting its own title would otherwise sail past.
+                block = next((b for b, flat in blocks.get(sid, []) if needle and needle in flat),
+                             None)
+                # A table row reaches here only when its location did not resolve; measure the
+                # quote against the longest cell on it, the same way the resolvable path does,
+                # rather than against the row's own markup.
+                if block and block.lstrip().startswith("|"):
+                    block = max(_row_cells([block], 1), key=len, default=None)
+                if block and len(block) > len(quote) + TRUNCATION_TAIL:
+                    findings.append(
+                        f"{label}: the quote is the task's own name — it records that the label "
+                        f"exists and nothing else. The passage it sits in runs "
+                        f"{len(block)} characters; that is what the source actually said, and "
+                        f"what a reader is meant to get instead of opening the document"
+                    )
+                else:
+                    warnings.append(
+                        f"{label}: the quote is the task's own name, and the source says no more "
+                        f"than the title at that location. If it does say more, quote that instead"
+                    )
             continue
 
         if holding is None:
@@ -614,19 +673,33 @@ SURFACES = {"backend", "frontend", "design", "infra", "data"}
 def check_grouping(inv):
     """Epics, tasks and surfaces: the three things that decide how much the estimate invents.
 
-    Epics are billed per epic, tasks are what a reviewer checks the workbook against, and
+    Epics are billed per epic, tasks are what a reviewer checks the document against, and
     surfaces are what keeps a role off work it does not do.
 
     From schema 1.1 grouping is REQUIRED: an ungrouped inventory has no delivery structure to
     order, and every render sorts on the epic sequence. Below 1.1 it stays optional but never
     half-done, because an estimate that mixes a declared epic count with a derived one is
     billing planning against a number matching neither the source nor the stories.
+
+    From schema 1.2 the TASKS are required too, and this docstring is why the requirement is
+    here rather than somewhere new: it has always claimed three things and only ever checked
+    two. Every task rule below was a loop over tasks that existed, so an inventory with none
+    drew no finding at all — 33 stories, 306 citations, zero tasks, `ok: true`. Two rules close
+    it. A story carries at least one task. And every citation on a story appears under one of
+    its tasks (containment): the story's evidence is distributed over its parts rather than
+    pooled above them, which is what lets a reader open an epic and see what it consists of.
+
+    Containment is one-directional on purpose. Tasks may cite passages the story does not —
+    a row that adds detail without changing what the story commits to — so the test is
+    subset, never equality. `implicit_scope` is exempt throughout: it has no citations by
+    design, carrying a `rationale` instead, so there is no passage to put under a task.
     """
     findings = []
     features = inv.get("features", [])
     epics = inv.get("epics", [])
     epic_ids = {e.get("id") for e in epics}
     ordered = str(inv.get("schema_version") or "1.0") >= "1.1"
+    traced = str(inv.get("schema_version") or "1.0") >= "1.2"
 
     if ordered and not epics:
         findings.append(
@@ -654,16 +727,52 @@ def check_grouping(inv):
 
     task_ids = {}
     for f in features:
-        for i, task in enumerate(f.get("tasks", [])):
+        tasks = f.get("tasks") or []
+        if traced and not tasks:
+            findings.append(
+                f"{f.get('id')} ({f.get('name')}): no tasks — from schema 1.2 every story "
+                f"carries the source claims it was assembled from, because the tasks are what "
+                f"say, under an epic, what it actually consists of. Every claim is derived from "
+                f"the source and quoted from it; none is invented"
+            )
+        for i, task in enumerate(tasks):
             tid = task.get("id")
             if tid in task_ids:
                 findings.append(f"{f.get('id')}.tasks[{i}]: task id '{tid}' is already used by "
-                                f"{task_ids[tid]} — a source row belongs to exactly one story, or "
-                                f"the work behind it is being counted twice")
+                                f"{task_ids[tid]} — a source claim belongs to exactly one story, "
+                                f"or the work behind it is being counted twice")
             task_ids[tid] = f.get("id")
             if not task.get("citations"):
                 findings.append(f"{f.get('id')}.tasks[{i}] ({tid}): no citation — the whole point "
-                                f"of keeping the source rows is that they stay verifiable")
+                                f"of keeping the source claims is that they stay verifiable")
+
+    # Containment. The one rule that is defined for every source shape without knowing which
+    # shape it is looking at, and the one that catches the failure this was written for: a
+    # story whose evidence sits above its parts rather than in them.
+    if traced:
+        for f in features:
+            carried = _carried_quotes(f.get("tasks") or [])
+            # Only within a source the tasks actually draw on. A story routinely cites one
+            # document to justify claims it took from another — a PRD paragraph standing behind
+            # a backlog row — and that passage is a story-level fact, not a claim anybody
+            # dropped. Measured: the unscoped rule flagged 14 of 89 stories in a sound
+            # extraction, all of them this shape. What stays caught is the case that matters:
+            # a passage from a document the tasks DO quote, which no task carries.
+            sources = {c.get("source_id") for t in (f.get("tasks") or [])
+                       for c in (t.get("citations") or [])}
+            loose = [c for c in (f.get("citations") or [])
+                     if c.get("source_id") in sources
+                     and _comparable(c.get("quote"))
+                     not in carried.get((c.get("source_id"), c.get("location")), "\x00")]
+            if loose and f.get("tasks"):
+                where = "; ".join(f"{c.get('source_id')} {c.get('location')}" for c in loose[:3])
+                more = f" (and {len(loose) - 3} more)" if len(loose) > 3 else ""
+                findings.append(
+                    f"{f.get('id')}: {len(loose)} of {len(f.get('citations') or [])} citations "
+                    f"are carried by no task — {where}{more}. A passage that justified the story "
+                    f"belongs to one of its claims; evidence pooled above the tasks is evidence "
+                    f"a reader cannot attach to anything that has to be built"
+                )
 
     for f in features:
         surfaces = f.get("surfaces")
@@ -764,10 +873,19 @@ def band_of(feature):
 
 
 def source_lines(feature):
-    """How many lines of the client's own document this story absorbed.
+    """How many claims of the client's own document this story absorbed.
 
-    `tasks` is where story synthesis parks the source rows; a story built straight from one
-    passage has none and is measured by its citations instead.
+    `tasks` is where story synthesis parks the source claims. Before schema 1.2 a story could
+    carry none, and this fell back to its citation count — which is why the fallback is here at
+    all. Under 1.2 both are populated and the max is normally the task count.
+
+    That matters more than it looks, and it is the one place restoring tasks changes behaviour
+    without changing an hour: this feeds `lines_total`, which decides `row_shaped`, which
+    decides whether `check_evidence` measures the bands against the anchor's hours-per-source-
+    line or its hours-per-story. `check_evidence` returns FINDINGS, and est-estimate refuses to
+    price an inventory carrying findings. So a task layer appearing can move an inventory across
+    that gate in either direction. `check_sizing` reports which input made it row-shaped for
+    exactly this reason.
     """
     return max(len(feature.get("tasks") or []), len(feature.get("citations") or []), 1)
 
@@ -809,9 +927,17 @@ def check_sizing(features, bands, floor=20, impact=0.25, ratio=1.5):
     n = len(features)
     baseline = sum(float(bands[b]["likely"]) * len(ids) for b, ids in counts.items() if b in bands)
     lines_total = sum(source_lines(f) for f in features)
-    # Row-shaped: the source rows survived into the inventory, so a count of them is a real
+    # Row-shaped: the source claims survived into the inventory, so a count of them is a real
     # measure of how much was stated. Prose-shaped: it is not, and nothing below pretends it is.
     row_shaped = lines_total >= 1.5 * n
+    # WHICH input carried it there. `source_lines` is a max over tasks and citations, so an
+    # inventory can cross this threshold because the extraction quoted more or because it kept
+    # its claims — two different facts that move the same number, and the anchor this is
+    # measured against changes with it. A reader who cannot see which one moved cannot tell a
+    # better extraction from a chattier one.
+    task_total = sum(len(f.get("tasks") or []) for f in features)
+    cite_total = sum(len(f.get("citations") or []) for f in features)
+    shaped_by = ("tasks" if task_total >= cite_total else "citations") if row_shaped else None
     warnings, skipped = [], []
 
     # XS and XL are NOT reported merely for existing. Both warnings used to fire on the first
@@ -916,6 +1042,9 @@ def check_sizing(features, bands, floor=20, impact=0.25, ratio=1.5):
     evidence = check_evidence(features, order, rate, want, unit, n, row_shaped)
 
     return warnings, {"row_shaped": row_shaped,
+                      "row_shaped_by": shaped_by,
+                      "tasks": task_total,
+                      "citations": cite_total,
                       "baseline_h": round(baseline, 1),
                       f"baseline_h_per_{'source_line' if row_shaped else 'story'}": round(rate, 2),
                       "anchor_expects": round(want, 2) if want else None,
@@ -1462,6 +1591,12 @@ def coverage(inv, classified=False):
         }),
         "source_lines_per_story": round(
             sum(source_lines(f) for f in features) / len(features), 2) if features else 0,
+        # Reported at EVERY schema version, including the ones where a missing task layer is not
+        # yet a finding. The failure this is here for was invisible precisely because nothing
+        # counted what was not there: an inventory can have 33 stories, 306 citations and zero
+        # tasks, and until this line existed the report said nothing at all about it.
+        "tasks": sum(len(f.get("tasks") or []) for f in features),
+        "stories_without_tasks": [f.get("id") for f in features if not f.get("tasks")],
         "inferred_dependency_pairs": [
             {"feature": f.get("id"), "depends_on": d.get("feature_id")}
             for f in features for d in f.get("depends_on", []) if d.get("inferred")

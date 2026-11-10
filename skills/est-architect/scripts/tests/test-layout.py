@@ -131,6 +131,46 @@ class TheContainersAreNotRedundant(unittest.TestCase):
         self.assertEqual([], graph.validate(semantic())["findings"])
 
 
+class ACapabilityIsDrawnWhereItRuns(unittest.TestCase):
+    """passenger-seat, 2026-11-10: a React Native app has no platform, so it fell into the host
+    zone and was drawn inside the AWS boundary — false — and its edges to third parties wove
+    through the API's fan-out. A capability may declare its own zone."""
+
+    def test_a_declared_zone_takes_the_component_out_of_the_host(self):
+        model = F.model()
+        model["capabilities"]["web_client"]["zone"] = {"id": "_device", "title": "On users' devices"}
+        g = graph.build(architecture(), model, F.caps.load_platforms())
+        node = next(n for n in g["nodes"] if n["id"] == "web_client")
+        self.assertEqual("_device", node["zoneId"])
+        zone = next(z for z in g["zones"] if z["id"] == "_device")
+        self.assertEqual("On users' devices", zone["title"])
+        self.assertEqual("outside", zone["kind"])
+        self.assertFalse(zone["isHost"])
+
+    def test_without_a_declaration_nothing_moves(self):
+        g = semantic()
+        node = next(n for n in g["nodes"] if n["id"] == "web_client")
+        self.assertNotEqual("_device", node["zoneId"])
+
+
+class ATierRepeatedAcrossZonesIsQualified(unittest.TestCase):
+    """passenger-seat: `Integrations` and `Platform services` each named a group in the AWS zone
+    and another in the third-party zone, and the render failed A6 with nothing wrong in the
+    design."""
+
+    def test_the_host_keeps_the_bare_title_and_the_other_is_qualified(self):
+        zones = [{"id": "aws", "title": "Amazon Web Services", "isHost": True},
+                 {"id": "_external", "title": "Third-party", "isHost": False}]
+        groups = [{"id": "aws::external", "zoneId": "aws", "title": "Integrations"},
+                  {"id": "_external::external", "zoneId": "_external", "title": "Integrations"},
+                  {"id": "aws::data", "zoneId": "aws", "title": "Data"}]
+        notes = graph._qualify_repeated_titles(zones, groups)
+        titles = [g["title"] for g in groups]
+        self.assertEqual(["Integrations", "Third-party integrations", "Data"], titles)
+        self.assertEqual(len(titles), len(set(titles)))
+        self.assertEqual(1, len(notes))
+
+
 class TheDiagramDoesNotDoubleAsABuyBuildMap(unittest.TestCase):
     @needs_elk
     def test_no_badge_carries_a_sourcing_mode(self):

@@ -265,5 +265,44 @@ class TheHtmlStrippingSurvivesRealPages(unittest.TestCase):
                          cost_check.normalise(page))
 
 
+class APageTooLongToReadIsNotEvidence(unittest.TestCase):
+    """passenger-seat, 2026-11-10: the fetch read 3 MB and stopped. AWS's RDS price list for one
+    region is 22 MB, and three verbatim quotes past the cut came back `not_found` — the verdict
+    that means fabricated or moved."""
+
+    class Response:
+        def __init__(self, body):
+            self.body = body
+
+        def read(self, n=-1):
+            return self.body if n < 0 else self.body[:n]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def fetch_with(self, body):
+        original = cost_check.urllib.request.urlopen
+        cost_check.urllib.request.urlopen = lambda request, timeout=None: self.Response(body)
+        try:
+            return cost_check.fetch("https://example.test/prices.json")
+        finally:
+            cost_check.urllib.request.urlopen = original
+
+    def test_a_quote_past_the_old_three_megabyte_cut_is_read(self):
+        body = b" " * 4_000_000 + b"$ 0.036 per RDS db.t4g.small Single-AZ instance hour"
+        text, error = self.fetch_with(body)
+        self.assertIsNone(error)
+        self.assertIn("0.036 per rds db.t4g.small", text)
+
+    def test_a_page_over_the_cap_is_unread_rather_than_missing_a_quote(self):
+        body = b"x" * (cost_check.MAX_PAGE_BYTES + 1)
+        text, error = self.fetch_with(body)
+        self.assertIsNone(text)
+        self.assertIn("not read in full", error)
+
+
 if __name__ == "__main__":
     unittest.main()

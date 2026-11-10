@@ -674,6 +674,10 @@ def build_components(decisions, binding, platforms, cap_map, model, inventory, i
         out.append({"id": f"actor-{len(out)}", "capability": "_actor",
                     "name": actor["name"], "tier": "actors", "mode": "actor", "role": "User",
                     "icon": actor.get("icon", "user"), "interface": "internal",
+                    # What this person actually uses. Without it every actor was drawn into the
+                    # WAF, so on passenger-seat learners and instructors — who use a mobile app —
+                    # were shown entering through the same door as staff on a browser console.
+                    **({"reaches": list(actor["reaches"])} if actor.get("reaches") else {}),
                     "serves": {"stories": all_stories, "standing_work": [],
                                "assumptions": [actor.get("why", "")] if actor.get("why") else []}})
 
@@ -837,11 +841,18 @@ def build_connections(components, catalogue=None):
         if by_cap.get(cap):
             front = by_cap[cap][0]
             break
-    if front is not None:
-        for actor in components:
-            if actor["capability"] == "_actor":
-                edges.append({"from": actor["id"], "to": front["id"],
-                              "label": label_for(front["capability"], front)})
+    for actor in components:
+        if actor["capability"] != "_actor":
+            continue
+        # An actor that says what it uses is joined to exactly that; one that does not keeps the
+        # default front door. A named capability absent from the set falls back rather than
+        # leaving the person unconnected.
+        targets = [t for cap in actor.get("reaches") or [] for t in by_cap.get(cap, [])]
+        if not targets and front is not None:
+            targets = [front]
+        for target in targets:
+            edges.append({"from": actor["id"], "to": target["id"],
+                          "label": label_for(target["capability"], target)})
 
     seen, unique = set(), []
     for e in edges:
@@ -864,6 +875,35 @@ def build_connections(components, catalogue=None):
         if e["to"] in defaulted:
             e["defaulted"] = True
     return unique
+
+
+def apply_connection_overrides(connections, components, overrides):
+    """A design decision that removes an edge the catalogue would draw, with its reason.
+
+    `reaches` is company-wide: it says what an application USUALLY talks to. A project's design can
+    route something differently — on passenger-seat every email and push leaves through the
+    workers, never from the request path, so `application -> email` and `application -> sms_push`
+    described a design nobody chose. `inputs.connection_overrides.remove` is
+    `[{"from": cap, "to": cap, "why": ...}]`; each removal is refused if it names an edge the
+    architecture does not have, and every applied one is returned so the deliverable says what was
+    taken off the picture and why — the same rule as every other override here.
+    """
+    by_cap = {}
+    for c in components:
+        by_cap.setdefault(c["capability"], []).append(c["id"])
+    applied, unknown = [], []
+    for rule in (overrides or {}).get("remove") or []:
+        if not rule.get("why"):
+            raise SystemExit(f"connection_overrides.remove {rule} has no `why`; an edge taken off "
+                             f"a client-facing diagram has to say why")
+        sources, targets = set(by_cap.get(rule["from"], [])), set(by_cap.get(rule["to"], []))
+        hit = [e for e in connections if e["from"] in sources and e["to"] in targets]
+        if not hit:
+            unknown.append(rule)
+            continue
+        connections = [e for e in connections if e not in hit]
+        applied.append({"from": rule["from"], "to": rule["to"], "why": rule["why"]})
+    return connections, applied, unknown
 
 
 def build_handoff(stack, decisions, cap_map):
@@ -985,6 +1025,17 @@ def build_architecture(inventory, model, platforms, inputs, stacks=None, candida
                    f"override changed nothing. Either the capability serves no story or the key "
                    f"is misspelt."})
 
+    connections, removed_edges, unknown_edges = apply_connection_overrides(
+        build_connections(components, caps.capabilities(model)), components,
+        inputs.get("connection_overrides"))
+    for rule in removed_edges:
+        refusals.append({"what": f"{rule['from']} -> {rule['to']}", "kind": "connection",
+                         "why": rule["why"]})
+    for rule in unknown_edges:
+        refusals.append({"what": f"{rule['from']} -> {rule['to']}", "kind": "connection_override",
+                         "why": "`connection_overrides.remove` names an edge this architecture "
+                                "does not draw, so it changed nothing"})
+
     balance = sourcing.balance(decisions, model)
     balance["vendors_added"] = len((chosen_set or {}).get("detail", {}).get("platforms", []))
 
@@ -1006,6 +1057,8 @@ def build_architecture(inventory, model, platforms, inputs, stacks=None, candida
                    "constraints": constraints,
                    "capability_overrides": inputs.get("capability_overrides") or {},
                    "component_overrides": inputs.get("component_overrides") or {},
+                   "connection_overrides": inputs.get("connection_overrides") or {},
+                   "diagram": inputs.get("diagram") or {},
                    "sourcing_overrides": inputs.get("sourcing_overrides") or {},
                    "model_counter_proposals": inputs.get("model_counter_proposals") or {},
                    "stack_choice": inputs.get("stack_choice")},
@@ -1027,7 +1080,7 @@ def build_architecture(inventory, model, platforms, inputs, stacks=None, candida
         "gate": {"pending": None, "order": list(gates.ORDER),
                  "stopped_after": stop_after},
         "components": components,
-        "connections": build_connections(components, caps.capabilities(model)),
+        "connections": connections,
         "refusals": refusals,
         "handoff": build_handoff(stack, decisions, cap_map),
         # What the options were chosen FROM. A recommendation drawn from a catalogue of one is

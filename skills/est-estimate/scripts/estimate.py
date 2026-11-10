@@ -1307,6 +1307,15 @@ def inventory_from(estimate):
             "epic_id": f.get("epic_id"),
             "surfaces": f.get("surfaces"),
             "manual_effort": f.get("manual_effort") or [],
+            # The client's own sentences survive the round-trip. `feature_row` already writes
+            # them into estimate.json; inverting the price without them silently dropped the
+            # evidence layer on every re-price through est-plan, est-calibrate's backtest and
+            # est-agent-estimator's scenarios. The `alloc_` figures are stripped on the way
+            # back — they are a share of a story's price, not a property of the claim — so a
+            # re-price recomputes them rather than inheriting a stale allocation.
+            "tasks": [{k: v for k, v in t.items()
+                       if k in ("id", "name", "citations")}
+                      for t in f.get("tasks") or []],
             "tags": tags,
             "depends_on": [{"feature_id": d, "inferred": True} for d in (f.get("depends_on") or [])],
             "open_questions": f.get("open_questions", []),

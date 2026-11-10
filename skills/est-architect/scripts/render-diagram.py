@@ -254,7 +254,10 @@ def render(architecture, out_path, model=None, platforms=None, chromium=None,
             report["warnings"] = api.get("warnings") or []
             report["scene"] = api.get("scene")
             if measured:
-                report["routing"] = routing.check(measured, authored=doc)
+                report["routing"] = routing.check(
+                    measured, authored=doc,
+                    allowance=(((architecture.get("inputs") or {}).get("diagram") or {})
+                               .get("crossing_allowance")))
 
     path = Path(out_path)
     size = path.stat().st_size if path.exists() else 0
@@ -281,8 +284,12 @@ def render(architecture, out_path, model=None, platforms=None, chromium=None,
             "kind": "design_contract",
             "detail": "; ".join(
                 f"{check}: " + ", ".join(
-                    f.get("detail") or f"{f.get('connection', f.get('what'))} over "
-                                       f"{f.get('what') or f.get('over')}"
+                    # H2 names the OTHER edge, not a box: it printed "over None" for every
+                    # crossing until passenger-seat, which hid which pair actually crossed.
+                    f.get("detail") or (f"{f.get('connection')} crosses {f.get('other')}"
+                                        if f.get("check") == "H2" else
+                                        f"{f.get('connection', f.get('what'))} over "
+                                        f"{f.get('what') or f.get('over')}")
                     for f in items[:3])
                 for check, items in sorted(by_check.items()))})
         return report, doc, 1

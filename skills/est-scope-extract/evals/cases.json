@@ -70,7 +70,10 @@
         "the dispatcher Monday cycle is surfaced — it is the stated core problem and the SOW does not cover it",
         "anything not traceable to the SOW carries scope_status outside_agreed_scope",
         "the predictive routing remark is commitment: speculative, not committed",
-        "section 9 commercial terms are in not_scope"
+        "section 9 commercial terms are in not_scope",
+        "the dispatcher Monday cycle survives as a NAMED task quoting [00:11:52] in full, not only as a citation on its story — a transcript has claims in it and a speaker turn is one, which is the rule a run over four call transcripts had no way to find and so produced 33 stories with zero tasks",
+        "every citation on a story is also carried by one of that story's tasks, for the sources the tasks draw on — evidence pooled above the claims is evidence a reader cannot attach to anything that has to be built",
+        "inventory-check.py reports a non-zero task count, and no story appears in stories_without_tasks"
       ]
     },
     {
@@ -82,7 +85,9 @@
         "almost every feature is clarity: low",
         "open_questions is substantial — the questions are the deliverable here",
         "no admin dashboard, audit log or export feature is invented",
-        "offline operation is tagged low compressibility and novel"
+        "offline operation is tagged low compressibility and novel",
+        "every story carries at least one task, and each task quotes the sentence of the brief it came from — a two-paragraph brief still has claims in it, and the layer that shows what an epic consists of is not optional because the source is thin",
+        "no task exists that the brief does not state: two or three claims is the right answer here, and inventing more to fill the layer is the same confident elaboration that forbids inventing an admin dashboard"
       ]
     },
     {
@@ -109,7 +114,8 @@
         "an epic grouping the workbook did not itself make is marked origin 'synthesised' with a why naming what it was grouped on",
         "standing_scope carries one entry per catalogue item printed by `inventory-check.py --standing`, each with applies and a why — including the items this project does NOT pay, because a decline recorded with its reason is what tells a reader the item was considered",
         "where an extracted story already covers a catalogue item, that item is declined with the story named in covered_by, rather than claimed alongside it",
-        "inventory-check.py returns no sequence findings and no standing_scope findings"
+        "inventory-check.py returns no sequence findings and no standing_scope findings",
+        "the inventory is refused if any story carries no tasks, exactly as it is refused when a story carries no epic_id — the two obligations are the same shape and only one of them used to be enforced"
       ],
       "note": "Added with the delivery-structure change. The first four assertions are about ordering, which inventory-check.py validates against the dependency graph rather than accepting on trust; the last three are about foundation work, which the extraction now selects and the cost model still prices."
     }
